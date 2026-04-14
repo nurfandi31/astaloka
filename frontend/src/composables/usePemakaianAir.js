@@ -41,7 +41,7 @@ export function usePemakaianAir() {
       pemakaian: 25,
       tagihan: 125000,
       jatuhTempo: '20 Mei 2024',
-      status: 'PAID',
+      status: STATUS_TYPES.PAID,
     },
     {
       id: '102808890',
@@ -53,7 +53,7 @@ export function usePemakaianAir() {
       pemakaian: 13,
       tagihan: 65000,
       jatuhTempo: '20 Mei 2024',
-      status: 'PENDING',
+      status: STATUS_TYPES.PENDING,
     },
     {
       id: '102808553',
@@ -65,7 +65,7 @@ export function usePemakaianAir() {
       pemakaian: 52,
       tagihan: 260000,
       jatuhTempo: '20 Mei 2024',
-      status: 'PAID',
+      status: STATUS_TYPES.PAID,
     },
   ])
 
