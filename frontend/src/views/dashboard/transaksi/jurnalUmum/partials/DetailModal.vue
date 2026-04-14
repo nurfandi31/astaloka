@@ -91,7 +91,22 @@
                   <td class="py-4! px-4! text-right font-mono text-slate-700">0.00</td>
                   <td class="py-4! px-4! text-right font-mono text-slate-700">0.00</td>
                   <td class="py-4! px-4! text-center font-mono text-slate-700">0.00</td>
-                  <td class="py-4! px-4! text-center"></td>
+                  <td class="py-4! px-4! text-center">
+                    <div class="flex items-center justify-center gap-2!">
+                      <button
+                        class="w-8! h-8! rounded-lg! bg-blue-50! text-blue-600! hover:bg-blue-100! transition-all active:scale-90"
+                        title="Cetak"
+                      >
+                        <font-awesome-icon icon="print" />
+                      </button>
+                      <button
+                        class="w-8! h-8! rounded-lg! bg-red-50! text-red-600! hover:bg-red-100! transition-all active:scale-90"
+                        title="Hapus"
+                      >
+                        <font-awesome-icon icon="trash" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
 
                 <tr class="hover:bg-slate-50 transition-colors">
@@ -103,7 +118,22 @@
                   <td class="py-4! px-4! text-right font-mono text-slate-700">0.00</td>
                   <td class="py-4! px-4! text-right font-mono text-slate-700">0.00</td>
                   <td class="py-4! px-4! text-center font-mono text-slate-700"></td>
-                  <td class="py-4! px-4! text-center"></td>
+                  <td class="py-4! px-4! text-center">
+                    <div class="flex items-center justify-center gap-2!">
+                      <button
+                        class="w-8! h-8! rounded-lg! bg-blue-50! text-blue-600! hover:bg-blue-100! transition-all active:scale-90"
+                        title="Cetak"
+                      >
+                        <font-awesome-icon icon="print" />
+                      </button>
+                      <button
+                        class="w-8! h-8! rounded-lg! bg-red-50! text-red-600! hover:bg-red-100! transition-all active:scale-90"
+                        title="Hapus"
+                      >
+                        <font-awesome-icon icon="trash" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
 
                 <tr class="bg-slate-100">
