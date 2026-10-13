@@ -4,7 +4,7 @@
       <div class="flex-1!">
         <h1 class="text-2xl font-bold text-cyan-600! tracking-tight mb-1!">Data Pelanggan</h1>
         <p class="text-sm text-slate-500! leading-relaxed">
-          Daftar pelanggan PAMSIDES yang terdaftar.
+          Daftar pelanggan ASTALOKA yang terdaftar.
         </p>
       </div>
     </div>

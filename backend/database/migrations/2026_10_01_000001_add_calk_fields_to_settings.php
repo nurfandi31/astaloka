@@ -29,7 +29,7 @@ return new class extends Migration
      *   Bisa memuat HTML sehingga admin bisa menata narasi CALK sendiri.
      *
      * Model konsep sidbm (app/Models/Calk.php + tabel `calk` JSON di kecamatan).
-     * Diadaptasi ke pamsides-v2 dengan cara: konfigurasi tersimpan di tabel settings
+     * Diadaptasi ke astaloka dengan cara: konfigurasi tersimpan di tabel settings
      * (single-tenant) sedangkan catatan tambahan per periode tetap di tabel `calks`.
      */
     public function up(): void

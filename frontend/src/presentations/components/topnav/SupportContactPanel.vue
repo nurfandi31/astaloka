@@ -99,7 +99,7 @@ const SUPPORT_ISSUES = [
 
 const openWhatsApp = () => {
   const text = encodeURIComponent(
-    'Halo Teknikal Support, saya sedang mengalami kendala saat menggunakan aplikasi PAMSIDES. Mohon bantuan.',
+    'Halo Teknikal Support, saya sedang mengalami kendala saat menggunakan aplikasi ASTALOKA. Mohon bantuan.',
   )
 
   window.open(`https://wa.me/${SUPPORT_PHONE_DIGITS}?text=${text}`, '_blank', 'noopener')

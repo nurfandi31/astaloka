@@ -1,13 +1,13 @@
-# Dokumentasi Perbedaan APK: `siap_mapan` (APK Lama) vs `pamsides` (APK Baru)
+# Dokumentasi Perbedaan APK: `siap_mapan` (APK Lama) vs `astaloka` (APK Baru)
 
 Dokumen ini merangkum **seluruh perbedaan** antara dua aplikasi, disusun menu per menu
 sesuai sidebar yang tampil di aplikasi.
 
 | | APK Lama | APK Baru |
 |---|---|---|
-| Nama folder | `C:\laragon\www\siap_mapan` | `C:\laragon\www\pamsides` |
+| Nama folder | `C:\laragon\www\siap_mapan` | `C:\laragon\www\astaloka` |
 | Stack | Laravel + Blade + wkhtmltopdf | Laravel API + Vue 3 SPA |
-| Database | `103.177.95.92` / `pamsides` (server, multi-tenant) | `127.0.0.1` / `pamsides` (lokal, single-tenant) |
+| Database | `103.177.95.92` / `astaloka` (server, multi-tenant) | `127.0.0.1` / `astaloka` (lokal, single-tenant) |
 | Akun | `userSimSppg` | `root` |
 | Tampilan | Server-side render → PDF inline | Client-side render → preview → print PDF |
 
@@ -58,7 +58,7 @@ Artinya: **pemakaian Februari → dibayar 27 Maret**. Selama bulan Maret yang di
 adalah pemakaian Februari. Tidak ada kolom periode tagihan yang eksplisit — periode hanya
 disimpulkan dari `LIKE 'YYYY-MM%'` atas `tgl_pemakaian`.
 
-**APK Baru (`pamsides`)** — **konsisten 100%**, periode = bulan pemakaian:
+**APK Baru (`astaloka`)** — **konsisten 100%**, periode = bulan pemakaian:
 
 ```php
 // MonthlyBillService.php:127-139  (generator massal)
@@ -649,7 +649,7 @@ tampil `1.676.823.680`, seharusnya `868.785.590`).
 | Laporan tagihan | `resources/views/pelaporan/partials/views/tagihan_pelanggan.blade.php` |
 | Menu (dinamis) | `app/Models/Menu.php` |
 
-### APK Baru — `C:\laragon\www\pamsides`
+### APK Baru — `C:\laragon\www\astaloka`
 
 | Area | File |
 |---|---|

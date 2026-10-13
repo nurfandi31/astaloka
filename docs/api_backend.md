@@ -1,4 +1,4 @@
-# Dokumentasi API Backend pamsides
+# Dokumentasi API Backend astaloka
 
 ## Base URL
 ```
@@ -25,7 +25,7 @@ Authorization: Bearer {token}
 **Request Login:**
 ```json
 {
-    "email": "admin@pamsides.test",
+    "email": "admin@astaloka.test",
     "password": "password"
 }
 ```
@@ -353,6 +353,6 @@ Semua endpoint menggunakan format response yang sama:
 
 | Email | Password | Role |
 |---|---|---|
-| `admin@pamsides.test` | `password` | Admin |
-| `surveyor@pamsides.test` | `password` | Surveyor |
-| `teknisi@pamsides.test` | `password` | Teknisi |
+| `admin@astaloka.test` | `password` | Admin |
+| `surveyor@astaloka.test` | `password` | Surveyor |
+| `teknisi@astaloka.test` | `password` | Teknisi |

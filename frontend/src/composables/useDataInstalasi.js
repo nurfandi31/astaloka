@@ -4,7 +4,7 @@ import ticketHistoryService from '@/services/ticketHistory.service'
 import packageService from '@/services/package.service'
 import Swal from 'sweetalert2'
 
-const APP_NAME = 'PAMSIDES'
+const APP_NAME = 'ASTALOKA'
 
 const STATUS_LABELS = {
   draft: 'Draft',
@@ -69,7 +69,7 @@ export function useDataInstalasi() {
   const isPackagesLoading = ref(false)
   const isDetailLoading = ref(false)
   const isUpdateSubmitting = ref(false)
-  const detailData = ref(null)         // hasil GET /history
+  const detailData = ref(null) // hasil GET /history
   const updateForm = ref({
     ticketId: null,
     currentPackageId: null,
@@ -91,7 +91,8 @@ export function useDataInstalasi() {
           .filter((t) => ACTIVE_CONNECTION_STATUSES.includes(t.status))
           .map((t) => ({
             ticketId: t.id,
-            kodeInstalasi: t.customer?.[0]?.customer_code || `#INS-${String(t.id).padStart(4, '0')}`,
+            kodeInstalasi:
+              t.customer?.[0]?.customer_code || `#INS-${String(t.id).padStart(4, '0')}`,
             nama: t.applicant_name || '-',
             alamat: t.address || '-',
             paket: t.package?.name || t.package_name || '-',
@@ -102,7 +103,7 @@ export function useDataInstalasi() {
       } else {
         tableData.value = []
       }
-    } catch (err) {
+    } catch {
       Swal.fire({
         title: 'Gagal!',
         text: 'Tidak dapat mengambil data instalasi.',
@@ -234,7 +235,7 @@ export function useDataInstalasi() {
       isPackagesLoading.value = true
       const res = await packageService.getPackages()
       // packageService.getPackages() return { success, data: [...] }
-      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : [])
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
       packages.value = list.map((p) => ({
         id: p.id,
         name: p.name,
@@ -242,7 +243,7 @@ export function useDataInstalasi() {
         monthly_abodemen: Number(p.monthly_abodemen ?? 0),
         late_penalty: Number(p.late_penalty ?? 0),
       }))
-    } catch (err) {
+    } catch {
       Swal.fire({
         title: 'Gagal!',
         text: 'Tidak dapat memuat daftar paket.',
@@ -341,10 +342,8 @@ export function useDataInstalasi() {
     }
 
     // Konfirmasi sebelum submit
-    const oldPkg =
-      packages.value.find((p) => p.id === form.currentPackageId) || null
-    const newPkg =
-      packages.value.find((p) => p.id === form.newPackageId) || null
+    const oldPkg = packages.value.find((p) => p.id === form.currentPackageId) || null
+    const newPkg = packages.value.find((p) => p.id === form.newPackageId) || null
     const oldPkgName = oldPkg?.name || '-'
     const newPkgName = newPkg?.name || '-'
     const oldAbodemen = oldPkg ? formatRupiah(oldPkg.monthly_abodemen) : '-'
@@ -472,9 +471,7 @@ export function useDataInstalasi() {
     } catch (err) {
       Swal.fire({
         title: 'Gagal!',
-        text:
-          err?.response?.data?.message ||
-          'Terjadi kesalahan saat memperbarui paket.',
+        text: err?.response?.data?.message || 'Terjadi kesalahan saat memperbarui paket.',
         icon: 'error',
       })
     } finally {

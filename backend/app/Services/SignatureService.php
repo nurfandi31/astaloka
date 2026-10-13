@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
- * SignatureService - pusat manajemen tanda tangan digital PAMSIDES.
+ * SignatureService - pusat manajemen tanda tangan digital ASTALOKA.
  *
  * Konsep identik dengan SIUPK-Next:
  *   - Template HTML per laporan (rich text editor dengan tabel Mengetahui/Dibuat/Bendahara).
@@ -24,8 +24,8 @@ class SignatureService
     private const DIR = 'signatures';
 
     private const MIME_MAP = [
-        'png'  => 'image/png',
-        'jpg'  => 'image/jpeg',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
         'jpeg' => 'image/jpeg',
         'webp' => 'image/webp',
     ];
@@ -258,19 +258,19 @@ class SignatureService
         // Tutup buku: pilih sub_laporan yang sesuai
         if ($viewTarget === 'tutup_buku') {
             return match ($subLaporan) {
-                'alokasi_laba'    => 'tutup_buku_alokasi_laba',
+                'alokasi_laba' => 'tutup_buku_alokasi_laba',
                 'jurnal_tutup_buku' => 'tutup_buku_jurnal',
                 'neraca_tutup_buku' => 'tutup_buku_neraca',
                 'laba_rugi_tutup_buku' => 'tutup_buku_laba_rugi',
                 'CALK_tutup_buku' => 'tutup_buku_calk',
-                default           => 'tutup_buku_neraca',
+                default => 'tutup_buku_neraca',
             };
         }
 
         // Aliases
         $aliases = [
-            'calk'       => 'calkk',
-            'LPM'        => 'perubahan_modal',
+            'calk' => 'calkk',
+            'LPM' => 'perubahan_modal',
             'perubahan_modal' => 'perubahan_modal',
         ];
 
