@@ -19,7 +19,26 @@
 
     <title>ASTALOKA &mdash; Asta Layanan Operasional, Keuangan, dan Administrasi</title>
 
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#128200;</text></svg>">
+    {{--
+        Favicon.
+
+        Sebelumnya pakai emoji chart (U+1F4C8) di dalam SVG data-URI.
+        Itu masalah yang sama seperti ikon di kartu: yang dirender adalah
+        glyph dari font emoji sistem operasi, jadi bentuknya beda di tiap
+        perangkat, dan di beberapa sistem bisa tampil kotak kosong di tab
+        browser -- termasuk di layar yang paling terlihat.
+
+        Sekarang huruf A dalam kotak teal, digambar penuh, jadi tidak
+        bergantung font apa pun.
+
+        Tanda kutip di dalam data-URI ditulis sebagai `%22`. Kalau
+        ditulis literal, kutip itu menutup atribut HTML lebih dulu
+        dan link rusak tanpa error yang kelihatan.
+
+        `viewBox` 0 0 64 64 dengan huruf yang tidak menyentuh tepi: pada
+        ikon 16px, bentuk yang menempel tepi akan tergerus penskalaan.
+    --}}
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230f766e'/%3E%3Cpath d='M20 46L32 17l12 29h-6.4l-2.2-5.8H28.6L26.4 46zM30.4 34.8h3.2L32 29.2z' fill='%23fff'/%3E%3C/svg%3E">
 
 <style>
         /* ============================================================
@@ -411,45 +430,70 @@
             display: flex; align-items: flex-start; gap: 9px;
         }
 
+        /* Ikon di depan .note.
+
+           Semula `&#9432;` (diamond with minus sign) -- glyph font,
+           masalah yang sama seperti emoji di kartu fitur: bentuknya
+           beda antar platform. Sekarang SVG, jadi selalu sama.
+
+           `flex: none` supaya ikon tidak ikut memendek kalau teksnya
+           panjang, dan `margin-top` supaya optiknya sejajar dengan
+           baris teks pertama, bukan menempel paling atas. */
+        .note > svg {
+            width: 16px; height: 16px; flex: none; margin-top: 2px;
+            fill: none; stroke: currentColor;
+            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+        }
+
         /* ---------- mockup dashboard ----------
 
            Kartu ini INTERAKTIF (hover) karena isinya memang sesuatu
-           yang bisa dibaca -- visual yang_fee statis seperti kartu fitur
+           yang bisa dibaca -- visual yang sepenuhnya statis seperti kartu fitur
            akan terlihat kosong. Sumber kebenarannya tetap mockup, bukan
            data nyata: lihat catatan di markup.
 
-           Bahasa visualnya "terminal", bukan "crypto". Angka Emerald
-           dengan label mono + diagram batang sudah delivering hal yang
-           sama dengan ticker cryptocurrency -- rasa "uang bergerak" --
+           Bahasa visualnya "terminal", bukan "crypto". Angka emerald
+           dengan label mono + diagram batang sudah memberi hal yang sama
+           dengan ticker cryptocurrency -- rasa "uang bergerak" --
            tanpa membawa asosiasi volatilitas dan spekulasi yang justru
-           salah untuk sistem administrasi desa. */
+           salah untuk sistem administrasi desa.
+
+           Berbeda dari kartu fitur: di sini hover MEMANG boleh sedikit
+           mengangkat, karena isi kartu ini memang sesuatu yang dibaca.
+           Batasnya jelas -- tidak ada tombol, tidak ada tautan, tidak
+           ada `cursor: pointer` di dalam kartu ini. */
         .mock {
             position: relative;
             background: var(--slate-900);
-            border: 1px solid rgb(255 255 255 / .08);
+            border: 1px solid rgb(255 255 255 / .09);
             border-radius: var(--r-xl);
-            box-shadow: var(--sh-xl), 0 0 0 1px rgb(45 212 191 / .06),
-                        0 30px 70px -30px rgb(13 148 136 / .40);
+            box-shadow: var(--sh-xl), 0 26px 60px -30px rgb(13 148 136 / .35);
             overflow: hidden;
-            transition: transform .45s var(--ease), box-shadow .45s var(--ease);
+            transition: transform .45s var(--ease), box-shadow .45s var(--ease),
+                        border-color .45s var(--ease);
         }
+
         .mock:hover {
             transform: translateY(-4px);
-            box-shadow: var(--sh-xl), 0 0 0 1px rgb(45 212 191 / .14),
-                        0 44px 90px -34px rgb(13 148 136 / .55);
+            border-color: rgb(45 212 191 / .28);
+            box-shadow: var(--sh-xl), 0 38px 80px -32px rgb(13 148 136 / .50);
         }
 
         /* Bar judul: tiga titik + path + badge "contoh".
-           Badge itu wajib: tanpa label eksplisit, angka mockup bisa
-           dibaca calon pembeli sebagai performa nyata. */
+
+           Badge itu wajib, bukan hiasan: tanpa label eksplisit, angka
+           mockup bisa dibaca calon pembeli sebagai performa nyata. Baris
+           ini satu-satunya tempat yang jujur menyatakan status data, jadi
+           tidak boleh hilang saat kartu dirapikan. */
         .mock__bar {
             display: flex; align-items: center; gap: 12px;
-            padding: 13px 18px;
+            padding: 12px 18px;
             border-bottom: 1px solid rgb(255 255 255 / .07);
             background: rgb(255 255 255 / .025);
         }
+
         .mock__dots { display: flex; gap: 6px; flex: none; }
-        .mock__dots i { width: 10px; height: 10px; border-radius: 50%; background: rgb(255 255 255 / .16); }
+        .mock__dots i { width: 9px; height: 9px; border-radius: 50%; background: rgb(255 255 255 / .16); }
 
         .mock__path {
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -467,40 +511,86 @@
         }
 
         .mock__body {
-            display: grid; gap: 10px;
+            display: grid; gap: 12px;
             grid-template-columns: 1fr 1fr;
-            padding: 20px;
+            padding: 18px;
         }
 
+        /* ---------- kartu angka ----------
+
+           Ikon dan label sebaris di atas, angka besar di bawah, delta
+           paling bawah. Urutan ini yang bikin enak dibaca: orang yang
+           memindai dashboard selalu lihat kategorinya dulu, baru angkanya. */
         .mock__stat {
-            display: flex; flex-direction: column; gap: 5px;
+            display: flex; flex-direction: column; gap: 9px;
             background: rgb(255 255 255 / .035);
-            border: 1px solid rgb(255 255 255 / .06);
+            border: 1px solid rgb(255 255 255 / .065);
             border-radius: var(--r);
-            padding: 15px 16px;
+            padding: 15px 16px 16px;
             transition: border-color .35s var(--ease), background .35s var(--ease);
         }
+
         .mock__stat:hover { border-color: rgb(45 212 191 / .3); background: rgb(45 212 191 / .05); }
+
+        .mock__head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+
+        /* Kotak ikon kecil. Warnanya mengikuti `--warn`, jadi satu
+           selector tambahan cukup untuk kartu tunggakan yang perlu
+           nada peringatan. */
+        .mock__ico {
+            width: 30px; height: 30px; flex: none;
+            display: grid; place-items: center;
+            border-radius: 9px;
+            background: rgb(45 212 191 / .12);
+            color: var(--teal-300);
+        }
+        .mock__ico--warn { background: rgb(251 191 36 / .13); color: var(--amber-400); }
+
+        /* Stroke mengikuti currentColor, jadi `color` di atas sudah
+           cukup -- tidak ada aturan warna per ikon. */
+        .mock__ico svg {
+            width: 16px; height: 16px;
+            fill: none; stroke: currentColor;
+            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+        }
 
         .mock__label {
             font-size: 11.5px; font-weight: 500; letter-spacing: .02em;
             color: var(--slate-400);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* Angka tabular: tanpanya, digit akan "berganti lebar" saat
-           dihitung -- angka yang melompat-lompat terlihat glitch. */
+        /* Angka tabular: tanpanya, digit akan berganti lebar saat
+           dihitung -- angka yang melompat-lompat terlihat glitch.
+
+           Angka sengaja menempel ke delta-nya, bukan terdorong ke dasar
+           kartu: kalau melompot ke bawah, jarak ke delta jadi jauh dan
+           kartu sebaris terlihat tidak nyambung. */
         .mock__value {
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 21px; font-weight: 600; letter-spacing: -.02em;
+            font-size: 22px; font-weight: 600; letter-spacing: -.02em;
             color: var(--emerald-300);
             font-variant-numeric: tabular-nums;
         }
 
-        .mock__delta { font-size: 11.5px; color: var(--slate-500); }
+        /* Delta: ikon panah, bukan karakter segitiga.
+
+           Karakter segitiga itu glyph font -- bentuknya beda antar
+           platform, masalah yang sama seperti emoji di kartu fitur,
+           hanya lebih kecil dan lebih sering luput. SVG selalu sama. */
+        .mock__delta {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11.5px; color: var(--slate-500);
+        }
+        .mock__delta svg {
+            width: 12px; height: 12px; flex: none;
+            fill: none; stroke: currentColor;
+            stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+        }
         .mock__delta.up   { color: var(--emerald-400); }
         .mock__delta.down { color: var(--amber-400); }
 
-        .mock__tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+        .mock__tags { display: flex; flex-wrap: wrap; gap: 5px; }
         .mock__tags i {
             font-style: normal; font-size: 11px; font-weight: 500;
             color: var(--teal-200);
@@ -509,70 +599,85 @@
             padding: 3px 8px; border-radius: 7px;
         }
 
-        .mock__chart { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; }
+        .mock__chart { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; }
 
-        /* Batang tumbuh dari bawah: tinggi ditulis inline lewat --h.
-           Animasi memakai scaleY dengan transform-origin bawah, jadi
-           tidak memicu layout selama animasi.
+        /* ---------- grafik batang ----------
 
-           max-width itu penting. Tanpa batas lebar, `flex: 1` bikin
-           tiap batang mengisi seluruh lebar kartu -- hasilnya terbaca
-           seperti barcode, bukan grafik. space-between menjaga
-           jaraknya merata setelah batang kena batas lebar. */
-        /* PENTING: prefix `deck-` wajib. Class polos `.bar` sudah dipakai
-           `.wrap.bar` di header, dan CSS batang di bawah menimpa header:
-           `max-width: 42px` membuat header selebar 42px dan gradien teal
-           membuat header hijau. Tabrakan nama kelas seperti ini tidak
-           melempar error -- hanya diam-diam merusak tampilan. */
-        .bars {
-            display: flex; align-items: flex-end; justify-content: space-between;
-            gap: 8px; height: 76px;
+           Tinggi tiap batang ditulis inline sebagai `--h`, urutan untuk
+           jeda animasi sebagai `--i`. Murni CSS, tanpa JS dan tanpa gambar.
+
+           `--i` menggantikan `:nth-child(1..6)`. Aturan nth-child bekerja,
+           tapi tidak ada yang ingat harus menambah aturan baru kalau jumlah
+           batang berubah -- dan kalau lupa, batang baru tumbuh bareng
+           batang terakhir, bukan berurutan.
+
+           PENTING: prefix `deck-` wajib dan tidak boleh diubah asal.
+           Class polos `.bar` sudah dipakai `.wrap.bar` di header, dan CSS
+           batang di bawah akan menimpanya: `max-width` membuat header
+           selebar sempit, dan gradien teal membuat header hijau. Tabrakan
+           nama kelas seperti ini tidak melempar error -- hanya diam-diam
+           merusak tampilan, dan jauh lebih sulit ditelusuri. */
+        .deck {
+            display: flex; flex-direction: column; gap: 9px;
         }
+
+        .deck__bars {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            gap: 8px; height: 78px;
+            /* Garis dasar: tanpa itu, batang yang menempel tepi bawah
+               terlihat melayang. Border dipakai (bukan background) supaya
+               tidak menambah tinggi layout. */
+            border-bottom: 1px solid rgb(255 255 255 / .07);
+        }
+
         .deck-bar {
             flex: 1; max-width: 42px;
             height: var(--h, 50%);
             border-radius: 5px 5px 2px 2px;
             background: linear-gradient(180deg, var(--teal-400), var(--teal-600));
             transform-origin: bottom;
-            animation: grow .9s var(--ease) backwards;
+            animation: grow .8s var(--ease) backwards;
+            animation-delay: calc(var(--i, 0) * 65ms);
         }
-        /* Batang terakhir disorot: ini yang dibaca mata lebih dulu. */
+
+        /* Batang terakhir disorot: ini yang dibaca mata lebih dulu, jadi
+           juga yang paling perlu kontras. */
         .deck-bar--on {
             background: linear-gradient(180deg, var(--emerald-300), var(--teal-500));
             box-shadow: 0 0 18px -4px rgb(45 212 191 / .55);
         }
-
-        /* Garis dasar: tanpa itu, batang yang menempel di tepi bawah
-           area grafik terlihat melayang. Border dipakai (bukan
-           background) supaya tidak menambah tinggi layout. */
-        .bars { border-bottom: 1px solid rgb(255 255 255 / .07); }
 
         @keyframes grow {
             from { transform: scaleY(0); }
             to   { transform: scaleY(1); }
         }
 
-        /* Jeda bertingkat supaya batang tumbuh berurutan, bukan
-           sekaligus -- tanpa JS, cukup nth-child di CSS. */
-        .deck-bar:nth-child(1) { animation-delay: .10s; }
-        .deck-bar:nth-child(2) { animation-delay: .20s; }
-        .deck-bar:nth-child(3) { animation-delay: .30s; }
-        .deck-bar:nth-child(4) { animation-delay: .40s; }
-        .deck-bar:nth-child(5) { animation-delay: .50s; }
-        .deck-bar:nth-child(6) { animation-delay: .60s; }
+        /* Label bulan memakai aturan flex yang sama persis dengan
+           batang -- `space-between`, gap, dan `max-width` -- supaya
+           kotak keduanya benar-benar sejajar. Beda hanya `text-align`
+           dan tanpa `flex-direction`. */
+        .deck__months { display: flex; justify-content: space-between; gap: 8px; }
+        .deck__months span {
+            flex: 1; max-width: 42px; text-align: center;
+            font-size: 10.5px; letter-spacing: .03em;
+            color: var(--slate-500);
+        }
+        .deck__months span:last-child { color: var(--emerald-400); font-weight: 600; }
 
         /* Baris kecil di bawah mockup: jalan keluar untuk yang sudah jadi
-           pelanggan. Sengaja TIDAK diberi tautan -- halaman ini untuk
-           calon pembeli baru, dan setiap tautan login di sini cuma
+           pelanggan. Tautan di teksnya sengaja minimal -- halaman ini
+           untuk calon pembeli baru, dan setiap pintu masuk tambahan hanya
            menambah satu alasan untuk pergi sebelum sempat membaca. */
         .mock__foot {
-            margin: 0; padding: 14px 20px 16px;
+            margin: 0; padding: 13px 20px 15px;
             border-top: 1px solid rgb(255 255 255 / .07);
             background: rgb(255 255 255 / .02);
             font-size: 12.5px; line-height: 1.6; text-align: center;
             color: var(--slate-500);
         }
         .mock__foot strong { color: var(--slate-400); font-weight: 600; }
+        .mock__foot a { color: var(--teal-300); text-decoration: none; border-bottom: 1px solid rgb(45 212 191 / .35); }
+        .mock__foot a:hover { border-bottom-color: var(--teal-300); }
 
         /* ---------- section ---------- */
         section { padding: 80px 0; }
@@ -598,7 +703,7 @@
            mencobanya lalu kecewa.
 
            Yang boleh bergerak hanya yang JELAS tidak bisa diklik:
-           cahaya, warna, dan isi. Semuamotion di bawah dipicu hover
+           cahaya, warna, dan isi. Semua efek di bawah dipicu hover
            pada kartu, tapi tidak pernah mengubah posisinya -- tidak ada
            `translate`, tidak ada `scale`, tidak ada shadow yang membesar.
 
@@ -673,10 +778,10 @@
 
         .card:hover {
             border-color: var(--teal-200);
-            /* Hanya shadow yang dalam sedikit. Bukan shadow yang
-               "naik" seperti kartu klik -- bedanya sengaja dibuat
-               tipis supaya tidak terbaca sebagai undiscoverable
-               surface yang bisa ditekan. */
+            /* Hanya shadow yang sedikit lebih dalam. Bukan shadow yang
+               "naik" seperti kartu yang bisa diklik -- bedanya
+               sengaja dibuat tipis supaya tidak terbaca sebagai
+               permukaan yang menggoda untuk ditekan. */
             box-shadow: var(--sh-lg);
         }
 
@@ -688,12 +793,18 @@
            Glyph ikut bergerak akan terbaca sebagai tombol yang
            "menekan" ikon -- persis hal yang harus dihindari di
            kartu inert. Yang bergerak di sini cuma gradasi, yang
-           jelas-jelas dekoratif. */
+           jelas-jelas dekoratif.
+
+           Ukuran lewat CSS, bukan `font-size`. Isi kotak ini dulu
+           emoji, jadi dimensinya dibuat untuk font 22px. Sekarang
+           isinya <svg> yang ukuran-nya dikontrol `width`/`height`,
+           dan `font-size` tidak lagi berlaku. Tanpa perubahan ini,
+           ikon ikut mewarisi ukuran teks di sekitarnya. */
         .card .ico {
             width: 46px; height: 46px; border-radius: 13px;
             display: grid; place-items: center;
             background: linear-gradient(135deg, var(--teal-50), var(--teal-100));
-            color: var(--teal-700); font-size: 22px; margin-bottom: 17px;
+            color: var(--teal-700); margin-bottom: 17px;
             box-shadow: var(--sh-sm);
             transition: background .45s var(--ease), box-shadow .45s var(--ease),
                         border-radius .45s var(--ease);
@@ -705,22 +816,37 @@
             box-shadow: var(--sh-md);
         }
 
+        /* Bentuk ikon di dalam kotak.
+
+           `fill: none` + `stroke: currentColor` membuat ikon mengikuti
+           warna teksnya, jadi saat hover warnanya berubah, ikon ikut
+           berubah tanpa selector tambahan. Ujung `round` supaya tidak
+           tajam di ukuran kecil. */
+        .card .ico svg {
+            width: 23px; height: 23px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.75;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
         .card h3 { margin: 0 0 8px; font-size: 17.5px; letter-spacing: -.016em; font-weight: 700; }
         .card p { margin: 0; font-size: 14.5px; line-height: 1.62; color: var(--ink-soft); }
 
         /* ---------- animasi masuk kartu ----------
 
            `.reveal.shown` memakai `rise` yang sama dengan elemen lain,
-           tapi kartu dapat versi sendiri: masuk dari bawah_LEBIH jauh
+           tapi kartu dapat versi sendiri: masuk dari bawah lebih jauh
            dan sedikit miring, supaya barisan kartu terasa naik sebagai
            satu blok, bukan 7 elemen yang kebetulan muncul bersamaan.
 
-           Panjang animasi 0.78s dari `rise` di sini diturunkan
-           memorable: 7 kartu dengan delay 70ms = 420ms lebih akhir
-           untuk yang terakhir. Kalau tiap kartu ikut 0.78s penuh,
-           baris terakhir baru selesai di 1.2s -- orang yang sedang
-           scroll cepat akan BNI melihat apa pun dan menganggap halaman
-           lambat. */
+           Durasi 0.62s, bukan 0.78s seperti `rise`. Hitungannya
+           berantai: 7 kartu dengan delay 70ms berarti yang terakhir
+           mulai 420ms lebih lambat. Kalau tiap kartu ikut 0.78s
+           penuh, baris terakhir baru selesai di 1.2s -- orang yang
+           sedang scroll cepat akan lewat begitu saja lalu
+           menganggap halaman lambat. */
         @keyframes card-in {
             from {
                 opacity: 0;
@@ -949,7 +1075,7 @@
             /* Panel menu ikut menyempit agar sejajar dengan teks. */
             .nav { inset: calc(100% + 8px) 18px auto 18px; }
 
-            /* Dua kolom jadi satu di layar sempit: angka 21px dalam
+            /* Dua kolom jadi satu di layar sempit: angka 22px dalam
                setengah lebar 390px akan terpotong. */
             .mock__body { grid-template-columns: 1fr; padding: 16px; }
             .mock__value { font-size: 19px; }
@@ -983,6 +1109,24 @@
             .reveal { opacity: 1 !important; transform: none !important; }
             .hero::before, .hero::after, .closer::after { animation: none; }
 
+            /* Batang grafik: delay harus ikut dinolkan.
+
+               Rule `*` di atas hanya menyentuh `animation-duration` dan
+               `animation-iteration-count`. `animation-delay` tidak ikut
+               berubah -- dan `grow` memakai fill-mode `backwards`, jadi
+               selama delay masih berlaku batang ditahan di frame `from`
+               yang punya `scaleY(0)`.
+
+               Efeknya di mode ini: seluruh grafik hilang selama 325ms
+               (delay batang terakhir) lalu muncul sekaligus. Kedipan
+               yang sama sekali tidak boleh ada di halaman yang sedang
+               dihentikan geraknya.
+
+               `animation: none` lebih bersih: mengembalikan batang ke gaya
+               dasarnya, yang tidak punya transform -- jadi langsung tampil
+               pada tinggi `--h`. */
+            .deck-bar { animation: none !important; }
+
             /* Kartu perlu `animation: none`, bukan cuma durasi ~0.
 
                `card-in` berakhir dengan `forwards` dan `from` punya
@@ -1013,6 +1157,144 @@
 </head>
 
 <body>
+    {{--
+        Sprite ikon SVG.
+
+        Kenapa sprite dan bukan emoji: emoji dirender oleh font milik
+        sistem operasi, jadi bentuk dan warnanya beda di tiap perangkat --
+        Windows (Segoe UI Emoji) tidak sama dengan Mac (Apple Color Emoji)
+        atau Android (Noto). Sebagian bahkan tampil sebagai kotak kosong
+        kalau fontnya tidak ada. Halaman ini tidak punya build step, jadi
+        tidak bisa mengandalkan icon font seperti Font Awesome.
+
+        SVG stabil di semua platform: bentuknya ditentukan file ini,
+        bukan font yang kebetulan terpasang, dan warnanya mengikuti
+        `currentColor` sehingga otomatis ikut berubah saat hover.
+
+        Bentuk outline (isi `none`, `stroke` saja) dipilih supaya
+        konsisten dengan kartu putih dan tetap ramping di layar kecil.
+
+        Letak di awal `<body>`, bukan akhir: `<use>` yang menunjuk simbol
+        yang belum ter-parse akan menggambar apa pun atau tidak sama
+        sekali. Di awal body, sprite sudah ada sebelum kartu mana pun
+        dirender.
+
+        `display: none` membuat browser modern melewati seluruh subtree
+        ini, termasuk saat menghitung ulang accessibility tree.
+    --}}
+    <svg width="0" height="0" aria-hidden="true" focusable="false"
+         style="position:absolute;display:none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            {{-- Air minum: tetes air dengan garis di tengahnya. --}}
+            <symbol id="i-water" viewBox="0 0 24 24">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                <path d="M12 7v10"/>
+            </symbol>
+
+            {{-- Internet &amp; TV: monitor dengan antena di atasnya.
+
+                 Gelombang antenanya dua busur dengan titik tengah sama
+                 (x=12) dan radius bertingkat, jadi tiap busur terpisah
+                 jelas dari yang di atasnya.
+
+                 Semula tiap gelombang adalah busur penuh yang membentang
+                 hampir selebar monitor di bawahnya. Dua bentuk sebesar
+                 itu saling menindih, dan yang terbaca dari hasilnya
+                 hanya garis-basanya. --}}
+            <symbol id="i-internet" viewBox="0 0 24 24">
+                <path d="M7.4 10.6a6.5 6.5 0 0 1 9.2 0"/>
+                <path d="M4.2 7.6a11 11 0 0 1 15.6 0"/>
+                <circle cx="12" cy="14.2" r="1.1"/>
+                <rect x="2.5" y="16.5" width="19" height="5" rx="1.8"/>
+            </symbol>
+
+            {{-- Pembayaran sampah: lorry. --}}
+            <symbol id="i-truck" viewBox="0 0 24 24">
+                <path d="M10 17h4V5H2v12h3"/>
+                <path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8"/>
+                <circle cx="7.5" cy="17.5" r="2.5"/>
+                <circle cx="17.5" cy="17.5" r="2.5"/>
+            </symbol>
+
+            {{-- Data pelanggan: dua orang. --}}
+            <symbol id="i-users" viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </symbol>
+
+            {{-- Keuangan: grafik batang.
+
+                 Semula hanya tiga garis vertikal tanpa konteks apa pun --
+                 tidak ada sumbu, tidak ada label, tidak ada bentuk yang
+                 bisa dijadikan acuan. Di ukuran 23px bentuk itu hanya
+                 terbaca sebagai tiga goresan.
+
+                 Garis dasar dan batang terpendek sekarang memberi titik
+                 awal, jadi yang naik dan yang turun bisa dibandingkan. --}}
+            <symbol id="i-chart" viewBox="0 0 24 24">
+                <path d="M4 20h16"/>
+                <path d="M7 20v-4"/>
+                <path d="M12 20V6"/>
+                <path d="M17 20v-9"/>
+            </symbol>
+
+            {{-- Laporan: dokumen dengan garis teks. --}}
+            <symbol id="i-report" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <path d="M14 2v6h6"/>
+                <path d="M16 13H8"/>
+                <path d="M16 17H8"/>
+                <path d="M10 9H8"/>
+            </symbol>
+
+            {{-- Data terpisah: kunci. --}}
+            <symbol id="i-lock" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </symbol>
+
+            {{-- Mockup: garis naik. --}}
+            <symbol id="i-trend-up" viewBox="0 0 24 24">
+                <path d="M22 7l-8.5 8.5-5-5L2 17"/>
+                <path d="M16 7h6v6"/>
+            </symbol>
+
+            {{-- Mockup: garis turun. --}}
+            <symbol id="i-trend-down" viewBox="0 0 24 24">
+                <path d="M22 17l-8.5-8.5-5 5L2 7"/>
+                <path d="M16 17h6v-6"/>
+            </symbol>
+
+            {{-- Mockup: satu orang untuk pelanggan aktif. --}}
+            <symbol id="i-user" viewBox="0 0 24 24">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </symbol>
+
+            {{-- Mockup: dokumen bertumpuk untuk daftar laporan. --}}
+            <symbol id="i-docs" viewBox="0 0 24 24">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+                <path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                <path d="M9 8h6"/>
+                <path d="M9 12h6"/>
+                <path d="M9 16h3"/>
+            </symbol>
+
+            {{-- Catatan hero: lingkaran dengan centang.
+
+                 Semula diamond minus (&#9432;). Centang lebih tepat karena
+                 isinya janji, bukan peringatan. --}}
+            <symbol id="i-check-circle" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M8.5 12.2l2.4 2.4 4.6-4.9"/>
+            </symbol>
+        </defs>
+    </svg>
+
     {{--
         URL login panel pusat.
 
@@ -1101,7 +1383,7 @@
                     </div>
 
                     <p class="note">
-                        <span aria-hidden="true">&#9432;</span>
+                        <svg aria-hidden="true"><use href="#i-check-circle"/></svg>
                         <span>
                             Tanpa biaya instalasi. Data Anda milik Anda, tersimpan
                             di server terpisah dari lokasi lain.
@@ -1139,39 +1421,71 @@
 
                     <div class="mock__body">
                         <div class="mock__stat">
-                            <span class="mock__label">Pemasukan bulan ini</span>
+                            <div class="mock__head">
+                                <span class="mock__ico"><svg aria-hidden="true"><use href="#i-trend-up"/></svg></span>
+                                <span class="mock__label">Pemasukan bulan ini</span>
+                            </div>
                             <span class="mock__value" data-count="18450000" data-money>Rp 0</span>
-                            <span class="mock__delta up">&#9650; 12,4% dari bulan lalu</span>
+                            <span class="mock__delta up">
+                                <svg aria-hidden="true"><use href="#i-trend-up"/></svg>
+                                12,4% dari bulan lalu
+                            </span>
                         </div>
 
                         <div class="mock__stat">
-                            <span class="mock__label">Tagihan belum lunas</span>
+                            <div class="mock__head">
+                                <span class="mock__ico mock__ico--warn"><svg aria-hidden="true"><use href="#i-trend-down"/></svg></span>
+                                <span class="mock__label">Tagihan belum lunas</span>
+                            </div>
                             <span class="mock__value" data-count="9230000" data-money>Rp 0</span>
-                            <span class="mock__delta down">&#9660; 7 customer menunggak</span>
+                            <span class="mock__delta down">
+                                <svg aria-hidden="true"><use href="#i-trend-down"/></svg>
+                                7 customer menunggak
+                            </span>
                         </div>
 
-                        {{-- Grafik batang: tinggi tiap batang ditulis inline sebagai --h.
-                             Murni CSS, tanpa JS dan tanpa gambar. --}}
+                        {{-- Grafik batang: tinggi tiap batang ditulis inline sebagai --h,
+                             urutannya sebagai --i. Murni CSS, tanpa JS dan gambar.
+
+                             Label bulan disembunyikan dari screen reader: grafik
+                             sudah punya label "Penagihan 6 bulan terakhir" di
+                             atasnya. Membaca "Mei Jun Jul" tanpa konteks hanya
+                             menambah ketegangan. --}}
                         <div class="mock__chart">
-                            <span class="mock__label">Penagihan 6 bulan terakhir</span>
-                            <div class="bars" aria-hidden="true">
-                                <span class="deck-bar" style="--h: 42%"></span>
-                                <span class="deck-bar" style="--h: 58%"></span>
-                                <span class="deck-bar" style="--h: 49%"></span>
-                                <span class="deck-bar" style="--h: 71%"></span>
-                                <span class="deck-bar" style="--h: 64%"></span>
-                                <span class="deck-bar deck-bar--on" style="--h: 88%"></span>
+                            <div class="mock__head">
+                                <span class="mock__ico"><svg aria-hidden="true"><use href="#i-chart"/></svg></span>
+                                <span class="mock__label">Penagihan 6 bulan terakhir</span>
+                            </div>
+                            <div class="deck">
+                                <div class="deck__bars" aria-hidden="true">
+                                    <span class="deck-bar" style="--h: 42%; --i: 0"></span>
+                                    <span class="deck-bar" style="--h: 58%; --i: 1"></span>
+                                    <span class="deck-bar" style="--h: 49%; --i: 2"></span>
+                                    <span class="deck-bar" style="--h: 71%; --i: 3"></span>
+                                    <span class="deck-bar" style="--h: 64%; --i: 4"></span>
+                                    <span class="deck-bar deck-bar--on" style="--h: 88%; --i: 5"></span>
+                                </div>
+                                <div class="deck__months" aria-hidden="true">
+                                    <span>Mei</span><span>Jun</span><span>Jul</span>
+                                    <span>Agu</span><span>Sep</span><span>Okt</span>
+                                </div>
                             </div>
                         </div>
 
                         <div class="mock__stat">
-                            <span class="mock__label">Pelanggan aktif</span>
+                            <div class="mock__head">
+                                <span class="mock__ico"><svg aria-hidden="true"><use href="#i-user"/></svg></span>
+                                <span class="mock__label">Pelanggan aktif</span>
+                            </div>
                             <span class="mock__value" data-count="1643">0</span>
                             <span class="mock__delta">terdaftar di lokasi ini saja</span>
                         </div>
 
                         <div class="mock__stat">
-                            <span class="mock__label">Laporan siap</span>
+                            <div class="mock__head">
+                                <span class="mock__ico"><svg aria-hidden="true"><use href="#i-docs"/></svg></span>
+                                <span class="mock__label">Laporan siap</span>
+                            </div>
                             <span class="mock__tags">
                                 <i>Neraca</i><i>Laba Rugi</i><i>Buku Besar</i><i>Arus Kas</i>
                             </span>
@@ -1201,43 +1515,43 @@
 
                 <div class="grid">
                     <div class="card reveal" style="--d: 0ms">
-                        <div class="ico" aria-hidden="true">&#128167;</div>
+                        <div class="ico"><svg aria-hidden="true"><use href="#i-water"/></svg></div>
                         <h3>Air Minum</h3>
                         <p>Pencatatan meter, tarif berjenjang, tagihan otomatis, dan riwayat pelanggan air minum dalam satu alur.</p>
                     </div>
 
                     <div class="card reveal" style="--d: 70ms">
-                        <div class="ico" aria-hidden="true">&#128225;</div>
+                        <div class="ico"><svg aria-hidden="true"><use href="#i-internet"/></svg></div>
                         <h3>Internet &amp; Tv</h3>
                         <p>Paket langganan, biaya instalasi, penagihan per bulan, dan monitoring pelanggan aktif.</p>
                     </div>
 
                     <div class="card reveal" style="--d: 140ms">
-                        <div class="ico" aria-hidden="true">&#128465;</div>
+                        <div class="ico"><svg aria-hidden="true"><use href="#i-truck"/></svg></div>
                         <h3>Pembayaran Sampah</h3>
                         <p>Tagihan angkut dan aturan retribusi per pelanggan, lengkap dengan catatan setoran dan tunggakan.</p>
                     </div>
 
                     <div class="card reveal" style="--d: 210ms">
-                        <div class="ico" aria-hidden="true">&#128101;</div>
+                        <div class="ico"><svg aria-hidden="true"><use href="#i-users"/></svg></div>
                         <h3>Data Pelanggan</h3>
                         <p>Satu basis pelanggan untuk semua layanan, dengan riwayat langganan dan status pembayaran per pelanggan.</p>
                     </div>
 
                     <div class="card reveal" style="--d: 280ms">
-                        <div class="ico" aria-hidden="true">&#128202;</div>
+                        <div class="ico"><svg aria-hidden="true"><use href="#i-chart"/></svg></div>
                         <h3>Keuangan &amp; Jurnal</h3>
                         <p>Jurnal masuk dan keluar, buku besar, laba rugi, sampai tutup buku tahunan tanpa Excel.</p>
                     </div>
 
                     <div class="card reveal" style="--d: 350ms">
-                        <div class="ico" aria-hidden="true">&#128203;</div>
+                        <div class="ico"><svg aria-hidden="true"><use href="#i-report"/></svg></div>
                         <h3>Laporan</h3>
                         <p>Laporan tagihan, tunggakan, dan keuangan siap cetak dengan kop lembaga masing-masing lokasi.</p>
                     </div>
 
                     <div class="card reveal" style="--d: 420ms">
-                        <div class="ico" aria-hidden="true">&#128274;</div>
+                        <div class="ico"><svg aria-hidden="true"><use href="#i-lock"/></svg></div>
                         <h3>Data Terpisah</h3>
                         <p>Tiap lokasi punya basis data sendiri. Data keuangan satu lokasi tidak pernah bisa diakses lokasi lain.</p>
                     </div>
