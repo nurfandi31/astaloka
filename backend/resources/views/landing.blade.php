@@ -593,32 +593,154 @@
         /* ---------- kartu fitur ----------
 
            Kartu INERT: bukan tautan, bukan tombol, tidak bisa diklik.
-           Karena itu tidak boleh lifted saat hover -- menghidupkan
+           Karena itu TIDAK BOLEH terangkat saat hover -- menghidupkan
            sesuatu yang tidak bisa diklik hanya menggoda user untuk
            mencobanya lalu kecewa.
 
+           Yang boleh bergerak hanya yang JELAS tidak bisa diklik:
+           cahaya, warna, dan isi. Semuamotion di bawah dipicu hover
+           pada kartu, tapi tidak pernah mengubah posisinya -- tidak ada
+           `translate`, tidak ada `scale`, tidak ada shadow yang membesar.
+
            Shadow-nya aktif (selalu tampil, bukan nyaris transparan),
            jadi kartu terbaca sebagai panel tersendiri yang terangkat
-           darisection. Gerak dan hover hanya untuk tombol. */
+           dari section. */
+
+        /* Lapisan 1: kartu itu sendiri.
+
+           `overflow: hidden` itu syarat, bukan pilihan: pseudo-element
+           cahaya menyapu di bawah dipotong tepi kartu. Tanpa itu,
+           cahaya akan keluar sebagai kotak tembus di atas teks
+           dan merusak radius-nya. */
         .card {
             position: relative;
+            isolation: isolate;
+            overflow: hidden;
             background: #fff;
             border: 1px solid var(--line);
             border-radius: var(--r-lg);
             padding: 28px;
             box-shadow: var(--sh-md);
+            transition: border-color .4s var(--ease), box-shadow .4s var(--ease);
         }
 
+        /* Garis accent di tepi atas. Tumbuh dari tengah saat hover.
+
+           Dipakai `::before` dengan `inset-inline: 0` + `scaleX`, bukan
+           `width` -- width memaksa layout di tiap frame, sedangkan
+           scale cuma jalan di compositor. Animasi 7 kartu sekaligus
+           yang memakai width akan terasa berat dan mengganggu layout halaman. */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--teal-500), var(--teal-300), transparent);
+            transform: scaleX(0);
+            transform-origin: center;
+            opacity: 0;
+            transition: transform .55s var(--ease), opacity .35s var(--ease);
+            z-index: 2;
+        }
+
+        /* Lapisan 2: cahaya yang menyapu diagonal saat hover.
+
+           `radial-gradient` yang ikut bergerak, bukan `background-position`
+           yang dianimasikan -- yang kedua memicu repaint seluruh kartu
+           tiap frame, dan dengan 7 kartu sekaligus plus blur 40px di
+           dalamnya, itu perbedaan yang terasa di scroll.
+
+           Pointer-events none wajib: tanpa itu, pseudo-element jadi
+           target hover dan kursor berubah jadi teks di area itu. */
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: -60%;
+            background: radial-gradient(
+                circle at 30% 30%,
+                rgb(45 212 191 / .13),
+                transparent 55%
+            );
+            opacity: 0;
+            transition: opacity .5s var(--ease);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Isi kartu di atas cahaya. Tanpa ini, pseudo-element menutup
+           teks dan hover efeknya hilang total. */
+        .card > * { position: relative; z-index: 1; }
+
+        .card:hover {
+            border-color: var(--teal-200);
+            /* Hanya shadow yang dalam sedikit. Bukan shadow yang
+               "naik" seperti kartu klik -- bedanya sengaja dibuat
+               tipis supaya tidak terbaca sebagai undiscoverable
+               surface yang bisa ditekan. */
+            box-shadow: var(--sh-lg);
+        }
+
+        .card:hover::before { opacity: 1; transform: scaleX(1); }
+        .card:hover::after  { opacity: 1; }
+
+        /* Ikon: kotak warnanya bergerak, glyph di dalamnya tidak.
+
+           Glyph ikut bergerak akan terbaca sebagai tombol yang
+           "menekan" ikon -- persis hal yang harus dihindari di
+           kartu inert. Yang bergerak di sini cuma gradasi, yang
+           jelas-jelas dekoratif. */
         .card .ico {
             width: 46px; height: 46px; border-radius: 13px;
             display: grid; place-items: center;
             background: linear-gradient(135deg, var(--teal-50), var(--teal-100));
             color: var(--teal-700); font-size: 22px; margin-bottom: 17px;
             box-shadow: var(--sh-sm);
+            transition: background .45s var(--ease), box-shadow .45s var(--ease),
+                        border-radius .45s var(--ease);
+        }
+
+        .card:hover .ico {
+            background: linear-gradient(135deg, var(--teal-100), var(--teal-200));
+            border-radius: 10px;
+            box-shadow: var(--sh-md);
         }
 
         .card h3 { margin: 0 0 8px; font-size: 17.5px; letter-spacing: -.016em; font-weight: 700; }
         .card p { margin: 0; font-size: 14.5px; line-height: 1.62; color: var(--ink-soft); }
+
+        /* ---------- animasi masuk kartu ----------
+
+           `.reveal.shown` memakai `rise` yang sama dengan elemen lain,
+           tapi kartu dapat versi sendiri: masuk dari bawah_LEBIH jauh
+           dan sedikit miring, supaya barisan kartu terasa naik sebagai
+           satu blok, bukan 7 elemen yang kebetulan muncul bersamaan.
+
+           Panjang animasi 0.78s dari `rise` di sini diturunkan
+           memorable: 7 kartu dengan delay 70ms = 420ms lebih akhir
+           untuk yang terakhir. Kalau tiap kartu ikut 0.78s penuh,
+           baris terakhir baru selesai di 1.2s -- orang yang sedang
+           scroll cepat akan BNI melihat apa pun dan menganggap halaman
+           lambat. */
+        @keyframes card-in {
+            from {
+                opacity: 0;
+                transform: translate3d(0, 42px, 0) rotate(-1deg);
+            }
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .grid .card.reveal.shown { animation: card-in .62s var(--ease) var(--d, 0ms) forwards; }
+
+        /* Ikon dan teks masuk sedikit setelah kartu selesai, supaya mata
+           bisa mengikuti urutan: bayangan kartu dulu, lalu isinya.
+           Delay-nya kecil (90ms) -- lebih dari itu terasa seperti
+           elemen yang gagal loading. */
+        .card.reveal.shown .ico { animation: fade .4s var(--ease) calc(var(--d, 0ms) + 90ms) both; }
+        .card.reveal.shown h3,
+        .card.reveal.shown p  { animation: fade .4s var(--ease) calc(var(--d, 0ms) + 150ms) both; }
 
         /* ---------- cara kerja ----------
 
@@ -860,11 +982,56 @@
 
             .reveal { opacity: 1 !important; transform: none !important; }
             .hero::before, .hero::after, .closer::after { animation: none; }
+
+            /* Kartu perlu `animation: none`, bukan cuma durasi ~0.
+
+               `card-in` berakhir dengan `forwards` dan `from` punya
+               `opacity: 0`. Durasi .001ms membuat animasi itu SELESAI
+               dalam sekejap -- tapi tetap menuliskan frame akhir, dan
+               frame akhir kartu memang opacity 1, jadi kebetulan aman.
+
+               Namun `fade` pada .ico/.h3/.p pakai `both` sebagai
+               fill-mode, yang menyalin frame `from` ke SEBELUM animasi
+               dimulai. Kalau user membuka halaman langsung di section
+               fitur (lewati anchor #fitur, atau restore scroll browser),
+               animasi sudah lewat -- fill-mode:none tidak reset, tapi
+               `animation: none` memaksa elemen kembali ke gaya
+               dasarnya tanpa perlu menebak urutan waktu. */
+            .grid .card.reveal.shown,
+            .card.reveal.shown .ico,
+            .card.reveal.shown h3,
+            .card.reveal.shown p { animation: none !important; }
+
+            /* Cahaya dan garis accent ikut hilang -- bersama transisi
+               di atas sudah otomatis, tapi pseudo-element perlu
+               state akhir yang eksplisit supaya kartu tidak terlihat
+               seperti belum di-hover dalam mode ini. */
+            .card::after { opacity: 0; }
+            .card::before { transform: scaleX(1); opacity: .5; }
         }
     </style>
 </head>
 
 <body>
+    {{--
+        URL login panel pusat.
+
+        Di produksi, SPA dilayani dari host yang sama dengan Blade ini, jadi
+        path relatif `/central/login` benar. Di development tidak: Blade
+        dilayani `php artisan serve` di port 8000, sementara SPA-nya hidup
+        di Vite dev server port 5173. Tanpa prefix ini, klik "Masuk" dari
+        landing page berakhir di 404 -- route yang memang tidak ada di
+        `routes/web.php`.
+
+        Nilainya diambil dari config yang sama dengan redirect subdomain di
+        `routes/web.php`, jadi tidak ada dua daftar URL frontend yang bisa
+        berbeda tanpa disadari.
+    --}}
+    @php
+        $spaBase = rtrim((string) config('tenancy.frontend_url'), '/');
+        $centralLoginUrl = $spaBase ? $spaBase . '/central/login' : '/central/login';
+    @endphp
+
     <header>
         <div class="wrap navbar">
             <a class="brand" href="/">
@@ -881,6 +1048,24 @@
                 <a class="navlink" href="#fitur">Fitur</a>
                 <a class="navlink" href="#caranya">Cara Kerja</a>
                 <a class="navlink" href="#mulai">Harga</a>
+
+                {{--
+                    "Masuk" menuju /central/login, bukan /login.
+
+                    Dua-duanya halaman login SPA, tapi menyimpan token dengan
+                    kunci yang berbeda: panel pusat memakai `central_token`,
+                    aplikasi lokasi memakai `auth_token`. Menautkan ke /login
+                    dari sini akan mengirim superadmin ke form yang salah, dan
+                    kredensial yang ia ketik tidak akan pernah sampai ke
+                    endpoint yang mengeluarkannya.
+
+                    Petit di navbar, bukan tombol besar: halaman ini untuk
+                    calon pelanggan yang belum punya akses. Yang sudah punya
+                    akun datang dari subdomain lokasi mereka sendiri, atau
+                    lewat bookmark ke /central/login.
+                --}}
+                <a class="btn btn-ghost" href="{{ $centralLoginUrl }}">Masuk</a>
+
                 <a class="btn btn-primary" href="mailto:admin@astabrata.co.id?subject=Penawaran%20ASTALOKA">Ajukan Penawaran</a>
             </nav>
         </div>
@@ -995,7 +1180,8 @@
 
                     <p class="mock__foot">
                         Sudah menjadi pelanggan ASTALOKA? Buka langsung
-                        <strong>alamat subdomain lokasi Anda</strong>.
+                        <strong>alamat subdomain lokasi Anda</strong>, atau
+                        <a href="{{ $centralLoginUrl }}">masuk ke panel pusat</a>.
                     </p>
                 </div>
             </div>
@@ -1108,6 +1294,24 @@
     <footer>
         <div class="wrap foot">
             <p>&copy; {{ date('Y') }} Asta Brata Teknologi. ASTALOKA &mdash; Asta Layanan Operasional, Keuangan, dan Administrasi.</p>
+
+            {{--
+                DiperSatukan di footer, bukan di section mockup.
+
+                Kalimat "Buka langsung alamat subdomain lokasi Anda" yang
+                ada di mockup itu bukan ajakan untuk mengetik apa pun --
+                pelanggan yang sudah tahu subdomain-nya akan mengetik
+                subdomain-nya sendiri. Yang hilang dari halaman ini adalah
+                satu jalan untuk orang yang masuk ke domain pusat, yaitu
+                superadmin, dan untuk orang yang salah mengetik subdomain lalu mendarat di sini.
+                ke sini dari subdomain yang salah ketik.
+
+                `/central/login`, bukan `/login`: lihat catatan di navbar.
+            --}}
+            <p>
+                Sudah punya akun?
+                <a href="{{ $centralLoginUrl }}">Masuk ke panel</a>
+            </p>
         </div>
     </footer>
 
