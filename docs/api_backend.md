@@ -1,4 +1,4 @@
-# Dokumentasi API Backend astaloka
+# Dokumentasi API Backend ASTALOKA
 
 ## Base URL
 ```
@@ -25,7 +25,7 @@ Authorization: Bearer {token}
 **Request Login:**
 ```json
 {
-    "email": "admin@astaloka.test",
+    "email": "admin@ASTALOKA.test",
     "password": "password"
 }
 ```
@@ -353,6 +353,6 @@ Semua endpoint menggunakan format response yang sama:
 
 | Email | Password | Role |
 |---|---|---|
-| `admin@astaloka.test` | `password` | Admin |
-| `surveyor@astaloka.test` | `password` | Surveyor |
-| `teknisi@astaloka.test` | `password` | Teknisi |
+| `admin@ASTALOKA.test` | `password` | Admin |
+| `surveyor@ASTALOKA.test` | `password` | Surveyor |
+| `teknisi@ASTALOKA.test` | `password` | Teknisi |

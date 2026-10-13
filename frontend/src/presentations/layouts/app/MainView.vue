@@ -98,7 +98,9 @@ const handleSelectSearchResult = ({ routeName, id, category }) => {
   // Reset halaman
   instalasiStore.currentPage = 1
   // Navigasi ke halaman detail
-  router.push({ name: routeName, params: { id: encodeURIComponent(id) } }).catch(() => {})
+  router
+    .push({ name: routeName, params: { id: encodeURIComponent(id) } })
+    .catch(() => {})
 }
 
 const handleLogout = async () => {

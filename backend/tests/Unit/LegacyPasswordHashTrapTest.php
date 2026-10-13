@@ -128,7 +128,7 @@ class LegacyPasswordHashTrapTest extends TestCase
     public function hash_di_baris_lain_tidak_ikut_terdeteksi(): void
     {
         $this->withEnvFile(
-            "APP_NAME=\"PAMSIDES #1\"\nLEGACY_DB_PASSWORD=rahasia123\n",
+            "APP_NAME=\"ASTALOKA #1\"\nLEGACY_DB_PASSWORD=rahasia123\n",
             function () {
                 $this->assertFalse(
                     $this->detect(),

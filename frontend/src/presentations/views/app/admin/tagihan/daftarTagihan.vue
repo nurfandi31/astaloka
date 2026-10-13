@@ -322,7 +322,7 @@ const getInitials = (row) => {
 }
 
 const getCustomerName = (row) => {
-  return row.customer?.user?.name || row.customer?.ticket?.applicant_name || 'Pelanggan Astaloka'
+  return row.customer?.user?.name || row.customer?.ticket?.applicant_name || 'Pelanggan ASTALOKA'
 }
 
 const getMonthName = (monthNum) => {
@@ -362,7 +362,7 @@ const formatDueDate = (dateStr) => {
       'Des',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch {
+  } catch (err) {
     return dateStr
   }
 }
@@ -382,7 +382,7 @@ const getOverdueDays = (dateStr) => {
     if (diffDays > 0) return `Terlambat ${diffDays} hari`
     if (diffDays === 0) return 'Jatuh tempo hari ini'
     return `Tersisa ${Math.abs(diffDays)} hari`
-  } catch {
+  } catch (err) {
     return ''
   }
 }
@@ -401,8 +401,7 @@ const handleOpenDetail = async (row) => {
     } else if (res?.data) {
       selectedBill.value = res.data
     }
-  } catch {
-    // Gagal memuat detail tagihan.
+  } catch (err) {
   } finally {
     detailLoading.value = false
   }

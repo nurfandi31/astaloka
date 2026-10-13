@@ -37,7 +37,7 @@ services:
     ports:
       - "3307:3306"
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-astaloka}
+      MYSQL_DATABASE: ${DB_DATABASE:-ASTALOKA}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
       MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
       MYSQL_USER: ${DB_USERNAME:-astaloka_user}

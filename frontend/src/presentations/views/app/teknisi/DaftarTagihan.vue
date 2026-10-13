@@ -175,8 +175,7 @@ const fetchBills = async () => {
     if (res.success && res.data) {
       bills.value = res.data.bills || []
     }
-  } catch {
-    // Gagal memuat daftar tagihan — biarkan tabel kosong.
+  } catch (err) {
   } finally {
     isLoading.value = false
   }
@@ -193,7 +192,7 @@ const getInitials = (row) => {
 }
 
 const getCustomerName = (row) => {
-  return row.customer?.user?.name || row.customer?.ticket?.applicant_name || 'Pelanggan Astaloka'
+  return row.customer?.user?.name || row.customer?.ticket?.applicant_name || 'Pelanggan ASTALOKA'
 }
 
 const getMonthName = (monthNum) => {
@@ -233,7 +232,7 @@ const formatDueDate = (dateStr) => {
       'Des',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch {
+  } catch (err) {
     return dateStr
   }
 }
@@ -256,7 +255,7 @@ const getOverdueDays = (dateStr) => {
     } else {
       return `Tersisa ${Math.abs(diffDays)} hari`
     }
-  } catch {
+  } catch (err) {
     return ''
   }
 }
