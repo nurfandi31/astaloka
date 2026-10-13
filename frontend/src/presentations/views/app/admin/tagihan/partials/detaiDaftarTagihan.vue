@@ -335,11 +335,11 @@ const getInitials = computed(() => {
 })
 
 const getCustomerName = computed(() => {
-  if (!props.bill) return 'Pelanggan Pamsimas'
+  if (!props.bill) return 'Pelanggan Astaloka'
   return (
     props.bill.customer?.user?.name ||
     props.bill.customer?.ticket?.applicant_name ||
-    'Pelanggan Pamsimas'
+    'Pelanggan Astaloka'
   )
 })
 
@@ -362,7 +362,7 @@ const formatDate = (dateStr) => {
       'Desember',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch (err) {
+  } catch {
     return dateStr
   }
 }
@@ -400,7 +400,7 @@ const sendWhatsAppReminder = () => {
   const month = getMonthName(props.bill.billing_period_month)
   const year = props.bill.billing_period_year
 
-  const text = `Halo Bapak/Ibu *${customerName}*,\n\nKami dari *PAMSIMAS* ingin menginformasikan bahwa tagihan air Anda untuk periode *${month} ${year}* sebesar *Rp. ${total}* belum dilunasi.\n\nMohon untuk segera melakukan pembayaran demi kelancaran distribusi air bersih.\n\nTerima kasih.`
+  const text = `Halo Bapak/Ibu *${customerName}*,\n\nKami dari *ASTALOKA* ingin menginformasikan bahwa tagihan air Anda untuk periode *${month} ${year}* sebesar *Rp. ${total}* belum dilunasi.\n\nMohon untuk segera melakukan pembayaran demi kelancaran distribusi air bersih.\n\nTerima kasih.`
 
   const formattedPhone = formatWhatsAppNumber(phone)
   const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`
@@ -438,7 +438,7 @@ const handlePrint = () => {
 <body>
   <div class="header">
     <h1>INVOICE TAGIHAN AIR</h1>
-    <p>PAMSIDES - Sistem Manajemen Air Bersih</p>
+    <p>ASTALOKA - Sistem Manajemen Air Bersih</p>
     <p style="margin-top:6px">No: INV-${props.bill.id} · ${month} ${year}</p>
   </div>
   <div class="row"><span class="label">Pelanggan</span><span>${customer}</span></div>

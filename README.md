@@ -1,6 +1,6 @@
-# Pamsides Project Setup Guide
+# Astaloka Project Setup Guide
 
-Selamat datang di repositori **Pamsides**. Ikuti langkah-langkah di bawah ini untuk melakukan setup awal setelah melakukan clone repositori ini.
+Selamat datang di repositori **Astaloka**. Ikuti langkah-langkah di bawah ini untuk melakukan setup awal setelah melakukan clone repositori ini.
 
 ## 📖 Dokumentasi Proyek
 
@@ -26,8 +26,8 @@ Pastikan Anda sudah menginstal software berikut di komputer Anda:
 Clone repositori dari branch `develop`:
 
 ```bash
-git clone -b develop git@github.com:ab1-team/pamsides.git
-cd pamsides
+git clone -b develop git@github.com:ab1-team/astaloka.git
+cd astaloka
 ```
 
 ### 2. Alur Kerja Git (Git Workflow)
@@ -99,14 +99,14 @@ cp .env.example .env
 **Penting:** Edit `frontend/.env` dan sesuaikan `VITE_BACKEND_URL` dengan path folder Anda.
 Format: `http://localhost/<nama-folder-project>/backend/public`.
 
-Contoh jika folder Anda bernama `pamsides-v2`:
+Contoh jika folder Anda bernama `astaloka`:
 ```env
-VITE_BACKEND_URL=http://localhost/pamsides-v2/backend/public
+VITE_BACKEND_URL=http://localhost/astaloka/backend/public
 ```
 
-Contoh jika folder Anda bernama `pamsides`:
+Contoh jika folder Anda bernama `astaloka`:
 ```env
-VITE_BACKEND_URL=http://localhost/pamsides/backend/public
+VITE_BACKEND_URL=http://localhost/astaloka/backend/public
 ```
 
 _Nama folder project tidak harus sama dengan aslinya — cukup sesuaikan `VITE_BACKEND_URL` di `.env`._
@@ -135,10 +135,10 @@ pnpm run dev
 
 | Role      | Email                       | Password |
 |-----------|-----------------------------|----------|
-| Admin     | admin@pamsides.test         | password |
-| Surveyor  | surveyor@pamsides.test      | password |
-| Teknisi   | teknisi@pamsides.test       | password |
-| Pelanggan | pelanggan@pamsides.test     | password |
+| Admin     | admin@astaloka.test         | password |
+| Surveyor  | surveyor@astaloka.test      | password |
+| Teknisi   | teknisi@astaloka.test       | password |
+| Pelanggan | pelanggan@astaloka.test     | password |
 
 > Password default bisa berbeda — cek `database/seeders/UserSeeder.php` untuk memastikan.
 

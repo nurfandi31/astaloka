@@ -40,7 +40,7 @@ Berdasarkan investigasi mendalam ke seluruh file Database Migration Anda, beriku
 *Fitur ini murni visual di frontend dan sama sekali tidak direncanakan masuk ke dalam skema database yang di-ACC.*
 
 ### 🗑️ 1. Modul Retribusi Sampah
-*   **Kondisi Database (ACC):** Tidak ada tabel, model, maupun relasi terkait biaya sampah. Aplikasi difokuskan 100% pada tata kelola air bersih desa (Pamsimas).
+*   **Kondisi Database (ACC):** Tidak ada tabel, model, maupun relasi terkait biaya sampah. Aplikasi difokuskan 100% pada tata kelola air bersih desa (Astaloka).
 *   **Saran Penyesuaian Frontend:**
     *   Menu "Retribusi Sampah" di Sidebar sebaiknya **disembunyikan (hidden)** untuk menjaga kesederhanaan aplikasi produksi sesuai dengan ruang lingkup database yang disetujui.
 

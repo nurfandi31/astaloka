@@ -98,9 +98,7 @@ const handleSelectSearchResult = ({ routeName, id, category }) => {
   // Reset halaman
   instalasiStore.currentPage = 1
   // Navigasi ke halaman detail
-  router
-    .push({ name: routeName, params: { id: encodeURIComponent(id) } })
-    .catch(() => {})
+  router.push({ name: routeName, params: { id: encodeURIComponent(id) } }).catch(() => {})
 }
 
 const handleLogout = async () => {
@@ -192,7 +190,7 @@ onMounted(() => {
       position: 'top-end',
       icon: 'success',
       title: 'Login Berhasil!',
-      text: 'Selamat datang di PAMSIDES',
+      text: 'Selamat datang di ASTALOKA',
       timer: 2000,
       timerProgressBar: true,
       showConfirmButton: false,

@@ -349,7 +349,7 @@
     </div>
 
     <div class="text-center py-8 text-[10px] text-slate-400 font-semibold tracking-[2px] uppercase">
-      PAMSIMAS · LAYANAN AIR BERSIH MASYARAKAT
+      ASTALOKA · LAYANAN AIR BERSIH MASYARAKAT
     </div>
   </div>
 </template>

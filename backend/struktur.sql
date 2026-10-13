@@ -1,7 +1,7 @@
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19-11.8.6-MariaDB, for Linux (x86_64)
 --
--- Host: localhost    Database: pamsides
+-- Host: localhost    Database: astaloka
 -- ------------------------------------------------------
 -- Server version	11.8.6-MariaDB
 

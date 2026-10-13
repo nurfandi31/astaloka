@@ -3,7 +3,7 @@
     <div class="wrapper">
       <div class="left">
         <div class="badge">
-          <span>PAMSIMAS DIGITAL PLATFORM</span>
+          <span>ASTALOKA DIGITAL PLATFORM</span>
         </div>
 
         <div class="headline">

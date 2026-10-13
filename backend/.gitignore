@@ -18,6 +18,9 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/*.sql
+/storage/*backup*
+/audit_*.php
 /vendor
 Homestead.json
 Homestead.yaml
