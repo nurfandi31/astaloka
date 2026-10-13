@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class TutupBukuController extends Controller
 {
@@ -17,8 +16,8 @@ class TutupBukuController extends Controller
         if ($year > $currentYear) {
             return response()->json([
                 'success' => false,
-                'data'    => [
-                    'closed'  => false,
+                'data' => [
+                    'closed' => false,
                     'message' => 'Tahun tidak valid (masa depan).',
                 ],
             ], 422);
@@ -33,9 +32,9 @@ class TutupBukuController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'tahun'    => $year,
-                'closed'   => $isClosed,
+            'data' => [
+                'tahun' => $year,
+                'closed' => $isClosed,
                 'closed_at' => $isClosed ? "{$year}-12-31" : null,
                 'can_edit' => ! $isClosed,
             ],
@@ -88,7 +87,7 @@ class TutupBukuController extends Controller
                 $saldoMap[$r->kode_akun] = (float) $r->debit - (float) $r->kredit;
             }
         } else {
-            $end   = "{$year}-12-31";
+            $end = "{$year}-12-31";
             $kodeList = $accounts->pluck('kode_akun')->all();
 
             // Sama seperti close(): kumulatif sampai akhir tahun, bukan
@@ -111,7 +110,7 @@ class TutupBukuController extends Controller
                 ->pluck('total', 'kode_akun');
 
             foreach ($accounts as $acc) {
-                $debit  = (float) ($debits[$acc->kode_akun]  ?? 0);
+                $debit = (float) ($debits[$acc->kode_akun] ?? 0);
                 $kredit = (float) ($kredits[$acc->kode_akun] ?? 0);
                 $saldoMap[$acc->kode_akun] = self::isKredit($acc->jenis_mutasi)
                     ? ($kredit - $debit)
@@ -121,24 +120,25 @@ class TutupBukuController extends Controller
 
         $result = $accounts->map(function ($a) use ($saldoMap) {
             $saldo = $saldoMap[$a->kode_akun] ?? 0;
+
             return [
                 'account_id' => $a->id,
-                'kode'       => $a->kode_akun,
-                'nama'       => $a->nama_akun,
-                'lev1'       => (int) $a->lev1,
-                'lev2'       => (int) $a->lev2,
-                'lev3'       => (int) $a->lev3,
-                'lev4'       => (int) $a->lev4,
+                'kode' => $a->kode_akun,
+                'nama' => $a->nama_akun,
+                'lev1' => (int) $a->lev1,
+                'lev2' => (int) $a->lev2,
+                'lev3' => (int) $a->lev3,
+                'lev4' => (int) $a->lev4,
                 'jenis_mutasi' => $a->jenis_mutasi,
-                'saldo'      => $saldo,
+                'saldo' => $saldo,
             ];
         });
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'tahun'    => $year,
-                'closed'   => $isClosed,
+            'data' => [
+                'tahun' => $year,
+                'closed' => $isClosed,
                 'accounts' => $result,
             ],
         ]);
@@ -147,10 +147,10 @@ class TutupBukuController extends Controller
     public function close(Request $request)
     {
         $request->validate([
-            'tahun'     => 'required|integer|min:2000',
+            'tahun' => 'required|integer|min:2000',
             'overrides' => 'array',
-            'overrides.*.kode'   => 'required_with:overrides|string',
-            'overrides.*.saldo'  => 'required_with:overrides|numeric',
+            'overrides.*.kode' => 'required_with:overrides|string',
+            'overrides.*.saldo' => 'required_with:overrides|numeric',
         ]);
 
         $tahun = (int) $request->tahun;
@@ -196,21 +196,21 @@ class TutupBukuController extends Controller
  * transaksi. Kalau `amount` belum ada (install baru), jatuh ke id
  * terbesar per kode agar tetap deterministik.
  */
-$accountIds = DB::table('amount')->distinct()->pluck('account_id')->all();
+        $accountIds = DB::table('amount')->distinct()->pluck('account_id')->all();
 
-if (empty($accountIds)) {
-    $accountIds = DB::table('transactions')->whereNull('deleted_at')->distinct()->pluck('account_debet')
-        ->merge(DB::table('transactions')->whereNull('deleted_at')->distinct()->pluck('account_kredit'))
-        ->filter()->unique()->all();
-}
+        if (empty($accountIds)) {
+            $accountIds = DB::table('transactions')->whereNull('deleted_at')->distinct()->pluck('account_debet')
+                ->merge(DB::table('transactions')->whereNull('deleted_at')->distinct()->pluck('account_kredit'))
+                ->filter()->unique()->all();
+        }
 
-$accounts = collect($accountIds)
-    ->map(fn ($id) => Account::find($id))
-    ->filter()
-    ->sortBy('kode_akun')
-    ->values();
+        $accounts = collect($accountIds)
+            ->map(fn ($id) => Account::find($id))
+            ->filter()
+            ->sortBy('kode_akun')
+            ->values();
 
-$end   = "{$tahun}-12-31";
+        $end = "{$tahun}-12-31";
         $kodeList = $accounts->pluck('kode_akun')->all();
 
         /*
@@ -245,7 +245,7 @@ $end   = "{$tahun}-12-31";
 
         $saldoAkhir = [];
         foreach ($accounts as $a) {
-            $debit  = (float) ($debits[$a->kode_akun]  ?? 0);
+            $debit = (float) ($debits[$a->kode_akun] ?? 0);
             $kredit = (float) ($kredits[$a->kode_akun] ?? 0);
             $saldo = self::isKredit($a->jenis_mutasi) ? ($kredit - $debit) : ($debit - $kredit);
 
@@ -277,7 +277,9 @@ $end   = "{$tahun}-12-31";
             $amountRows13 = [];
             foreach ($accounts as $a) {
                 $saldo = $saldoAkhir[$a->kode_akun] ?? 0;
-                if (abs($saldo) < 0.01) continue;
+                if (abs($saldo) < 0.01) {
+                    continue;
+                }
 
                 $first = substr($a->kode_akun, 0, 1);
 
@@ -289,38 +291,38 @@ $end   = "{$tahun}-12-31";
                     $kreditVal = $saldo;
                 }
 
-                $id = (int) ($a->id . $tahun . '13');
+                $id = (int) ($a->id.$tahun.'13');
 
                 $amountRows13[] = [
-                    'id'         => $id,
+                    'id' => $id,
                     'account_id' => $a->id,
-                    'bulan'      => '13',
-                    'tahun'      => (string) $tahun,
-                    'debit'      => $debitVal,
-                    'kredit'     => $kreditVal,
+                    'bulan' => '13',
+                    'tahun' => (string) $tahun,
+                    'debit' => $debitVal,
+                    'kredit' => $kreditVal,
                 ];
             }
 
             $labaBerjalanAccount = Account::where('kode_akun', $cfg['akun_laba_rugi_berjalan'])->first();
             if ($labaBerjalanAccount && abs($labaRugi) >= 0.01) {
-                $idLaba = (int) ($labaBerjalanAccount->id . $tahun . '13');
+                $idLaba = (int) ($labaBerjalanAccount->id.$tahun.'13');
                 if ($labaRugi >= 0) {
                     $amountRows13[] = [
-                        'id'         => $idLaba,
+                        'id' => $idLaba,
                         'account_id' => $labaBerjalanAccount->id,
-                        'bulan'      => '13',
-                        'tahun'      => (string) $tahun,
-                        'debit'      => 0,
-                        'kredit'     => abs($labaRugi),
+                        'bulan' => '13',
+                        'tahun' => (string) $tahun,
+                        'debit' => 0,
+                        'kredit' => abs($labaRugi),
                     ];
                 } else {
                     $amountRows13[] = [
-                        'id'         => $idLaba,
+                        'id' => $idLaba,
                         'account_id' => $labaBerjalanAccount->id,
-                        'bulan'      => '13',
-                        'tahun'      => (string) $tahun,
-                        'debit'      => abs($labaRugi),
-                        'kredit'     => 0,
+                        'bulan' => '13',
+                        'tahun' => (string) $tahun,
+                        'debit' => abs($labaRugi),
+                        'kredit' => 0,
                     ];
                 }
             }
@@ -343,36 +345,38 @@ $end   = "{$tahun}-12-31";
                 }
 
                 $saldo = $saldoAkhir[$a->kode_akun] ?? 0;
-                if (abs($saldo) < 0.01) continue;
+                if (abs($saldo) < 0.01) {
+                    continue;
+                }
 
-                $id = (int) ($a->id . $tahunDepan . '00');
+                $id = (int) ($a->id.$tahunDepan.'00');
 
                 if (! self::isKredit($a->jenis_mutasi)) {
                     $amountRows00[] = [
-                        'id'         => $id,
+                        'id' => $id,
                         'account_id' => $a->id,
-                        'bulan'      => '00',
-                        'tahun'      => (string) $tahunDepan,
-                        'debit'      => $saldo,
-                        'kredit'     => 0,
+                        'bulan' => '00',
+                        'tahun' => (string) $tahunDepan,
+                        'debit' => $saldo,
+                        'kredit' => 0,
                     ];
                 } else {
                     $amountRows00[] = [
-                        'id'         => $id,
+                        'id' => $id,
                         'account_id' => $a->id,
-                        'bulan'      => '00',
-                        'tahun'      => (string) $tahunDepan,
-                        'debit'      => 0,
-                        'kredit'     => $saldo,
+                        'bulan' => '00',
+                        'tahun' => (string) $tahunDepan,
+                        'debit' => 0,
+                        'kredit' => $saldo,
                     ];
                 }
             }
 
-            if (!empty($amountRows13)) {
+            if (! empty($amountRows13)) {
                 DB::table('amount')->insert($amountRows13);
             }
 
-            if (!empty($amountRows00)) {
+            if (! empty($amountRows00)) {
                 DB::table('amount')->insert($amountRows00);
             }
 
@@ -380,20 +384,21 @@ $end   = "{$tahun}-12-31";
 
             return response()->json([
                 'success' => true,
-                'data'    => [
-                    'message'       => "Buku tahun {$tahun} berhasil ditutup.",
-                    'tahun'         => $tahun,
-                    'tahun_depan'   => $tahunDepan,
-                    'laba_rugi'     => $labaRugi,
+                'data' => [
+                    'message' => "Buku tahun {$tahun} berhasil ditutup.",
+                    'tahun' => $tahun,
+                    'tahun_depan' => $tahunDepan,
+                    'laba_rugi' => $labaRugi,
                     'amount_rows_13' => count($amountRows13),
                     'amount_rows_00' => count($amountRows00),
                 ],
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menutup buku: ' . $e->getMessage(),
+                'message' => 'Gagal menutup buku: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -409,7 +414,7 @@ $end   = "{$tahun}-12-31";
 
         return response()->json([
             'success' => true,
-            'data'    => $rows,
+            'data' => $rows,
         ]);
     }
 
@@ -417,26 +422,26 @@ $end   = "{$tahun}-12-31";
     {
         return response()->json([
             'success' => true,
-            'data'    => $this->getClosingConfig(),
+            'data' => $this->getClosingConfig(),
         ]);
     }
 
     public function saveConfig(Request $request)
     {
         $request->validate([
-            'akun_laba_ditahan'        => 'required|string|exists:accounts,kode_akun',
-            'akun_laba_rugi_berjalan'  => 'required|string|exists:accounts,kode_akun',
+            'akun_laba_ditahan' => 'required|string|exists:accounts,kode_akun',
+            'akun_laba_rugi_berjalan' => 'required|string|exists:accounts,kode_akun',
         ]);
 
         $cfg = [
-            'akun_laba_ditahan'        => $request->akun_laba_ditahan,
-            'akun_laba_rugi_berjalan'  => $request->akun_laba_rugi_berjalan,
+            'akun_laba_ditahan' => $request->akun_laba_ditahan,
+            'akun_laba_rugi_berjalan' => $request->akun_laba_rugi_berjalan,
         ];
 
         DB::table('settings')->updateOrInsert(
             ['key' => 'tutup_buku_config'],
             [
-                'value'      => json_encode($cfg),
+                'value' => json_encode($cfg),
                 'updated_at' => now(),
                 'created_at' => now(),
             ]
@@ -444,7 +449,7 @@ $end   = "{$tahun}-12-31";
 
         return response()->json([
             'success' => true,
-            'data'    => $cfg,
+            'data' => $cfg,
         ]);
     }
 
@@ -453,9 +458,9 @@ $end   = "{$tahun}-12-31";
      *
      * Kolom `jenis_mutasi` tidak konsisten kapitalisasinya di tabel
      * `accounts`: sebagian baris 'kredit', sebagian 'Kredit' (kapital K).
-     * Perbandingan `=== 'kredit'` diam-dimmerespons FALSE untuk yang
+     * Perbandingan `=== 'kredit'` diam-dimerespons FALSE untuk yang
      * kapital, sehingga akun kewajiban 2.1.02.02 (id 685, 'Kredit')
-     * diperlakukan sebagai akun debit -- saldoProcessorоя terbalik
+     * diperlakukan sebagai akun debit -- saldo processor terbalik
      * saat tutup buku.
      */
     private static function isKredit(?string $jenisMutasi): bool
@@ -466,8 +471,8 @@ $end   = "{$tahun}-12-31";
     private function getClosingConfig(): array
     {
         $default = [
-            'akun_laba_ditahan'        => '3.2.01.01',
-            'akun_laba_rugi_berjalan'  => '3.2.02.01',
+            'akun_laba_ditahan' => '3.2.01.01',
+            'akun_laba_rugi_berjalan' => '3.2.02.01',
         ];
 
         $row = DB::table('settings')->where('key', 'tutup_buku_config')->first();

@@ -1,7 +1,4 @@
-import {
-  createRouter,
-  createWebHistory
-} from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/presentations/views/auth/LoginView.vue'
 import MainView from '@/presentations/layouts/app/MainView.vue'
 import DashboardHome from '@/presentations/views/app/DashboardHome.vue'
@@ -43,18 +40,27 @@ import ArsipTunggakan from '@/presentations/views/app/admin/arsipDashbord/ArsipT
 import ArsipPemakaian from '@/presentations/views/app/admin/arsipDashbord/ArsipPemakaian.vue'
 import ArsipInstalasi from '@/presentations/views/app/admin/arsipDashbord/ArsipInstalasi.vue'
 import NotFoundView from '@/presentations/views/app/NotFoundView.vue'
+import CentralLayout from '@/presentations/layouts/central/CentralLayout.vue'
+import CentralLoginView from '@/presentations/views/central/CentralLoginView.vue'
+import CentralDashboardView from '@/presentations/views/central/CentralDashboardView.vue'
+import CentralLokasiIndex from '@/presentations/views/central/CentralLokasiIndex.vue'
+import CentralLokasiForm from '@/presentations/views/central/CentralLokasiForm.vue'
+import CentralLokasiEdit from '@/presentations/views/central/CentralLokasiEdit.vue'
+import CentralLokasiDetail from '@/presentations/views/central/CentralLokasiDetail.vue'
+import CentralTagihanIndex from '@/presentations/views/central/CentralTagihanIndex.vue'
+import CentralAuditIndex from '@/presentations/views/central/CentralAuditIndex.vue'
 
 import { getDashboardRoute } from './dashboardRoutes'
+import { isCentralSessionValid, clearCentralSession } from '@/utils/centralAxios'
 
 // NOTE: DashboardHome merender dashboard per-role lewat dynamic component,
 // jadi admin/surveyor/pelanggan berbagi path /app. Teknisi punya route khusus
 // (/app/teknisi) yang me-render komponen yang sama.
 
-
 const router = createRouter({
-  history: createWebHistory(
-    import.meta.env.BASE_URL),
-  routes: [{
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
       path: '/',
       redirect: '/login',
     },
@@ -66,6 +72,67 @@ const router = createRouter({
     {
       path: '/profil',
       redirect: '/app/profil',
+    },
+
+    /*
+    | Panel Pusat (ASTA BRATA) -- superadmin.
+    |
+    | Sengaja SEPARAT dari /app: aplikasi lokasi punya sidebar operasional
+    | (Transaksi, Pelaporan, Tagihan Air, dst) yang tidak relevan di sini,
+    | dan role superadmin tidak punya akun di database lokasi mana pun.
+    |
+    | Sesi juga terpisah: `central_token` vs `auth_token`. Keduanya hidup di
+    | tabel `personal_access_tokens` yang sama-sama ada di database pusat
+    | DAN setiap database lokasi dengan id autoincrement yang sama, jadi
+    | berbagi satu key localStorage berarti login di sisi lain menimpa sesi
+    | ini.
+    */
+    {
+      path: '/central/login',
+      name: 'central-login',
+      component: CentralLoginView,
+    },
+    {
+      path: '/central',
+      name: 'central-layout',
+      component: CentralLayout,
+      children: [
+        {
+          path: '',
+          name: 'central-dashboard',
+          component: CentralDashboardView,
+        },
+        {
+          path: 'lokasi',
+          name: 'central-lokasi',
+          component: CentralLokasiIndex,
+        },
+        {
+          path: 'lokasi/tambah',
+          name: 'central-lokasi-tambah',
+          component: CentralLokasiForm,
+        },
+        {
+          path: 'lokasi/:id(\\d+)',
+          name: 'central-lokasi-detail',
+          component: CentralLokasiDetail,
+        },
+        {
+          path: 'lokasi/:id(\\d+)/edit',
+          name: 'central-lokasi-edit',
+          component: CentralLokasiEdit,
+        },
+        {
+          path: 'tagihan',
+          name: 'central-tagihan',
+          component: CentralTagihanIndex,
+        },
+        {
+          path: 'audit',
+          name: 'central-audit',
+          component: CentralAuditIndex,
+        },
+      ],
     },
     /* 1. DI SINI PERUBAHANNYA: 
       Rute preview dipindahkan ke tingkat paling luar (Top-Level) agar tidak dibungkus MainView (Layout Admin)
@@ -79,7 +146,8 @@ const router = createRouter({
       path: '/app',
       name: 'layout-dashboard',
       component: MainView,
-      children: [{
+      children: [
+        {
           path: '',
           name: 'dashboard',
           component: DashboardHome,
@@ -207,8 +275,7 @@ const router = createRouter({
         {
           path: 'instalasi/daftar-tagihan',
           name: 'Daftar Tagihan',
-          component: () => import(
-            '@/presentations/views/app/admin/tagihan/daftarTagihan.vue'),
+          component: () => import('@/presentations/views/app/admin/tagihan/daftarTagihan.vue'),
         },
         {
           path: 'survey/create',
@@ -233,8 +300,7 @@ const router = createRouter({
         {
           path: 'teknisi/hasil-instalasi/:id',
           name: 'Hasil Instalasi',
-          component: () => import(
-            '@/presentations/views/app/teknisi/InstallationResult.vue'),
+          component: () => import('@/presentations/views/app/teknisi/InstallationResult.vue'),
         },
         {
           path: 'pelanggan/tagihan-detail',
@@ -254,8 +320,7 @@ const router = createRouter({
         {
           path: 'pelanggan/lapor-gangguan/form',
           name: 'Form Lapor Gangguan',
-          component: () => import(
-            '@/presentations/views/app/pelanggan/LaporGangguanForm.vue'),
+          component: () => import('@/presentations/views/app/pelanggan/LaporGangguanForm.vue'),
         },
         {
           path: 'instalasi/teknisiPemakaianAir',
@@ -347,20 +412,17 @@ const router = createRouter({
     {
       path: '/usages/cetak_form',
       name: 'Cetak Form',
-      component: () =>
-        import('@/presentations/views/app/admin/tagihan/cetakForm.vue'),
+      component: () => import('@/presentations/views/app/admin/tagihan/cetakForm.vue'),
     },
     {
       path: '/usages/cetak_daftar_tagihan',
       name: 'Cetak Daftar Tagihan',
-      component: () =>
-        import('@/presentations/views/app/admin/tagihan/cetakDaftarTagihan.vue'),
+      component: () => import('@/presentations/views/app/admin/tagihan/cetakDaftarTagihan.vue'),
     },
     {
       path: '/usages/cetak_struk',
       name: 'Cetak Struk',
-      component: () =>
-        import('@/presentations/views/app/admin/tagihan/cetakStruk.vue'),
+      component: () => import('@/presentations/views/app/admin/tagihan/cetakStruk.vue'),
     },
     {
       path: '/usages/cetak_bukti_transaksi',
@@ -460,6 +522,26 @@ const GUARDED_PREFIXES = ROLE_GUARDS.flatMap((guard) =>
 )
 
 router.beforeEach((to) => {
+  /*
+   | Panel pusat punya sesi sendiri (central_token) dengan aturan sendiri.
+   | Harus diperiksa sebelum guard aplikasi lokasi: mengecek `auth_token`
+   | dulu akan melempar user lokasi yang sah ke /central/login, atau
+   | membiarkan superadmin lewat karena ia kebetulan punya sesi lokasi yang
+   | belum kedaluwarsa.
+   */
+  if (to.path === '/central' || to.path.startsWith('/central/')) {
+    if (to.name === 'central-login') {
+      return true
+    }
+
+    if (!isCentralSessionValid()) {
+      clearCentralSession()
+      return { name: 'central-login' }
+    }
+
+    return true
+  }
+
   const token = localStorage.getItem('auth_token')
   const expiresAt = localStorage.getItem('auth_expires_at')
   const storedRole = localStorage.getItem('user_role')
@@ -473,7 +555,7 @@ router.beforeEach((to) => {
     localStorage.removeItem('auth_expires_at')
 
     return {
-      name: 'login'
+      name: 'login',
     }
   }
 
@@ -487,22 +569,20 @@ router.beforeEach((to) => {
   if (!token) {
     if (isAuthPage) return true
     return {
-      name: 'login'
+      name: 'login',
     }
   }
 
   // Sudah login: jangan tampilkan halaman login lagi.
   if (isAuthPage) {
     return {
-      path: getDashboardRoute(storedRole || 'admin')
+      path: getDashboardRoute(storedRole || 'admin'),
     }
   }
 
   // Role yang tidak dikenal (mis. enum DB ditambah nanti) tidak boleh
   // mendapat akses apa pun yang dibatasi — fail closed.
-  const userRole = ROLE_GUARDS.some((g) => g.roles.includes(storedRole))
-    ? storedRole
-    : 'unknown'
+  const userRole = ROLE_GUARDS.some((g) => g.roles.includes(storedRole)) ? storedRole : 'unknown'
 
   if (userRole === 'unknown') {
     // Paksa logout supaya user bisa login ulang dan mendapat role yang valid.
@@ -512,21 +592,21 @@ router.beforeEach((to) => {
     localStorage.removeItem('auth_expires_at')
 
     return {
-      name: 'login'
+      name: 'login',
     }
   }
 
   // Temukan prefix yang cocok. Prefix terpanjang didahulukan supaya
   // '/app/instalasi/teknisiPemakaianAir' menang atas '/app/instalasi'.
-  const matched = GUARDED_PREFIXES
-    .filter(({ prefix }) => matchesPrefix(to.path, prefix))
-    .sort((a, b) => b.prefix.length - a.prefix.length)[0]
+  const matched = GUARDED_PREFIXES.filter(({ prefix }) => matchesPrefix(to.path, prefix)).sort(
+    (a, b) => b.prefix.length - a.prefix.length,
+  )[0]
 
   if (matched && !matched.roles.includes(userRole)) {
     // Jangan lempar ke halaman login (user sudah login dan itu membingungkan,
     // serta memicu redirect bolak-balik). Kembalikan ke dashboard role-nya.
     return {
-      path: getDashboardRoute(userRole)
+      path: getDashboardRoute(userRole),
     }
   }
 

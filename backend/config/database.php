@@ -84,27 +84,96 @@ return [
             ]) : [],
         ],
 
-            // Koneksi ke database LAMA (server produksi yg sudah online)
-            // Dipakai khusus untuk import data, JANGAN dipakai di runtime aplikasi
-            'legacy' => [
-                'driver' => 'mysql',
-                'url' => env('DATABASE_URL'),
-                'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
-                'port' => env('LEGACY_DB_PORT', '3306'),
-                'database' => env('LEGACY_DB_DATABASE', 'astaloka'),
-                'username' => env('LEGACY_DB_USERNAME', 'root'),
-                'password' => env('LEGACY_DB_PASSWORD', ''),
-                'unix_socket' => env('LEGACY_DB_SOCKET', ''),
-                'charset' => 'utf8mb4',
-                'collation' => 'utf8mb4_unicode_ci',
-                'prefix' => '',
-                'prefix_indexes' => true,
-                'strict' => true,
-                'engine' => null,
-                'options' => extension_loaded('pdo_mysql') ? array_filter([
-                    PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-                ]) : [],
-            ],
+        /*
+        |----------------------------------------------------------------------
+        | Database PUSAT (ASTA BRATA)
+        |----------------------------------------------------------------------
+        |
+        | Menyimpan data lintas lokasi: registry tenant (tabel `tenants`),
+        | user superadmin, dan invoice langganan. Tidak memuat data operasional
+        | maupun keuangan milik lokasi mana pun.
+        |
+        | Credensial memakai DB_* yang sama dengan tenant -- satu server MySQL,
+        | hanya nama database-nya yang berbeda.
+        |
+        */
+        'central' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('TENANCY_CENTRAL_DATABASE', 'astaloka_pusat'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Database TENANT (LOKASI) AKTIF
+        |----------------------------------------------------------------------
+        |
+        | Nama database-nya TIDAK dikunci di sini. Diisi saat runtime oleh
+        | `TenantManager::activate()`, yang membaca baris registry dari
+        | database pusat lalu menimpa `database` koneksi ini sesuai lokasi
+        | yang sedang dilayani.
+        |
+        | Nilai `database` di bawah hanya fallback untuk konteks yang tidak
+        | pernah melewati middleware tenancy -- misalnya `artisan` yang
+        | dijalankan tanpa `--tenant`, atau seeder. Karena itu nilainya
+        | sengaja menunjuk DB_DATABASE (dari .env) supaya perintah
+        | pemeliharaan tetap bisa menyentuh satu lokasi yang nyata, dan
+        | `TenantManager` tetap menimpanya begitu tenant ter-resolve.
+        |
+        */
+        'tenant' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        // Koneksi ke database LAMA (server produksi yg sudah online)
+        // Dipakai khusus untuk import data, JANGAN dipakai di runtime aplikasi
+        'legacy' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+            'port' => env('LEGACY_DB_PORT', '3306'),
+            'database' => env('LEGACY_DB_DATABASE', 'astaloka'),
+            'username' => env('LEGACY_DB_USERNAME', 'root'),
+            'password' => env('LEGACY_DB_PASSWORD', ''),
+            'unix_socket' => env('LEGACY_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
 
         'pgsql' => [
             'driver' => 'pgsql',
