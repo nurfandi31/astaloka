@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesMeterReadings;
 use App\Http\Controllers\Concerns\GeneratesSafeUploadNames;
 use App\Models\Customer;
-use App\Models\InstallationTicket;
 use App\Models\MeterReading;
 use App\Models\MonthlyBill;
 use App\Models\Setting;
@@ -80,7 +79,7 @@ class MeterReadingController extends Controller
             // Hanya pelanggan dengan tiket aktif yang bisa ditagih. Tanpa
             // filter ini pelanggan terminated/blokir ikut muncul di daftar
             // pencatatan meter. (MonthlyBillController::usage() sudah pakai
-            // daftar status yang sama ΓÇö disamakan di sini.)
+            // daftar status yang sama -- disamakan di sini.)
             ->whereHas('ticket', function ($query) {
                 $query->whereIn('status', ['surveyed', 'unpaid', 'processing', 'completed', 'suspended']);
             })
@@ -334,7 +333,7 @@ class MeterReadingController extends Controller
 
         // monthly_bills tidak punya FK ke meter_readings, jadi hapus catatan
         // tetap berhasil walau periodenya sudah dibayar. Itu menghilangkan
-        // bukti audit ΓÇö tolak di sini.
+        // bukti audit -- tolak di sini.
         $hasSettledBill = MonthlyBill::where('customer_id', $reading->customer_id)
             ->where('billing_period_month', $reading->reading_month)
             ->where('billing_period_year', $reading->reading_year)

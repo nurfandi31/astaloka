@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  *                    status              = PAID→paid, UNPAID/NON→unpaid
  *                    due_date            = usages.tgl_akhir
  *
- * Relasi Dict嘎gu: usage → customers memakai `installations.kode_instalasi`
+ * Relasi tidak langsung: usage -> customers memakai `installations.kode_instalasi`
  * sebagai kunci, bukan nama pelanggan (nama legacy banyak kembar).
  */
 class LegacyUsageSource
@@ -71,12 +72,14 @@ class LegacyUsageSource
             $customerId = $code === '' ? null : ($customerByCode[$code] ?? null);
             if ($customerId === null) {
                 $noCustomer++;
+
                 continue;
             }
 
             $date = self::parseDate($u->tgl_pemakaian ?? null);
             if ($date === null) {
                 $noDate++;
+
                 continue;
             }
 
@@ -193,6 +196,7 @@ class LegacyUsageSource
     private static function shiftPeriod(int $year, int $month, int $delta): string
     {
         $index = $year * 12 + ($month - 1) + $delta;
+
         return (int) floor($index / 12).'|'.(($index % 12) + 1);
     }
 
@@ -205,7 +209,7 @@ class LegacyUsageSource
         };
     }
 
-    private static function parseDate($value): ?\Illuminate\Support\Carbon
+    private static function parseDate($value): ?Carbon
     {
         if ($value === null) {
             return null;
@@ -215,7 +219,7 @@ class LegacyUsageSource
             return null;
         }
         try {
-            return \Illuminate\Support\Carbon::parse($v);
+            return Carbon::parse($v);
         } catch (\Throwable) {
             return null;
         }

@@ -1,0 +1,373 @@
+/*
+|--------------------------------------------------------------------------
+| Style Form Panel Pusat
+|--------------------------------------------------------------------------
+|
+| Dipakai bersama oleh halaman Tambah Lokasi dan Ubah Lokasi. Keduanya punya
+| struktur markup yang hampir sama (kartu + seksi + grid input), jadi gaya
+| disatukan di sini alih-alih diduplikasi di dua file <style scoped>.
+|
+| Import dari dalam <style scoped> di komponen memunculkan peringatan
+| scoped-style dari Vue, jadi file ini diimpor lewat <script setup>
+| (`import '@/assets/css/central-form.css'`) agar tetap ikut ter-bundle.
+|
+*/
+
+.form-page {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+.form-page__back {
+  margin-bottom: 1rem;
+}
+
+.form-page__back a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  text-decoration: none;
+}
+
+.form-page__back a:hover {
+  color: #0284c7;
+}
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.form-card--state {
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.form-card--state svg {
+  color: #0ea5e9;
+  font-size: 1.4rem;
+}
+
+.form-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.form-card__head h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.form-card__slug {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin: 0.2rem 0 0;
+}
+
+.form-card__hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0.15rem 0 0;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.status-pill--on {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.status-pill--off {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ===== Keterangan kunci yang tidak bisa diubah ===== */
+/*
+ * Peringatan "tidak bisa dilewati".
+ *
+ * Background dan teks memakai pasangan yellow-50/yellow-800 yang sudah
+ * ada di main.css; hanya garis batas yang diambil dari --color-warning
+ * dengan color-mix. Alasannya: yellow-800 juga dipakai sebagai teks di
+ * dalam, dan boundary dari warna teks yang sama membuat kotak amber
+ * terlihat seperti paragraf yang ditebalkan, bukan seperti peringatan.
+ *
+ * color-mix dipakai di sini meski belum dipakai di file lain --
+ * ini bukan gaya dekoratif, dan warna pendorong ke warna teks selalu
+ * gelap kalau rhodanya naik, sementara hex #fde68a yang biasa dipakai
+ * tidak punya aturan seperti itu.
+ */
+/*
+ * Peringatan "tidak bisa dilewati".
+ *
+ * Background dan teks memakai pasangan yellow-50 / yellow-800 yang sudah
+ * ada di `main.css`; hanya garis batas yang diambil dari `--color-warning`
+ * dengan `color-mix`. Alasannya: yellow-800 juga dipakai sebagai teks di
+ * dalam, dan batas yang warnanya sama dengan teks membuat kotak amber
+ * terlihat seperti paragraf yang ditebalkan, bukan seperti peringatan.
+ *
+ * `color-mix` dipakai di sini meski belum dipakai di file lain. Ini bukan
+ * gaya dekoratif: warna batas ikut naik bersama warna isinya kalau nanti
+ * dipoles ulang, sedangkan hex tetap yang lama -- dan tombol "Daftarkan
+ * Lokasi" punya warna submit yang tidak boleh ikut berubah diam-diam.
+ */
+.locked-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  background: var(--color-yellow-50, #fef3c7);
+  border: 1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 30%, transparent);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-yellow-800, #92400e);
+}
+
+.locked-note > svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.locked-note__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.locked-note__desc {
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--color-yellow-800, #92400e);
+  opacity: 0.85;
+  margin: 0.2rem 0 0;
+}
+
+/* ===== Seksi ===== */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.form-section--highlight {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.form-section__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.form-section__icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-section__icon--slate {
+  background: #f1f5f9;
+  color: #475569;
+}
+.form-section__icon--amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+.form-section__icon--violet {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+.form-section__icon--green {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.form-section__head h2,
+.form-section__head h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.form-section__head p {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0.15rem 0 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+/* ===== Pratinjau nama database ===== */
+.slug-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.9rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 9px;
+  color: #0369a1;
+}
+
+.slug-preview > svg {
+  flex-shrink: 0;
+}
+
+.slug-preview__label {
+  font-size: 0.73rem;
+  margin: 0;
+}
+
+.slug-preview__value {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #075985;
+}
+
+/* ===== Toggle ===== */
+.provision-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-gray-100, #f1f5f9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.provision-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  color: var(--color-text-main, #1e293b);
+  line-height: 1.5;
+}
+
+/* Centang hijau dipakai karena menandai "sudah dipastikan terjadi", bukan
+   sekadar "ada". Warna biru di tempat lain di halaman berarti aksi, dan
+   daftar ini bukan aksi -- tidak ada yang bisa diklik. */
+.provision-list li svg {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  color: var(--color-success, #10b981);
+  font-size: 0.72rem;
+}
+
+.provision-list code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-primary-dark, #0284c7);
+  word-break: break-all;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+}
+
+.btn--ghost {
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.btn--ghost:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  color: #fff;
+  box-shadow: 0 6px 14px -6px rgba(14, 165, 233, 0.7);
+}
+
+.btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn--primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn--danger {
+  background: #fff;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.btn--danger:hover {
+  background: #fef2f2;
+}
