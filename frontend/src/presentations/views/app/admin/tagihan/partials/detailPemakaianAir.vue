@@ -21,9 +21,7 @@
       </div>
 
       <div v-if="uiStore.userRole !== 'teknisi'" class="shrink-0!">
-        <div
-          class="flex! items-center! gap-2! text-xs! text-slate-500! bg-slate-50! px-3! py-2! rounded-xl!"
-        >
+        <div class="flex! items-center! gap-2! text-xs! text-slate-500! bg-slate-50! px-3! py-2! rounded-xl!">
           <font-awesome-icon icon="info-circle" class="text-cyan-500!" />
           <span>Tagihan otomatis saat simpan meter</span>
         </div>
@@ -82,7 +80,7 @@
             />
             <div>
               <h1 class="text-lg! font-black! text-slate-800! leading-tight!">Input Pemakaian</h1>
-              <p class="text-[10px]! uppercase! tracking-[0.2em]! text-slate-400!">Astaloka V2</p>
+              <p class="text-[10px]! uppercase! tracking-[0.2em]! text-slate-400!">ASTALOKA V2</p>
             </div>
           </div>
           <div class="flex! items-center! gap-2! text-[10px]! text-slate-400!">
@@ -292,10 +290,7 @@ const fetchData = async () => {
         if (item.monthly_bills && item.monthly_bills.length > 0) {
           usageLalu = item.monthly_bills[0].usage_m3
         } else if (item.meter_readings && item.meter_readings.length > 0) {
-          usageLalu = Math.max(
-            0,
-            item.meter_readings[0].meter_value - (item.initial_meter_reading || 0),
-          )
+          usageLalu = Math.max(0, item.meter_readings[0].meter_value - (item.initial_meter_reading || 0))
         }
 
         const address = item.ticket?.address || ''
@@ -318,8 +313,7 @@ const fetchData = async () => {
         }
       })
     }
-  } catch {
-    // Gagal memuat data pemakaian air — biarkan tabel kosong.
+  } catch (error) {
   } finally {
     isLoading.value = false
   }

@@ -2,16 +2,17 @@
 
 namespace App\Console\Commands;
 
-use App\Models\BillPayment;
-use App\Models\Customer;
-use App\Models\InstallationTicket;
-use App\Models\MeterReading;
-use App\Models\Payment;
-use App\Models\SurveyResult;
-use App\Models\Transaction;
-use App\Models\TroubleReport;
-use App\Models\User;
 use Illuminate\Console\Command;
+use App\Models\User;
+use App\Models\InstallationTicket;
+use App\Models\Customer;
+use App\Models\MeterReading;
+use App\Models\SurveyResult;
+use App\Models\BillPayment;
+use App\Models\Payment;
+use App\Models\MonthlyBill;
+use App\Models\TroubleReport;
+use App\Models\Transaction;
 
 class PurgeSeedUsersCommand extends Command
 {
@@ -23,10 +24,10 @@ class PurgeSeedUsersCommand extends Command
 
     /** Email user seeder yang boleh auto-hapus */
     private array $seedEmails = [
-        'admin@astaloka.test',
-        'surveyor@astaloka.test',
-        'teknisi@astaloka.test',
-        'pelanggan@astaloka.test',
+        'admin@ASTALOKA.test',
+        'surveyor@ASTALOKA.test',
+        'teknisi@ASTALOKA.test',
+        'pelanggan@ASTALOKA.test',
     ];
 
     public function handle(): int
@@ -46,7 +47,6 @@ class PurgeSeedUsersCommand extends Command
 
         if ($targets->isEmpty()) {
             $this->warn('User seeder tidak ditemukan. Mungkin sudah dihapus sebelumnya.');
-
             return self::SUCCESS;
         }
 
@@ -78,7 +78,6 @@ class PurgeSeedUsersCommand extends Command
                 $this->line(sprintf('  - User #%d dipakai sebagai %s di %d record',
                     $d['user_id'], $d['fk'], $d['count']));
             }
-
             return self::FAILURE;
         }
 
@@ -86,13 +85,11 @@ class PurgeSeedUsersCommand extends Command
         if ($isDryRun) {
             $this->line('');
             $this->info('[dry-run] Tidak ada data yang dihapus. Jalankan tanpa --dry-run untuk eksekusi.');
-
             return self::SUCCESS;
         }
 
         if (! $this->option('force') && ! $this->confirm('Yakin hapus user seeder di atas?', false)) {
             $this->warn('Dibatalkan.');
-
             return self::SUCCESS;
         }
 
@@ -118,7 +115,7 @@ class PurgeSeedUsersCommand extends Command
         $this->info('Sisa user di DB baru ('.$remaining->count().'):');
         $this->table(
             ['ID', 'Name', 'Email', 'Role'],
-            $remaining->map(fn ($u) => [$u->id, $u->name, $u->email, $u->role])->toArray()
+            $remaining->map(fn($u) => [$u->id, $u->name, $u->email, $u->role])->toArray()
         );
 
         return self::SUCCESS;
@@ -127,13 +124,13 @@ class PurgeSeedUsersCommand extends Command
     private function countReferences(int $userId): array
     {
         return [
-            'created_by' => InstallationTicket::where('created_by', $userId)->count(),
-            'user_id' => InstallationTicket::where('user_id', $userId)->count()
+            'created_by'    => InstallationTicket::where('created_by', $userId)->count(),
+            'user_id'       => InstallationTicket::where('user_id', $userId)->count()
                             + Customer::where('user_id', $userId)->count()
                             + TroubleReport::where('user_id', $userId)->count(),
-            'surveyor_id' => SurveyResult::where('surveyor_id', $userId)->count(),
-            'recorded_by' => MeterReading::where('recorded_by', $userId)->count(),
-            'confirmed_by' => Payment::where('confirmed_by', $userId)->count()
+            'surveyor_id'   => SurveyResult::where('surveyor_id', $userId)->count(),
+            'recorded_by'   => MeterReading::where('recorded_by', $userId)->count(),
+            'confirmed_by'  => Payment::where('confirmed_by', $userId)->count()
                             + BillPayment::where('confirmed_by', $userId)->count()
                             + Transaction::where('confirmed_by', $userId)->count(),
         ];
@@ -143,11 +140,8 @@ class PurgeSeedUsersCommand extends Command
     {
         $parts = [];
         foreach ($refs as $k => $v) {
-            if ($v > 0) {
-                $parts[] = "$k=$v";
-            }
+            if ($v > 0) $parts[] = "$k=$v";
         }
-
         return $parts ? implode(', ', $parts) : 'no refs';
     }
 }

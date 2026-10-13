@@ -42,7 +42,10 @@
         class="mb-8! rounded-3xl! bg-rose-50! border! border-rose-200! p-4! lg:p-5! flex! flex-col! sm:flex-row! sm:items-center! justify-between! gap-3!"
       >
         <div class="flex! items-start! gap-3!">
-          <font-awesome-icon icon="exclamation-triangle" class="text-rose-600! mt-0.5!" />
+          <font-awesome-icon
+            icon="exclamation-triangle"
+            class="text-rose-600! mt-0.5!"
+          />
           <div>
             <p class="text-xs! font-black! text-rose-800!">{{ loadError }}</p>
             <p class="text-[10px]! text-rose-600! mt-0.5!">
@@ -67,9 +70,7 @@
         <div
           class="absolute! -right-10! -top-10! w-40! h-40! bg-white/10! rounded-full! blur-2xl! pointer-events-none!"
         ></div>
-        <div
-          class="relative! z-10! flex! flex-col! md:flex-row! md:items-center! justify-between! gap-5!"
-        >
+        <div class="relative! z-10! flex! flex-col! md:flex-row! md:items-center! justify-between! gap-5!">
           <div class="flex! items-start! gap-4!">
             <div
               class="w-12! h-12! rounded-2xl! bg-white/15! flex! items-center! justify-center! flex-shrink-0! backdrop-blur-sm!"
@@ -207,7 +208,7 @@
                   <span class="text-sm! font-bold! text-slate-500!">Jatuh Tempo</span>
                   <span
                     :class="`text-sm! font-black! ${isOverdue ? 'text-rose-600!' : 'text-slate-800!'}`"
-                  >
+                    >
                     {{ formatDate(dashboardData.latest_bill?.due_date) }}
                   </span>
                 </div>
@@ -323,7 +324,10 @@
                 <p class="text-slate-400! text-xs! font-medium!">Belum ada riwayat pemakaian</p>
               </div>
 
-              <div v-else-if="viewType === 'bar'" class="w-full! relative!">
+              <div
+                v-else-if="viewType === 'bar'"
+                class="w-full! relative!"
+              >
                 <!--
                   `preserveAspectRatio="none"` WAJIB di sini.
 
@@ -354,24 +358,9 @@
                     </linearGradient>
                   </defs>
                   <g stroke="#f1f5f9" stroke-width="1" vector-effect="non-scaling-stroke">
-                    <line
-                      x1="4"
-                      :y1="getPointY(maxUsage * 0.75)"
-                      x2="96"
-                      :y2="getPointY(maxUsage * 0.75)"
-                    />
-                    <line
-                      x1="4"
-                      :y1="getPointY(maxUsage * 0.5)"
-                      x2="96"
-                      :y2="getPointY(maxUsage * 0.5)"
-                    />
-                    <line
-                      x1="4"
-                      :y1="getPointY(maxUsage * 0.25)"
-                      x2="96"
-                      :y2="getPointY(maxUsage * 0.25)"
-                    />
+                    <line x1="4" :y1="getPointY(maxUsage * 0.75)" x2="96" :y2="getPointY(maxUsage * 0.75)" />
+                    <line x1="4" :y1="getPointY(maxUsage * 0.5)" x2="96" :y2="getPointY(maxUsage * 0.5)" />
+                    <line x1="4" :y1="getPointY(maxUsage * 0.25)" x2="96" :y2="getPointY(maxUsage * 0.25)" />
                     <line x1="4" :y1="34" x2="96" y2="34" stroke="#cbd5e1" stroke-width="1.5" />
                   </g>
                   <g v-if="avgLineY !== null">
@@ -408,15 +397,11 @@
                     Warna = perubahan dibanding bulan sebelumnya
                   </span>
                   <span class="flex! items-center! gap-3!">
-                    <span
-                      class="flex! items-center! gap-1! text-[9px]! font-black! text-slate-400!"
-                    >
+                    <span class="flex! items-center! gap-1! text-[9px]! font-black! text-slate-400!">
                       <span class="w-2.5! h-2.5! rounded-[3px]! bg-emerald-500!"></span>
                       Naik
                     </span>
-                    <span
-                      class="flex! items-center! gap-1! text-[9px]! font-black! text-slate-400!"
-                    >
+                    <span class="flex! items-center! gap-1! text-[9px]! font-black! text-slate-400!">
                       <span class="w-2.5! h-2.5! rounded-[3px]! bg-rose-500!"></span>
                       Turun
                     </span>
@@ -440,7 +425,10 @@
                 </div>
               </div>
 
-              <div v-else-if="viewType === 'line'" class="w-full! relative!">
+              <div
+                v-else-if="viewType === 'line'"
+                class="w-full! relative!"
+              >
                 <!-- Sama seperti chart batang: `preserveAspectRatio="none"` supaya
                      garis memenuhi lebar kartu. `vector-effect` menjaga
                      ketebalan garis tetap normal meskipun viewBox dipanjangkan. -->
@@ -628,16 +616,13 @@ const goToBillHistory = () => {
  * dengan admin (`status = 'unpaid'` + `due_date` lewat dari hari ini), jadi
  * angka di sini tidak boleh dihitung ulang dengan aturan sendiri.
  */
-const arrears = computed(
-  () =>
-    dashboardData.value.arrears || {
-      unpaid_count: 0,
-      total_unpaid_amount: 0,
-      overdue_count: 0,
-      overdue_amount: 0,
-      max_overdue_days: 0,
-    },
-)
+const arrears = computed(() => dashboardData.value.arrears || {
+  unpaid_count: 0,
+  total_unpaid_amount: 0,
+  overdue_count: 0,
+  overdue_amount: 0,
+  max_overdue_days: 0,
+})
 
 /** True bila tagihan yang tampil sudah lewat jatuh tempo. */
 const isOverdue = computed(() => arrears.value.overdue_count > 0)
@@ -650,44 +635,22 @@ const isOverdue = computed(() => arrears.value.overdue_count > 0)
  * baru. Kalau tidak, tampilkan nominal tagihan terbaru seperti biasa.
  */
 const currentBillAmount = computed(() =>
-  isOverdue.value
-    ? arrears.value.overdue_amount
-    : Number(dashboardData.value.latest_bill?.total_amount || 0),
+  isOverdue.value ? arrears.value.overdue_amount : Number(dashboardData.value.latest_bill?.total_amount || 0),
 )
 
 /** Periode tagihan, mis. "Agustus 2026". */
 const formatPeriod = (bill) => {
   if (!bill?.billing_period_month || !bill?.billing_period_year) return '-'
   const months = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ]
   return `${months[bill.billing_period_month - 1]} ${bill.billing_period_year}`
 }
 
 const MONTH_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'Mei',
-  'Jun',
-  'Jul',
-  'Agu',
-  'Sep',
-  'Okt',
-  'Nov',
-  'Des',
+  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
 ]
 
 const viewType = ref('bar')
@@ -735,8 +698,8 @@ const usageValues = computed(() => distributionSeries.value.map((p) => Number(p.
 
 const usageLabelsCompact = computed(() => distributionSeries.value.map((p) => p.shortLabel))
 
-const recordedCount = computed(
-  () => distributionSeries.value.filter((p) => p.has_reading || p.has_bill).length,
+const recordedCount = computed(() =>
+  distributionSeries.value.filter((p) => p.has_reading || p.has_bill).length,
 )
 
 const summary = computed(() => dashboardData.value.distribution?.summary || {})
@@ -748,10 +711,8 @@ const maxUsage = computed(() => Math.max(...usageValues.value, 1))
 const trend = computed(() => {
   const dir = summary.value.trend_direction || 'flat'
   const pct = Math.abs(Number(summary.value.trend_percent || 0))
-  if (dir === 'up')
-    return { icon: 'arrow-up', color: 'text-rose-600', bg: 'bg-rose-50', label: `+${pct}%` }
-  if (dir === 'down')
-    return { icon: 'arrow-down', color: 'text-emerald-600', bg: 'bg-emerald-50', label: `-${pct}%` }
+  if (dir === 'up') return { icon: 'arrow-up', color: 'text-rose-600', bg: 'bg-rose-50', label: `+${pct}%` }
+  if (dir === 'down') return { icon: 'arrow-down', color: 'text-emerald-600', bg: 'bg-emerald-50', label: `-${pct}%` }
   return { icon: 'equals', color: 'text-slate-500', bg: 'bg-slate-100', label: 'Stabil' }
 })
 
@@ -957,7 +918,7 @@ const actions = ref([
     path: '/app/pelanggan/riwayat-tagihan?from=dashboard',
   },
   {
-    title: 'Info Astaloka',
+    title: 'Info ASTALOKA',
     desc: 'Berita & pengumuman terbaru',
     icon: 'bullhorn',
     color: 'text-amber-600',

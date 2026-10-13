@@ -71,7 +71,7 @@ const DEFAULT_CUSTOMERS = [
 ]
 
 function getDb() {
-  let db = localStorage.getItem('astaloka_sim_db')
+  let db = localStorage.getItem('ASTALOKA_sim_db')
   if (!db) {
     db = {
       customers: DEFAULT_CUSTOMERS,
@@ -117,7 +117,7 @@ function getDb() {
 }
 
 function saveDb(db) {
-  localStorage.setItem('astaloka_sim_db', JSON.stringify(db))
+  localStorage.setItem('ASTALOKA_sim_db', JSON.stringify(db))
 }
 
 export const simDb = {

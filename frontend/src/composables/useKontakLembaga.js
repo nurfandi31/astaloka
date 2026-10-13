@@ -41,7 +41,7 @@ const load = async (force = false) => {
       telepon.value = typeof value === 'string' ? value : ''
     } catch {
       // Sengaja diam. Endpoint ini hanya menampilkan kontak; halaman sudah
-      // punya fallback ("Hubungi kantor Astaloka") sehingga kegagalan tidak
+      // punya fallback ("Hubungi kantor ASTALOKA") sehingga kegagalan tidak
       // boleh menggagalkan seluruh halaman. Kalau `telepon` kosong di
       // database pun, komponen tetap menampilkan fallback-nya.
       telepon.value = ''

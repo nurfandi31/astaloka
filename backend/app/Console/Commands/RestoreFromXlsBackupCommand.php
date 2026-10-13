@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class RestoreFromXlsBackupCommand extends Command
 {
@@ -20,7 +19,7 @@ class RestoreFromXlsBackupCommand extends Command
 
     public function handle(): int
     {
-        $src = $this->option('source') ?: 'C:\Users\ASUS\Downloads\astaloka next';
+        $src = $this->option('source') ?: 'C:\Users\ASUS\Downloads\ASTALOKA next';
         $src = rtrim($src, '/\\');
         $tables = $this->option('table') ?: [
             'jenis_transactions',
@@ -41,7 +40,6 @@ class RestoreFromXlsBackupCommand extends Command
             $file = "$src\\$table.xls";
             if (! file_exists($file)) {
                 $this->warn("File $file tidak ditemukan, skip.");
-
                 continue;
             }
             $this->info("\n=== $table ===");
@@ -53,14 +51,12 @@ class RestoreFromXlsBackupCommand extends Command
                 $sheet = $reader->load($file)->getActiveSheet();
             } catch (\Throwable $e) {
                 $this->error('Load gagal: '.$e->getMessage());
-
                 continue;
             }
 
             $rows = $sheet->toArray(null, true, true, true);
             if (empty($rows)) {
                 $this->warn('Sheet kosong.');
-
                 continue;
             }
 
@@ -70,12 +66,7 @@ class RestoreFromXlsBackupCommand extends Command
 
             // filter baris kosong (semua null)
             $rows = array_values(array_filter($rows, function ($r) {
-                foreach ($r as $v) {
-                    if ($v !== null && $v !== '') {
-                        return true;
-                    }
-                }
-
+                foreach ($r as $v) if ($v !== null && $v !== '') return true;
                 return false;
             }));
 
@@ -113,7 +104,7 @@ class RestoreFromXlsBackupCommand extends Command
                 // Tanggal Excel numeric → date string Y-m-d
                 foreach ($row as $k => $v) {
                     if (is_numeric($v) && in_array($k, ['tgl_transaksi', 'tgl_nonaktif', 'paid_at', 'created_at', 'updated_at', 'deleted_at'])) {
-                        $ts = Date::excelToTimestamp((float) $v);
+                        $ts = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp((float) $v);
                         if ($ts > 0) {
                             $row[$k] = date('Y-m-d H:i:s', $ts);
                         }

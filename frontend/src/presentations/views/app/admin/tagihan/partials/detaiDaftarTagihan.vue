@@ -335,11 +335,11 @@ const getInitials = computed(() => {
 })
 
 const getCustomerName = computed(() => {
-  if (!props.bill) return 'Pelanggan Astaloka'
+  if (!props.bill) return 'Pelanggan ASTALOKA'
   return (
     props.bill.customer?.user?.name ||
     props.bill.customer?.ticket?.applicant_name ||
-    'Pelanggan Astaloka'
+    'Pelanggan ASTALOKA'
   )
 })
 
@@ -362,7 +362,7 @@ const formatDate = (dateStr) => {
       'Desember',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch {
+  } catch (err) {
     return dateStr
   }
 }
