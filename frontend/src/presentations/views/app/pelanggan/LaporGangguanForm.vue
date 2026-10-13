@@ -128,7 +128,7 @@
                 <li>• Laporan akan ditindaklanjuti maksimal 1x24 jam</li>
                 <li>
                   • Untuk gangguan darurat, hubungi hotline:
-                  {{ hotlineDarurat || 'kantor Pamsimas' }}
+                  {{ hotlineDarurat || 'kantor Astaloka' }}
                 </li>
                 <li>• Pastikan nomor telepon yang Anda berikan aktif</li>
               </ul>

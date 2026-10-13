@@ -60,7 +60,7 @@
           Identitas Lembaga
         </h3>
         <p class="text-[11px]! text-slate-400! leading-relaxed! font-medium!">
-          Kelola profil resmi, alamat, kontak, deskripsi, serta unggah branding logo resmi PAMSIMAS
+          Kelola profil resmi, alamat, kontak, deskripsi, serta unggah branding logo resmi ASTALOKA
           Anda.
         </p>
       </div>
@@ -124,7 +124,7 @@
               Status Sistem Berjalan
             </div>
             <p class="text-xs! font-bold! text-slate-300! mb-0!">
-              PAMSIDES V2 • Seluruh Modul Terintegrasi Optimal
+              ASTALOKA V2 • Seluruh Modul Terintegrasi Optimal
             </p>
           </div>
         </div>

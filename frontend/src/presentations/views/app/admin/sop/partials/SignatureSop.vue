@@ -14,21 +14,17 @@
           <font-awesome-icon icon="info-circle" class="text-lg!" />
         </div>
         <div>
-          <h4
-            class="text-xs! font-black! text-indigo-900! uppercase! tracking-widest! mb-1!"
-          >
+          <h4 class="text-xs! font-black! text-indigo-900! uppercase! tracking-widest! mb-1!">
             Tentang Tanda Tangan Laporan
           </h4>
           <p class="text-[11px]! font-medium! text-slate-500! leading-relaxed!">
-            Atur gambar dan template tanda tangan per jenis laporan.
-            Gunakan token
+            Atur gambar dan template tanda tangan per jenis laporan. Gunakan token
             <code
               class="bg-white! px-1.5! py-0.5! rounded! font-mono! text-xs! border! border-slate-300!"
               >{ttd_image}</code
             >
-            di template HTML untuk posisi image. Jika tidak ada, image otomatis
-            disisipkan ke baris kosong pertama. Format image: PNG / JPG / WebP,
-            maksimal 2 MB.
+            di template HTML untuk posisi image. Jika tidak ada, image otomatis disisipkan ke baris
+            kosong pertama. Format image: PNG / JPG / WebP, maksimal 2 MB.
           </p>
         </div>
       </div>
@@ -43,9 +39,7 @@
     >
       <div class="grid grid-cols-1! gap-1!">
         <div class="p-5! hover:bg-white! transition-colors! rounded-3xl!">
-          <div
-            class="flex! flex-col! sm:flex-row! sm:items-center! sm:justify-between! gap-3!"
-          >
+          <div class="flex! flex-col! sm:flex-row! sm:items-center! sm:justify-between! gap-3!">
             <div class="flex! items-center! gap-2.5!">
               <div
                 class="w-8! h-8! rounded-lg! bg-blue-600! text-white! flex! items-center! justify-center! text-xs! shadow-lg! shadow-blue-100!"
@@ -106,20 +100,13 @@
             v-if="currentImageUrl"
             class="mt-4! flex! justify-center! rounded-xl! border! border-slate-200! bg-white! p-4!"
           >
-            <img
-              :src="currentImageUrl"
-              alt="Tanda Tangan"
-              class="max-h-32! object-contain!"
-            />
+            <img :src="currentImageUrl" alt="Tanda Tangan" class="max-h-32! object-contain!" />
           </div>
           <div
             v-else
             class="mt-4! rounded-xl! border-2! border-dashed! border-slate-300! bg-white! py-8! text-center!"
           >
-            <font-awesome-icon
-              icon="pen-nib"
-              class="text-3xl! text-slate-300!"
-            />
+            <font-awesome-icon icon="pen-nib" class="text-3xl! text-slate-300!" />
             <p class="mt-2! text-sm! text-slate-500!">
               Belum ada tanda tangan untuk jenis laporan ini.
             </p>
@@ -135,9 +122,7 @@
       <div class="grid grid-cols-1! gap-1!">
         <div class="p-5! hover:bg-white! transition-colors! rounded-3xl!">
           <div class="flex! flex-col! gap-3!">
-            <div
-              class="flex! flex-col! md:flex-row! md:items-end! md:gap-3!"
-            >
+            <div class="flex! flex-col! md:flex-row! md:items-end! md:gap-3!">
               <!-- Header card: judul diganti dengan SelectSearch Jenis Laporan -->
               <div class="flex-1!">
                 <SelectSearch
@@ -162,7 +147,7 @@
               </BaseButton>
             </div>
 
-<!-- Snippet toolbar: sisipkan placeholder & variabel ke posisi kursor -->
+            <!-- Snippet toolbar: sisipkan placeholder & variabel ke posisi kursor -->
             <div
               class="flex! flex-wrap! gap-2! p-3! bg-white! border! border-slate-200! rounded-xl!"
             >
@@ -222,20 +207,11 @@
 
     <!-- Modal: SignaturePad -->
     <Teleport to="body">
-      <div
-        v-if="showPad"
-        class="signature-modal-backdrop"
-        @click.self="showPad = false"
-      >
+      <div v-if="showPad" class="signature-modal-backdrop" @click.self="showPad = false">
         <div class="signature-modal">
-          <div
-            class="flex! items-center! justify-between! p-4! border-b! border-slate-200!"
-          >
+          <div class="flex! items-center! justify-between! p-4! border-b! border-slate-200!">
             <h3 class="font-bold! text-slate-800!">Gambar Tanda Tangan</h3>
-            <button
-              class="text-slate-500! hover:text-slate-800!"
-              @click="showPad = false"
-            >
+            <button class="text-slate-500! hover:text-slate-800!" @click="showPad = false">
               <font-awesome-icon icon="times" />
             </button>
           </div>
@@ -313,7 +289,7 @@ const snippets = [
  * (SignatureService::renderForReport). Menyesuaikan dengan starter HTML
  * aplikasi siupk-next (SignatureTemplateService::starterHtml).
  *
- * Catatan perbedaan dari siupk-next: sanitizer backend pamsides-v2
+ * Catatan perbedaan dari siupk-next: sanitizer backend astaloka
  * (SignatureService::cleanAttributes) membuang seluruh atribut style, jadi
  * width 33% + text-align:center diganti memakai align="center" yang
  * memang diizinkan backend. Editor tetap menampilkan 3 kotak sama

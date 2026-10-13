@@ -128,7 +128,7 @@
     </ContentCard>
 
     <div class="text-center py-8 text-[10px] text-slate-400 font-semibold tracking-[2px] uppercase">
-      PAMSIMAS · LAYANAN AIR BERSIH MASYARAKAT
+      ASTALOKA · LAYANAN AIR BERSIH MASYARAKAT
     </div>
 
     <detaiDaftarTagihan
@@ -175,7 +175,8 @@ const fetchBills = async () => {
     if (res.success && res.data) {
       bills.value = res.data.bills || []
     }
-  } catch (err) {
+  } catch {
+    // Gagal memuat daftar tagihan — biarkan tabel kosong.
   } finally {
     isLoading.value = false
   }
@@ -192,7 +193,7 @@ const getInitials = (row) => {
 }
 
 const getCustomerName = (row) => {
-  return row.customer?.user?.name || row.customer?.ticket?.applicant_name || 'Pelanggan Pamsimas'
+  return row.customer?.user?.name || row.customer?.ticket?.applicant_name || 'Pelanggan Astaloka'
 }
 
 const getMonthName = (monthNum) => {
@@ -232,7 +233,7 @@ const formatDueDate = (dateStr) => {
       'Des',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch (err) {
+  } catch {
     return dateStr
   }
 }
@@ -255,7 +256,7 @@ const getOverdueDays = (dateStr) => {
     } else {
       return `Tersisa ${Math.abs(diffDays)} hari`
     }
-  } catch (err) {
+  } catch {
     return ''
   }
 }

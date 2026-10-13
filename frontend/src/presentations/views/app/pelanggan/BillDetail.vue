@@ -72,7 +72,7 @@
                     </div>
                     <div class="text-left!">
                       <h2 class="text-lg! lg:text-xl! font-black! tracking-tighter!">
-                        PAMSIDES <span class="text-indigo-400!">DIGITAL</span>
+                        ASTALOKA <span class="text-indigo-400!">DIGITAL</span>
                       </h2>
                       <p class="text-[9px]! font-black! opacity-40! tracking-widest! uppercase!">
                         Invoice Resmi
@@ -113,9 +113,7 @@
                       >
                         Nomor Invoice
                       </p>
-                      <p class="text-xs! lg:text-sm! font-black!">
-                        #{{ invoiceNumber }}
-                      </p>
+                      <p class="text-xs! lg:text-sm! font-black!">#{{ invoiceNumber }}</p>
                     </div>
                     <div
                       class="w-12! h-12! lg:w-16! lg:h-16! bg-white! p-1! rounded-xl! shadow-lg! flex! items-center! justify-center! flex-shrink-0!"
@@ -362,7 +360,7 @@ const shareInvoice = async () => {
   const customerName = customer.value.name
 
   const textMessage =
-    `*PAMSIDES DIGITAL - INVOICE RESMI*\n\n` +
+    `*ASTALOKA DIGITAL - INVOICE RESMI*\n\n` +
     `Tagihan an. *${customerName}*\n` +
     `Periode: ${period}\n` +
     `Total: *${amount}*\n` +
@@ -370,7 +368,7 @@ const shareInvoice = async () => {
     `Silakan klik link di bawah ini untuk melihat detail tagihan lengkap:`
 
   const shareData = {
-    title: `Tagihan Pamsides - ${customerName}`,
+    title: `Tagihan Astaloka - ${customerName}`,
     text: textMessage,
     url: window.location.href,
   }
