@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\MonthlyBill;
 use App\Models\MeterReading;
+use App\Models\MonthlyBill;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PelangganPortalController extends Controller
@@ -27,7 +26,7 @@ class PelangganPortalController extends Controller
     {
         return $customer->user?->name
             ?: $customer->ticket?->applicant_name
-            ?: 'Pelanggan Pamsimas';
+            ?: 'Pelanggan Astaloka';
     }
 
     /**
@@ -66,10 +65,10 @@ class PelangganPortalController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$customer) {
+        if (! $customer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data pelanggan tidak ditemukan.'
+                'message' => 'Data pelanggan tidak ditemukan.',
             ], 404);
         }
 
@@ -81,7 +80,7 @@ class PelangganPortalController extends Controller
             ->first();
 
         // If no unpaid bill, get the latest paid one
-        if (!$latestBill) {
+        if (! $latestBill) {
             $latestBill = MonthlyBill::where('customer_id', $customer->id)
                 ->orderBy('billing_period_year', 'desc')
                 ->orderBy('billing_period_month', 'desc')
@@ -229,7 +228,7 @@ class PelangganPortalController extends Controller
                         'previous_avg_m3' => round($previousAvg),
                     ],
                 ],
-            ]
+            ],
         ]);
     }
 
@@ -250,9 +249,9 @@ class PelangganPortalController extends Controller
         $previous = MeterReading::where('customer_id', $customerId)
             ->where(function ($q) use ($year, $month) {
                 $q->where('reading_year', '<', $year)
-                  ->orWhere(function ($q2) use ($year, $month) {
-                      $q2->where('reading_year', $year)->where('reading_month', '<', $month);
-                  });
+                    ->orWhere(function ($q2) use ($year, $month) {
+                        $q2->where('reading_year', $year)->where('reading_month', '<', $month);
+                    });
             })
             ->orderByDesc('reading_year')
             ->orderByDesc('reading_month')
@@ -318,7 +317,7 @@ class PelangganPortalController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$customer) {
+        if (! $customer) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -333,7 +332,7 @@ class PelangganPortalController extends Controller
         }
 
         // Pastikan bill benar-benar milik pelanggan yang login
-        if (!$bill || (int) $bill->customer_id !== (int) $customer->id) {
+        if (! $bill || (int) $bill->customer_id !== (int) $customer->id) {
             return response()->json(['success' => false, 'message' => 'Tagihan tidak ditemukan'], 404);
         }
 
@@ -350,16 +349,17 @@ class PelangganPortalController extends Controller
                     'customer_code' => $customer->customer_code,
                     'address' => $customer->ticket?->address ?? '-',
                     'package_name' => $customer->ticket?->package?->name ?? '-',
-                ]
-            ]
+                ],
+            ],
         ]);
     }
+
     public function billHistory()
     {
         $user = Auth::user();
         $customer = Customer::where('user_id', $user->id)->first();
 
-        if (!$customer) {
+        if (! $customer) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -382,10 +382,10 @@ class PelangganPortalController extends Controller
                 'stats' => [
                     'total_usage_3_months' => $totalUsage,
                     'avg_amount' => $avgAmount,
-                    'current_status' => $status
+                    'current_status' => $status,
                 ],
-                'customer_code' => $customer->customer_code
-            ]
+                'customer_code' => $customer->customer_code,
+            ],
         ]);
     }
 }

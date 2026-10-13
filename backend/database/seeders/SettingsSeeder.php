@@ -14,7 +14,7 @@ class SettingsSeeder extends Seeder
             [
                 'key' => 'sop',
                 'value' => '',
-                'nama' => 'PAMSIDES Tirto Mulo',
+                'nama' => 'ASTALOKA Tirto Mulo',
                 'alamat' => 'Desa Sonosari, Kecamatan Karangmalang, Kabupaten Sragen',
                 'email' => 'admin@tirtomulo.desa.id',
                 'telepon' => '08123456789',

@@ -32,11 +32,11 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: https://pamsides.siupk.com/api
+          VITE_API_BASE_URL: https://astaloka.siupk.com/api
         run: pnpm run build
 
       - name: Guard production API URL in bundle
-        run: grep -rq "pamsides.siupk.com/api" frontend/dist || { echo "::error::VITE_API_BASE_URL missing from built bundle"; exit 1; }
+        run: grep -rq "astaloka.siupk.com/api" frontend/dist || { echo "::error::VITE_API_BASE_URL missing from built bundle"; exit 1; }
 
       - uses: actions/upload-artifact@v7
         with:
@@ -67,15 +67,15 @@ jobs:
           ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Rsync frontend build to server
-        run: rsync -az --delete -e "ssh -p ${{ secrets.SSH_PORT }} -o IdentitiesOnly=yes" frontend/dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/enpii/pamsides/frontend/dist/
+        run: rsync -az --delete -e "ssh -p ${{ secrets.SSH_PORT }} -o IdentitiesOnly=yes" frontend/dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/enpii/astaloka/frontend/dist/
 
       - name: Pull source, migrate, clear caches
-        run: ssh -p ${{ secrets.SSH_PORT }} -o IdentitiesOnly=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'set -e; cd /home/enpii/pamsides; git pull --ff-only origin main; docker exec pamsides-app php artisan migrate --force --no-interaction; docker exec pamsides-app php artisan config:clear; docker exec pamsides-app php artisan route:clear'
+        run: ssh -p ${{ secrets.SSH_PORT }} -o IdentitiesOnly=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'set -e; cd /home/enpii/astaloka; git pull --ff-only origin main; docker exec astaloka-app php artisan migrate --force --no-interaction; docker exec astaloka-app php artisan config:clear; docker exec astaloka-app php artisan route:clear'
 
       - name: Smoke test production
         run: |
-          site=$(curl -s -o /dev/null -w '%{http_code}' https://pamsides.siupk.com/)
-          api=$(curl -s -o /dev/null -w '%{http_code}' https://pamsides.siupk.com/api/health)
+          site=$(curl -s -o /dev/null -w '%{http_code}' https://astaloka.siupk.com/)
+          api=$(curl -s -o /dev/null -w '%{http_code}' https://astaloka.siupk.com/api/health)
           echo "site=$site api=$api"
           test "$site" = "200"
           test "$api" = "200"

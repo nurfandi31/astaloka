@@ -600,4 +600,4 @@ php artisan billing:generate-overdue-transactions --force
 **Catatan migrasi:**
 - Tidak ada migration baru
 - `Inventory` model tambah `HasFactory` trait
-- `phpunit.xml` set `DB_DATABASE=pamsides` (sebelumnya `pamsides_test`) — karena user DB `pamsides` tidak punya hak GRANT ke DB baru. Test sekarang pakai DB dev yang sama dengan `migrate:fresh` per test class.
+- `phpunit.xml` set `DB_DATABASE=astaloka` (sebelumnya `astaloka_test`) — karena user DB `astaloka` tidak punya hak GRANT ke DB baru. Test sekarang pakai DB dev yang sama dengan `migrate:fresh` per test class.

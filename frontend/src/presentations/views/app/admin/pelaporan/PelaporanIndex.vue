@@ -15,7 +15,7 @@
             class="relative! z-10! flex! flex-col! md:flex-row! md:items-center! md:justify-between! gap-4!"
           >
             <div>
-              <h2 class="text-2xl! font-bold! text-white! mb-1!">Laporan Pamsides</h2>
+              <h2 class="text-2xl! font-bold! text-white! mb-1!">Laporan Astaloka</h2>
               <p class="text-blue-100/80! text-sm!">
                 Pilih parameter laporan yang ingin ditampilkan
               </p>
@@ -222,7 +222,8 @@ const fetchMasterFilterPelaporan = async () => {
       tahunOptions.value = listTahun
       selectedTahun.value = String(thnSekarang)
     }
-  } catch (error) {
+  } catch {
+    // Tahun belum tersedia — biarkan fallback di atas dipakai.
   }
 }
 
@@ -247,7 +248,8 @@ const fetchSubLaporanDinamis = async (fileJenisLaporan) => {
         selectedNamaSubLaporan.value = ''
       }
     }
-  } catch (error) {
+  } catch {
+    // Gagal memuat sub-laporan — pertahankan pilihan terakhir.
   }
 }
 
@@ -313,18 +315,17 @@ const handleExcel = async () => {
     document.body.appendChild(link)
     link.click()
     link.remove()
-  } catch (error) {
+  } catch {
+    // Gagal memicu unduhan — biarkan diam, user tidak melihat file.
   }
 }
 
 const handleSimpanSaldo = async () => {
   try {
     const payload = getFilterPayload()
-    const res = await pelaporanService.simpanSaldo(payload)
-
-    if (res.success) {
-    }
-  } catch (error) {
+    await pelaporanService.simpanSaldo(payload)
+  } catch {
+    // Gagal menyimpan saldo — biarkan diam.
   }
 }
 </script>

@@ -7,19 +7,19 @@ services:
         uid: 1000
       context: ./backend
       dockerfile: docker/Dockerfile
-    image: pamsides-app
-    container_name: pamsides-app
+    image: astaloka-app
+    container_name: astaloka-app
     restart: unless-stopped
     working_dir: /var/www
     volumes:
       - ./backend:/var/www
     networks:
-      - pamsides
+      - astaloka
 
   # Nginx Service
   web:
     image: nginx:alpine
-    container_name: pamsides-nginx
+    container_name: astaloka-nginx
     restart: unless-stopped
     ports:
       - "8000:80"
@@ -27,37 +27,37 @@ services:
       - ./backend:/var/www
       - ./backend/docker/nginx/conf.d/:/etc/nginx/conf.d/
     networks:
-      - pamsides
+      - astaloka
 
   # MySQL Service
   db:
     image: mysql:8.0
-    container_name: pamsides-db
+    container_name: astaloka-db
     restart: unless-stopped
     ports:
       - "3307:3306"
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-pamsides}
+      MYSQL_DATABASE: ${DB_DATABASE:-astaloka}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
       MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_USER: ${DB_USERNAME:-pamsides_user}
+      MYSQL_USER: ${DB_USERNAME:-astaloka_user}
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
     volumes:
       - ./backend/docker/mysql:/var/lib/mysql
     networks:
-      - pamsides
+      - astaloka
 
   # Redis Service
   redis:
     image: redis:alpine
-    container_name: pamsides-redis
+    container_name: astaloka-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     networks:
-      - pamsides
+      - astaloka
 
 networks:
-  pamsides:
+  astaloka:
     driver: bridge

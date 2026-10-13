@@ -28,7 +28,7 @@ jobs:
       - name: Build (catches case-sensitive import breakage)
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: https://pamsides.siupk.com/api
+          VITE_API_BASE_URL: https://astaloka.siupk.com/api
         run: pnpm run build
 
   backend:
@@ -43,7 +43,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: pamsides_testing
+          MYSQL_DATABASE: astaloka_testing
         ports:
           - 3306:3306
         options: >-
@@ -75,7 +75,7 @@ jobs:
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: '3306'
-          DB_DATABASE: pamsides_testing
+          DB_DATABASE: astaloka_testing
           DB_USERNAME: root
           DB_PASSWORD: root
         run: php artisan test
