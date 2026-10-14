@@ -404,7 +404,11 @@
         .btn svg {
             width: 17px; height: 17px; flex: none;
             fill: none; stroke: currentColor;
-            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+            /* 2.4, bukan 1.9. Pada 17px, angka 1.9 hanya menghasilkan
+               ~1.35px goresan efektif -- lihat catatan panjang di
+               `.mock__ico svg` soal kenapa stroke-width ditulis
+               untuk viewBox 24px, bukan untuk ukuran tampil. */
+            stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
         }
         .btn svg.i-solid { fill: currentColor; stroke: none; }
 
@@ -602,7 +606,9 @@
         .note > svg {
             width: 16px; height: 16px; flex: none; margin-top: 2px;
             fill: none; stroke: currentColor;
-            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+            /* 2.4, bukan 1.9: ~1.6px goresan efektif, bukan ~1.27px
+               yang tinggal jadi kabut abu. Lihat `.mock__ico svg`. */
+            stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
         }
 
         /* ---------- mockup perangkat ----------
@@ -634,73 +640,87 @@
             pointer-events: none;
         }
 
-        /* ---------- lapisan geser mockup ----------
+        /* ---------- mockup digeser sendiri-sendiri ----------
 
-           Mockup (HP + kartu laporan) sekarang bisa DIGESER dengan
-           mouse atau jari. Normal-flow positioning tidak cukup untuk
-           dua alasan:
+           `.phone` dan `.art-card` punya tiga movement yang semuanya
+           menulis properti `transform`:
 
-           1. `.phone` sengaja memakai `margin-right: -34px` supaya
-              keluar melewati tepi kanan panel. Kalau posisinya diubah
-              lewat `left`/`right`, offset itu hilang dan HP terkunci
-              di dalam panel -- efek "tembus" yang jadi ciri desain
-              ini ikut hilang.
+             1. kemiringan desain      rotate(-4deg) / rotate(7deg)
+             2. animasi masuk          translateY(44px) -> 0
+             3. geseran oleh pengguna  --dx / --dy
 
-           2. `.art-card` memakai `top: 12%; right: -6%`. Dua nilai
-              positional itu tidak bisa digeser tanpa mengubah
-              posisinya sendiri.
+           Ditulis langsung, tiga-tiganya saling menimpa dan hanya
+           yang terakhir menang. Karena itu TIGA-TIGANYA dipisah jadi
+           custom property lalu digabung sekali di `transform` milik
+           masing-masing elemen. JS hanya menulis `--dx`/`--dy`,
+           CSS yang menyusun sendiri, dan tidak ada lagi yang
+           perlu tahu urutan penulisan.
 
-           Jadi pergeseran tidak dipasang pada HP atau kartu secara
-           langsung, melainkan pada `.hero-art` lewat `transform`.
-           Anak-anaknya tetap pada posisinya yang sudah dirancang.
+           `@property` wajib, bukan opsional: tanpapendaftaran itu,
+           `--fy` yang dianimasikan oleh `@keyframes` akan melompat
+           antar nilai (diskret), bukan interpolate -- ngambangnya
+           jadi kedip, bukan melayang.
+        ============================================================ */
 
-           Batas geser TIDAK boleh keluar dari kotak panel biru.
-           `.hero-panel` punya `overflow: hidden`, jadi anak yang keluar
-           akan terpotong bersih di tepi panel -- bukan melayang di atas
-           halaman. Ini yang membuat mockup tetap terbaca sebagai bagian
-           dari panel, bukan stiker yang bisa ditarik keluar. */
-        .hero-art {
-            /* Transform di sini TIDAK boleh bercampur dengan animasi
-               masuk HP: `.phone` sudah punya `transform` sendiri
-               (rotate + translateY) dan `.art-card` punya yang lain.
-               Menumpuk transform di dua tingkat membuat satu menimpa
-               yang lain -- HP akan kehilangan kemiringannya begitu
-               digeser. */
-            transform: translate3d(var(--sx, 0px), var(--sy, 0px), 0);
-            will-change: transform;
-            cursor: grab;
-            /* Menonaktifkan gestur bawaan browser di area ini. Tanpa
-               ini, drag horizontal di layar sentuh memicu navigasi
-               Mundur/ maju di sebagian browser, dan mockup yang
-               sedang digeser ikut terlempar ke halaman sebelumnya.
+        /* Jarak geser, ditulis JS. */
+        @property --dx { syntax: "<length>"; inherits: false; initial-value: 0px; }
+        @property --dy { syntax: "<length>"; inherits: false; initial-value: 0px; }
 
-               Aman karena `touch-action: none` hanya di area mockup.
-               Halaman tetap bisa di-scroll normal dari teks hero. */
-            touch-action: none;
+        /* Ketinggian animasi masuk. 44px di dasar, 0 saat `.is-in`. */
+        @property --ty { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+        /* Ngambangnya: tinggi dan kemiringan tambahan, dianimasikan
+           tanpa henti. */
+        @property --fy { syntax: "<length>"; inherits: false; initial-value: 0px; }
+        @property --fr { syntax: "<angle>";  inherits: false; initial-value: 0deg; }
+
+        /* Ngambang HP: naik-turun 9px, miring 1.2 derajat.
+
+           Durasi 7.5s, bukan bulat, supaya tidak perlu `animation-delay`
+           yang berbeda untuk setiap elemen. Nilai yang sama persis
+           tapi durasi berbeda sudah cukup membuat keduanya terlihat
+           tidak sinkron -- dan itulah yang membuatnya tidak terlihat
+           diprogram. */
+        @keyframes ngambang-hp {
+            0%, 100% { --fy: 0px;   --fr: 0deg;   }
+            50%      { --fy: -9px;  --fr: 1.2deg; }
         }
 
-        /* State saat sedang dipegang. `transition: none` supaya
-           transform mengikuti jari 1:1 -- kalau transisi ikut jalan,
-           HP tertinggal di belakang jari dan terasa lengket.
+        /* Kartu belakang: arah miring dibalik dan lebih pelan, supaya
+           yang di belakang tidak bergerak searah dengan yang depan. */
+        @keyframes ngambang-kartu {
+            0%, 100% { --fy: 0px;   --fr: 0deg;   }
+            50%      { --fy: -7px;  --fr: -1deg;  }
+        }
 
-           `z-index` dinaikkan supaya HP tidak tenggelam di bawah
-           `.art-card` saat keduanya bertumpuk di tengah panel. */
-        .hero-art.is-dragging {
+        /* State saat sedang dipegang.
+
+           Transisi `--dx`/`--dy` DIMATIKAN di sini, dan itu disengaja:
+           keduanya ditulis JS setiap `pointermove`. Kalau ikut
+           bertransisi, mockup tertinggal di belakang kursor dan
+           terasa lengket -- bukan mengikuti jari.
+
+           Yang tetap bertransisi: `--ty`, karena `.is-in` tetap perlu
+           animasi masuk pada elemen yang sedang digeser. */
+        .phone.is-dragging,
+        .art-card.is-dragging {
             cursor: grabbing;
-            transition: none;
-            z-index: 2;
+            z-index: 3;
+            transition: --ty .9s var(--ease) .12s, opacity .7s var(--ease);
         }
 
-        /* "Pegas" saat dilepas. Hanya berlaku saat TIDAK sedang
-           dipegang, jadi transisi ini hanya menyala setelah pointer
-           dilepas dan tidak mengganggu kelancaran saat digeser. */
-        .hero-art:not(.is-dragging) {
-            transition: transform .55s var(--ease);
-        }
+        /* Dipasang JS kalau pengguna meminta gerak minimal. Drag dan
+           ngambang tetap jalan -- yang hilang hanya "pegas" saat
+           dilepas.
 
-        /* Dipasang JS kalau pengguna meminta gerak minimal. Drag tetap
-           aktif; yang hilang hanya animasi pegas saat dilepas. */
-        .hero-art.no-spring { transition: none; }
+           `animation` sengaja tidak disentuh di sini:
+           `prefers-reduced-motion` sudah mematikan animasi lewat blok
+           media query, dan mematikan dua kali hanya menambah satu
+           tempat lagi yang harus dijaga sinkron. */
+        .phone.no-spring,
+        .art-card.no-spring {
+            transition: opacity .7s var(--ease);
+        }
 
         /* ---------- kartu laporan (belakangan) ----------
 
@@ -722,6 +742,11 @@
             position: absolute;
             top: 12%; right: -6%;
             width: 78%;
+            /* Di bawah HP secara bawaan. Kartu ini lapisan belakang --
+               tanpa z-index, urutan dokumen saja yang menentukan, dan
+               begitu HP bergeser ke kiri kartu akan menutupinya bukan
+               sebaliknya. `is-dragging` menaikkan nilainya di atas 3. */
+            z-index: 1;
             padding: 26px 24px;
             border-radius: 24px;
             background: linear-gradient(150deg,
@@ -736,11 +761,32 @@
             -webkit-backdrop-filter: blur(2px);
             /* Keadaan awal: naik 26px dari posisi akhir. Tanpa offset
                ini, transisi ke `translateY(0)` tidak bergerak sama
-               sekali -- hanya fade, dan efek "melayang" hilang. */
-            transform: rotate(7deg) translateY(26px);
+               sekali -- hanya fade, dan efek "melayang" hilang.
+
+               Susunan sama persis dengan `.phone`, hanya byte yang
+               berbeda. Ini disengaja: dua elemen yang disusun dengan
+               cara berbeda akan terlihat tidak berasal dari satu
+               komponen, dan mengoreksi satu tapi tidak yang lain
+               jadi pekerjaan yang berulang. */
+            --ty: 26px;
+
+            transform: translate3d(var(--dx), var(--dy), 0)
+                       rotate(calc(7deg + var(--fr)))
+                       translateY(calc(var(--ty) + var(--fy)));
+
+            /* Durasi 9.4s, bukan 7.5s seperti HP. Gerak dengan nilai sama
+               tapi periode berbeda menghasilkan pola yang tidak
+               berulang -- kalau keduanya 7.5s, ayunan tinggi dan
+               rendah jatuh berbarengan dan mata menangkapnya sebagai
+               satu gerakan, bukan dua benda melayang. */
+            animation: ngambang-kartu 9.4s var(--ease) infinite;
+            animation-delay: 1.6s;
+
             box-shadow: 0 30px 60px -30px rgb(2 8 20 / .55);
             opacity: 0;
-            transition: transform .8s var(--ease), opacity .6s var(--ease);
+            transition: --ty .8s var(--ease), opacity .6s var(--ease);
+            cursor: grab;
+            touch-action: none;
         }
         .art-card strong { display: block; font-size: 17px; letter-spacing: -.02em; margin-bottom: 6px; }
         .art-card span { font-size: 13px; color: var(--sky-200); line-height: 1.55; display: block; }
@@ -773,6 +819,11 @@
            yang ditempel. */
         .phone {
             position: relative;
+            /* Di atas kartu laporan. Keduanya establishes stacking
+               context sendiri karena punya `transform`, jadi urutan
+               dokumen tidak lagi cukup untuk menentukan mana yang
+               menutupi mana. */
+            z-index: 2;
             width: 280px;
             margin: 0 auto;
             margin-right: -34px;   /* tembus tepi kanan panel */
@@ -800,10 +851,35 @@
                 0 12px 28px -14px rgb(2 132 199 / .35);
             /* Keadaan awal, naik dari bawah. Offset-nya lebih besar
                dari kartu belakang supaya HP terasa paling dekat dengan
-               mata, bukan sekadar fade. */
-            transform: rotate(-4deg) translateY(44px);
+               mata, bukan sekadar fade.
+
+               `translateY(44px)` SESUAI dengan `--ty` di bawah, jadi
+               keduanya tidak perlu diubah dua kali. */
+            --ty: 44px;
+
+            /* Tiga gerakan digabung di sini, dan hanya di sini:
+               `--ty` (masuk), `--dx`/`--dy` (geser), `--fy`/`--fr`
+               (ngambang). Semuanya di dalam satu `transform`, jadi
+               tidak ada yang bisa saling menimpa.
+
+               Urutannya penting: geser paling luar supaya seluruh
+               perangkat -- termasuk kodingnya -- bergerak sebagai satu
+               blok, dan ngambang di dalam supaya ayunan tidak ikut
+               menggeser posisi koding yang sedang digeser user. */
+            transform: translate3d(var(--dx), var(--dy), 0)
+                       rotate(calc(-4deg + var(--fr)))
+                       translateY(calc(var(--ty) + var(--fy)));
+
+            /* Ngambangnya jalan begitu mockup selesai masuk. Tanpa
+               penundaan, `rise` dan `ngambang` berebut menulis
+               posisi di detik yang sama. */
+            animation: ngambang-hp 7.5s var(--ease) infinite;
+            animation-delay: 1.2s;
+
             opacity: 0;
-            transition: transform .9s var(--ease) .12s, opacity .7s var(--ease);
+            transition: --ty .9s var(--ease) .12s, opacity .7s var(--ease);
+            cursor: grab;
+            touch-action: none;
         }
 
         /* Notch: pil kecil di atas layar, dibuat dengan pseudo-element
@@ -893,8 +969,11 @@
             color: var(--sky-300);
         }
         .phone__row > span:first-child svg {
+            /* 15px x stroke 2 = ~1.25px efektif, masih di bawah batas
+               Anti-Aliasing (lihat catatan di `.mock__ico svg`).
+               2.6 menghasilkan ~1.63px. */
             width: 15px; height: 15px;
-            fill: none; stroke: currentColor; stroke-width: 2;
+            fill: none; stroke: currentColor; stroke-width: 2.6;
             stroke-linecap: round; stroke-linejoin: round;
         }
         .phone__row b {
@@ -949,13 +1028,23 @@
         /* Setelah masuk viewport, perangkat naik ke posisi akhir.
            Delay sedikit lebih lama dari kartu belakang supaya
            tidak keduanya tiba bersamaan -- dan itu terasa seperti
-           satu gerakan, bukan dua elemen yang kebetulan muncul. */
+           satu gerakan, bukan dua elemen yang kebetulan muncul.
+
+           Yang ditulis di sini HANYA `--ty`, bukan `transform`.
+
+           `--ty` punya `transition` sendiri, jadi nilainya naik dari
+           44px ke 0 dengan sendirinya. Kalau `.is-in` menulis
+           `transform: rotate(-4deg) translateY(0)` seperti sebelumnya,
+           transform itu akan menimpa seluruh ungkapan yang di dalam
+           `.phone` -- termasuk `--dx`/`--dy` dari drag dan `--fy`
+           dari ngambangnya. Akibatnya mockup terkunci di tengah begitu
+           masuk layar, dan drag mati total. */
         .hero-panel.is-in .phone,
         .hero-panel.is-in .art-card {
             opacity: 1;
         }
-        .hero-panel.is-in .phone   { transform: rotate(-4deg) translateY(0); }
-        .hero-panel.is-in .art-card { transform: rotate(7deg) translateY(0); }
+        .hero-panel.is-in .phone   { --ty: 0px; }
+        .hero-panel.is-in .art-card { --ty: 0px; }
 
         /* ---------- section pratinjau ----------
 
@@ -1153,7 +1242,7 @@
            memaksa ikon tunggakan jadi amber dihapus -- warnanya
            sudah datang dari `.mock__stat--warn` lewat `--accent`,
            jadi selector kedua hanya menambah satu tempat yang harus
-           dijaga sinkron.
+           dijaga sinkron. */
 
            Kalau nanti butuh ikon dengan warna berbeda di dalam kartu
            yang sama, ubah `color` pada elemen pembungkusnya dan ikon
@@ -1177,11 +1266,39 @@
            sepele: tanpa ini, "kotak ikon" terlihat tidak simetris --
            dan di mockup yang tugasnya terlihat rapi, hal pertama yang
            mata baca justru misalignment, bukan detail 2px ini. */
+        /* Ikon di dalam `.mock__ico` (14px).
+
+           `stroke-width: 2` soundskyali cukup, tapi angka itu
+           ditulis untuk `viewBox="0 0 24 24"`, BUKAN untuk ukuran
+           14px yang benar-benar tampil. SVG menyalin viewBox ke
+           kotak 14px dengan skala 14/24, jadi goresan 2px jadi
+           benar-benar 2 x (14/24) = 1.17px di layar.
+
+           Di bawah ~1.5px, Anti-Aliasing browser membagi satu
+           goresan ke dua piksel dan masing-masingnya diberi bobot
+           ~0.5 -- hasilnya bukan "tipis" tapi "kabut abu" yang
+           hampir tidak kelihatan di atas latar terang. Di layar
+           Retina (devicePixelRatio 2) angka efektifnya turun lagi
+           ke ~0.58 device pixel, di bawah batas yang bisa digambar
+           sama sekali.
+
+           Makanya ikon yang paling kecil justru yang paling
+           hilang: `.mock__ico` 14px dan `.mock__delta` 11px
+           keduanya lebih buram dibanding `.card .ico` yang 23px.
+
+           2.7 di sini menghasilkan ~1.58px -- di atas batas itu.
+           Harus Cecil dari yang terlihat "tebal": simbolnya berupa
+           garis outline, bukan bentuk pekat, dan digambar pada
+           warna accent yang sudah gelap. Terlalu tebal akan mulai
+           menutup jarak antar garis di `i-docs` yang punya tiga
+           garis horizontal berdekatan (y=8, y=12, y=16). */
         .mock__ico svg {
             display: block;
             width: 14px; height: 14px;
             fill: none; stroke: currentColor;
-            stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+            /* 2.7, bukan 2: lihat catatan di atas. */
+            stroke-width: 2.7;
+            stroke-linecap: round; stroke-linejoin: round;
         }
 
         .mock__label {
@@ -1216,10 +1333,16 @@
             display: inline-flex; align-items: center; gap: 5px;
             font-size: 10.5px; color: var(--ink-mute);
         }
+        /* Panah delta. 11px adalah ikon terkecil di halaman, jadi butuh
+               stroke paling tebal: 3.4 menghasilkan ~1.56px goresan
+               efektif. Angka ini bukan untuk "terlihat tebal" --
+               untuk menolak Anti-Aliasing yang akan mengubahnya
+               jadi kabut abu. Lihat catatan panjang di
+               `.mock__ico svg`. */
         .mock__delta svg {
             width: 11px; height: 11px; flex: none;
             fill: none; stroke: currentColor;
-            stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+            stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round;
         }
         /* Panah delta ikut warna kartu, sama seperti ikonnya. Bukan karena
            "naik = bagus": kartu tunggakan punya delta amber dengan
@@ -1660,7 +1783,7 @@
         .step__cta svg {
             width: 16px; height: 16px; flex: none;
             fill: none; stroke: currentColor;
-            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+            stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
         }
         .step__cta svg.i-solid { fill: currentColor; stroke: none; }
 
@@ -1769,7 +1892,9 @@
         .kontak-alt svg, .kontak-email svg {
             width: 16px; height: 16px; flex: none;
             fill: none; stroke: currentColor;
-            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+            /* Sama seperti `.btn svg`: 2.4 supaya goresan efektifnya
+               ~1.6px, bukan ~1.27px yang praktis tak terlihat. */
+            stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
             opacity: .85;
         }
 
@@ -1985,9 +2110,18 @@
             .phone, .art-card {
                 opacity: 1 !important;
                 transition: none !important;
+                /* `--ty` ditulis langsung ke 0, bukan lewat transisi
+                   yang sudah dimatikan baris di atas: state akhir harus
+                   berdiri sendiri, bukan hasil dari animasi yang tidak
+                   jalan. */
+                --ty: 0px !important;
+                /* Ngambangnya ikut dihentikan. Rule `*` di atas sudah
+                   membuat durasinya .001ms dan iterasinya 1, jadi
+                   tanpa `animation: none` elemen tetap menulis frame
+                   akhir `ngambang-*` -- dan frame akhir itu bukan
+                   kondisi netral, melainkan posisi ayunan. */
+                animation: none !important;
             }
-            .phone    { transform: rotate(-4deg) !important; }
-            .art-card { transform: rotate(7deg) !important; }
 
             /* Kartu perlu `animation: none`, bukan cuma durasi ~0.
 
@@ -2901,149 +3035,164 @@
         })();
 
         /* ============================================================
-           MOCKUP HERO BISA DIGESER
+           MOCKUP HERO DIGESER SATU-SATUNYA
 
-           HP dan kartu laporan bisa ditarik dengan mouse atau jari.
-           Kartu laporan selama ini menutupi sebagian teks di
-           belakangnya, jadi begitu digeser ke samping teks itu jadi
-           bisa dibaca.
+           `.phone` dan `.art-card` punya handler drag masing-masing.
+           Kalau keduanya ikut bergerak karena `.hero-art` yang
+           digeser, memegang kartu laporan akan terasa seperti
+           memegang HP-nya juga -- padahal yang disentuh cuma satu.
 
-           Batasnya dihitung dari kotak panel, bukan dari mockup.
-           Mockup memang sengaja keluar melewati tepi kanan panel,
-           jadi kalau batasnya ikut dihitung dari mockup, mockup bisa
-           ditarik terlalu jauh dan HP menghilang dari layar. Yang
-           dijaga adalah "mockup tidak pernah keluar dari bagian panel
-           yang terlihat".
+           Jadi yang bergeser adalah elemen yang benar-benar ditekan.
+           Klik "Laporan siap" hanya kartu itu yang bergerak, HP diam
+           di tempat. Ini juga alasan batas geser dihitung per elemen:
+           keduanya ada di posisi berbeda, jadi ruang kosong yang
+           boleh dipakai juga berbeda.
+
+           Yang ditulis JS hanya `--dx` dan `--dy`. Susunan transform
+           dengan kemiringan desain, animasi masuk, dan ngambangnya
+           disusun di CSS (lihat blok `@property`) -- bukan di sini.
         ============================================================ */
         (function () {
-            var art = document.querySelector('.hero-art');
             var panel = document.querySelector('.hero-panel');
-            if (!art || !panel) return;
+            if (!panel) return;
 
-            /* Drag tetap jalan meski pengguna meminta gerak minimal.
-               Yang dimatikan hanya "pegas" saat dilepas. Preferensi soal
-               motion tidak sama dengan preferences soal kendali
-               pointer: mematikan drag akan membuat mockup terkunci di
-               posisi yang tidak bisa diatur user. */
             var kurangiGerak = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            var geser = { x: 0, y: 0 };
-            var mulai = { x: 0, y: 0 };
-            var batas = { x: 0, y: 0 };
-            var sedang = false;
-            var penanda = null;
+            /* Dipisah per elemen: posisi geser dibaca dari dataset-nya
+               sendiri, bukan dari satu variabel bersama. Kalau
+               berbagi variabel, menggeser kartu ikut menggeser HP. */
+            var daftar = document.querySelectorAll('.hero-art .phone, .hero-art .art-card');
+            if (!daftar.length) return;
 
-            /* Batas maksimum geser dihitung ulang setiap resize.
+            /* Satu elemen saja boleh digeser pada satu waktu. */
+            var sedang = null;
 
-               `offsetWidth`/`offsetHeight` dipakai, bukan
-               `clientWidth`, supaya border panel ikut terukur.
+            /* Batas geser per elemen, dihitung tiap kali drag mulai.
 
-               Posisi `.hero-art` ikut dibaca lewat
-               `getBoundingClientRect` karena ia duduk di kolom grid,
-               jadi rata kirinya tidak sama dengan rata kiri panel --
-               tanpa selisih ini, mockup bisa bergeser melewati tepi
-               panel, meskipun kelihatannya masih di dalam. */
-            function hitungBatas() {
-                var kotakPanel = panel.getBoundingClientRect();
-                var kotakArt = art.getBoundingClientRect();
+               Yang dijaga: elemen tidak boleh keluar dari bagian panel
+               yang terlihat.
 
-                /* Sisa ruang yang tidak dipakai mockup di dalam panel. */
-                var sisaX = kotakPanel.right - kotakArt.right;
-                var sisaY = kotakPanel.bottom - kotakArt.bottom;
+               Sisi yang sudah keluar (HP memang sengaja menembus tepi
+               kanan) dikunci di 0 lewat `Math.max`. Tanpa itu, HP bisa
+               ditarik ke luar layar dan tidak pernah bisa dikembalikan
+               karena tidak ada ruang tersisa di sisi itu. */
+            function hitungBatas(el) {
+                var p = panel.getBoundingClientRect();
+                var e = el.getBoundingClientRect();
 
-                /* Sisa negatif berarti mockup sudah melewati tepi panel
-                   di sisi itu -- yang memang disengaja untuk bagian
-                   kanan. Nilai 0 dipakai supaya sisi yang sudah
-                   melewati tidak bisa digeser lebih jauh lagi. */
-                batas.x = Math.max(0, sisaX);
-                batas.y = Math.max(0, sisaY);
+                return {
+                    /* Kiri dan atas dibatasi penuh -- ke sana tidak ada
+                       ruang kosong yang cukup, dan menggeser ke sana
+                       hanya menyembunyikan mockup di balik teks hero. */
+                    kiri: Math.max(0, p.left - e.left),
+                    atas: Math.max(0, p.top - e.top),
+                    /* Kanan dan bawah mengikuti sisa ruang yang ada. */
+                    kanan: Math.max(0, p.right - e.right),
+                    bawah: Math.max(0, p.bottom - e.bottom),
+                };
             }
 
-            function terapkan() {
-                art.style.setProperty('--sx', geser.x + 'px');
-                art.style.setProperty('--sy', geser.y + 'px');
-            }
+            function geserX(el) { return parseFloat(el.dataset.dx || '0') || 0; }
+            function geserY(el) { return parseFloat(el.dataset.dy || '0') || 0; }
 
             function mulaiGeser(event) {
+                if (sedang) return;
+
                 /* Abaikan yang bisa ditekan. Mockup tidak punya tombol
                    sungguhan, tapi `Buat Tagihan` terlihat seperti
-                   tombol; membiarkan drag tetap jalan di atasnya tidak
-                   merusak apa pun, tapi Abaikan ini membuat perilaku
-                   di elemen interaktif lain di halaman konsisten. */
+                   tombol, dan drag di atasnya tidak ada gunanya. */
                 if (event.target.closest && event.target.closest('a, button')) return;
 
-                sedang = true;
-                hitungBatas();
-                penanda = event.pointerId;
+                /* `currentTarget` = elemen yang punya listener ini,
+                   yaitu persis yang ditekan. `target` bisa saja anak
+                   dari elemen itu, dan menggeser `target` akan membuat
+                   kartu ikut bergerak saat HP yang ditekan. */
+                var el = event.currentTarget;
+
+                sedang = el;
+                el._batas = hitungBatas(el);
+                el._penanda = event.pointerId;
 
                 /* Titik awal dikurangi posisi sekarang, supaya mockup
-                   tidak melompat ke titik kursor saat drag dimulai --
-                   titik itu adalah titik jangkar, bukan titik awal
+                   tidak melompat ke titik kursor saat drag dimulai.
+                   Titik itu adalah titik jangkar, bukan titik asal
                    koordinat. */
-                mulai.x = event.clientX - geser.x;
-                mulai.y = event.clientY - geser.y;
+                el._mulaiX = event.clientX - geserX(el);
+                el._mulaiY = event.clientY - geserY(el);
 
                 /* `setPointerCapture` membuat event tetap terkirim ke
                    elemen ini walau pointer sudah keluar dari tepinya.
                    Tanpa itu, drag yang keluar sedikit dari mockup akan
                    "hilang" di tengah jalan. */
-                if (art.setPointerCapture) {
-                    try { art.setPointerCapture(event.pointerId); } catch (e) { /* tidak didukung */ }
+                if (el.setPointerCapture) {
+                    try { el.setPointerCapture(event.pointerId); } catch (e) { /* tidak didukung */ }
                 }
 
-                art.classList.add('is-dragging');
+                el.classList.add('is-dragging');
             }
 
             function geserKan(event) {
-                if (!sedang || event.pointerId !== penanda) return;
+                var el = sedang;
+                if (!el || event.pointerId !== el._penanda) return;
 
-                geser.x = Math.min(Math.max(event.clientX - mulai.x, -batas.x), batas.x);
-                geser.y = Math.min(Math.max(event.clientY - mulai.y, -batas.y), batas.y);
+                var b = el._batas;
 
-                terapkan();
+                /* Empat sisi dibatasi terpisah. Mockup boleh keluar ke
+                   kanan (memang begitu desainnya) tapi tidak boleh
+                   keluar ke bawah panel. Kalau digabung jadi satu angka,
+                   HP bisa hilang lewat bawah dan tidak ada tombol untuk
+                   mengembalikannya. */
+                var x = Math.min(Math.max(event.clientX - el._mulaiX, -b.kiri), b.kanan);
+                var y = Math.min(Math.max(event.clientY - el._mulaiY, -b.atas), b.bawah);
+
+                el.dataset.dx = x;
+                el.dataset.dy = y;
+
+                el.style.setProperty('--dx', x + 'px');
+                el.style.setProperty('--dy', y + 'px');
             }
 
             function selesaiGeser(event) {
-                if (!sedang) return;
-                if (penanda !== null && event.pointerId !== penanda) return;
+                var el = sedang;
+                if (!el) return;
+                if (el._penanda !== undefined && event.pointerId !== el._penanda) return;
 
-                sedang = false;
-                penanda = null;
-                art.classList.remove('is-dragging');
+                sedang = null;
+                el.classList.remove('is-dragging');
+                el._penanda = undefined;
 
                 /* Lepaskan capture supaya klik berikutnya di halaman
-                   lain tidak lagi dialihkan ke `.hero-art`. */
-                if (art.releasePointerCapture && event.pointerId !== undefined) {
-                    try { art.releasePointerCapture(event.pointerId); } catch (e) { /* sudah lepas */ }
+                   lain tidak lagi dialihkan ke elemen ini. */
+                if (el.releasePointerCapture && event.pointerId !== undefined) {
+                    try { el.releasePointerCapture(event.pointerId); } catch (e) { /* sudah lepas */ }
                 }
             }
 
-            art.addEventListener('pointerdown', mulaiGeser);
+            daftar.forEach(function (el) {
+                el.addEventListener('pointerdown', mulaiGeser);
+                if (kurangiGerak) el.classList.add('no-spring');
+            });
 
-            /* Listener di `window`, bukan di `art`. Kalau hanya di
-               `art`, pointer yang keluar dari elemen tidak mengirim
-               event apa pun, dan `.is-dragging` akan nyangkut selamanya
-               -- mockup ikut terkunci dan tidak bisa digeser lagi. */
+            /* Listener di `window`, bukan di tiap elemen. Kalau hanya
+               di elemennya, pointer yang keluar sedikit dari mockup
+               tidak mengirim event apa pun, dan `.is-dragging` nyangkut
+               selamanya -- mockup terkunci dan tidak bisa digeser lagi. */
             window.addEventListener('pointermove', geserKan);
             window.addEventListener('pointerup', selesaiGeser);
             window.addEventListener('pointercancel', selesaiGeser);
 
             /* `resize` mengubah ukuran panel, jadi batas lama tidak lagi
-               benar. Mockup dikembalikan ke tengah supaya tidak
-               menggantung di posisi yang sudah tidak valid. */
+               benar. Keduanya dikembalikan ke tengah supaya tidak
+               menggantung di posisi yang sudah tidak valid -- termasuk
+               setelah layar ponsel dirotasi. */
             window.addEventListener('resize', function () {
-                geser.x = 0;
-                geser.y = 0;
-                hitungBatas();
-                terapkan();
+                daftar.forEach(function (el) {
+                    el.dataset.dx = '0';
+                    el.dataset.dy = '0';
+                    el.style.setProperty('--dx', '0px');
+                    el.style.setProperty('--dy', '0px');
+                });
             });
-
-            hitungBatas();
-            terapkan();
-
-            /* "Pegas" saat dilepas dimatikan lewat class, bukan
-               `kurangiGerak` yang menonaktifkan seluruh drag. */
-            if (kurangiGerak) art.classList.add('no-spring');
         })();
 
         /* Header mendapat border + bayangan hanya setelah di-scroll,
