@@ -14,8 +14,8 @@
     <script>document.documentElement.classList.remove('no-js');</script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="ASTALOKA oleh Asta Brata Teknologi adalah platform pengelolaan usaha, administrasi pelanggan, transaksi, dan laporan keuangan. Untuk BUMDes dan lembaga: air minum, internet, pembayaran sampah, dan layanan desa lainnya.">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="description" content="ASTALOKA oleh Asta Brata Teknologi adalah platform pengelolaan usaha, administrasi pelanggan, transaksi, dan laporan keuangan. Untuk berbagai skala usaha: air minum, internet, pembayaran sampah, jasa, dan layanan lainnya.">
+    <meta name="theme-color" content="#0369a1">
 
     <title>ASTALOKA &mdash; Asta Layanan Operasional, Keuangan, dan Administrasi</title>
 
@@ -28,7 +28,7 @@
         perangkat, dan di beberapa sistem bisa tampil kotak kosong di tab
         browser -- termasuk di layar yang paling terlihat.
 
-        Sekarang huruf A dalam kotak teal, digambar penuh, jadi tidak
+        Sekarang huruf A dalam kotak biru, digambar penuh, jadi tidak
         bergantung font apa pun.
 
         Tanda kutip di dalam data-URI ditulis sebagai `%22`. Kalau
@@ -38,7 +38,7 @@
         `viewBox` 0 0 64 64 dengan huruf yang tidak menyentuh tepi: pada
         ikon 16px, bentuk yang menempel tepi akan tergerus penskalaan.
     --}}
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230f766e'/%3E%3Cpath d='M20 46L32 17l12 29h-6.4l-2.2-5.8H28.6L26.4 46zM30.4 34.8h3.2L32 29.2z' fill='%23fff'/%3E%3C/svg%3E">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230369a1'/%3E%3Cpath d='M20 46L32 17l12 29h-6.4l-2.2-5.8H28.6L26.4 46zM30.4 34.8h3.2L32 29.2z' fill='%23fff'/%3E%3C/svg%3E">
 
 <style>
         /* ============================================================
@@ -52,17 +52,23 @@
            dari satu tempat, bukan disebar di puluhan deklarasi.
            ============================================================ */
         :root {
-            --teal-50:  #f0fdfa;
-            --teal-100: #ccfbf1;
-            --teal-200: #99f6e4;
-            --teal-300: #5eead4;
-            --teal-400: #2dd4bf;
-            --teal-500: #14b8a6;
-            --teal-600: #0d9488;
-            --teal-700: #0f766e;
-            --teal-800: #115e59;
-            --teal-900: #134e4a;
-            --teal-950: #042f2e;
+            /* Palet brand: sky.
+               Sumber acuan = aplikasi admin lokasi/tenant
+               (frontend/src/assets/css/main.css `--color-primary`),
+               bukan teal. Semua nada di halaman ini -- tombol, garis
+               bawah nav, kartu, mockup, panel penutup -- diturunkan dari
+               skala ini, jadi ganti warna di satu blok ini cukup. */
+            --sky-50:  #f0f9ff;
+            --sky-100: #e0f2fe;
+            --sky-200: #bae6fd;
+            --sky-300: #7dd3fc;
+            --sky-400: #38bdf8;
+            --sky-500: #0ea5e9;
+            --sky-600: #0284c7;
+            --sky-700: #0369a1;
+            --sky-800: #075985;
+            --sky-900: #0c4a6e;
+            --sky-950: #082f49;
 
             --ink:      #0f172a;
             --ink-soft: #475569;
@@ -103,8 +109,8 @@
             --sh-xl: 0 8px 16px -4px rgb(15 23 42 / .06),
                      0 28px 60px -16px rgb(15 23 42 / .18);
 
-            --sh-brand: 0 6px 16px -4px rgb(15 118 110 / .32),
-                        0 2px 6px -2px rgb(15 118 110 / .20);
+            --sh-brand: 0 6px 16px -4px rgb(2 132 199 / .32),
+                        0 2px 6px -2px rgb(2 132 199 / .20);
 
             --ease:   cubic-bezier(.16, 1, .3, 1);
             --spring: cubic-bezier(.34, 1.56, .64, 1);
@@ -180,9 +186,9 @@
             to   { transform: translate3d(-60px, 60px, 0) scale(1); }
         }
         @keyframes pulse {
-            0%   { box-shadow: 0 0 0 0 rgb(20 184 166 / .5); }
-            70%  { box-shadow: 0 0 0 9px rgb(20 184 166 / 0); }
-            100% { box-shadow: 0 0 0 0 rgb(20 184 166 / 0); }
+            0%   { box-shadow: 0 0 0 0 rgb(14 165 233 / .5); }
+            70%  { box-shadow: 0 0 0 9px rgb(14 165 233 / 0); }
+            100% { box-shadow: 0 0 0 0 rgb(14 165 233 / 0); }
         }
 
         /* Elemen .reveal muncul saat di-scroll, bukan hanya saat page load.
@@ -235,7 +241,7 @@
         .brand .dot {
             width: 36px; height: 36px; border-radius: 11px;
             display: grid; place-items: center;
-            background: linear-gradient(135deg, var(--teal-400), var(--teal-700));
+            background: linear-gradient(135deg, var(--sky-400), var(--sky-700));
             color: #fff; font-size: 18px; font-weight: 800;
             box-shadow: var(--sh-brand);
             transition: transform .5s var(--spring), box-shadow .3s var(--ease);
@@ -243,7 +249,11 @@
         .brand:hover .dot { transform: rotate(-8deg) scale(1.08); }
         .brand small {
             display: block; font-size: 11px; font-weight: 500;
-            color: var(--ink-mute); letter-spacing: 0; line-height: 1.15;
+            /* `ink-soft`, bukan `ink-mute`. `ink-mute` (#94a3b8) di
+               atas putih cuma 2.56:1 -- gagal di teks sekecil 11px.
+               Ini baris yang menjelaskan produk dalam dua kata, jadi
+               termasukç¬¬ä¸€æ¬¡ yang harusnya terbaca, bukan dekorasi. */
+            color: var(--ink-soft); letter-spacing: 0; line-height: 1.15;
         }
 
         /* ---------- navbar ----------
@@ -266,7 +276,7 @@
             padding: 9px 13px; border-radius: var(--r-sm);
             transition: color .2s var(--ease), background .2s var(--ease);
         }
-        .nav a.navlink:hover { color: var(--teal-700); background: var(--teal-50); }
+        .nav a.navlink:hover { color: var(--sky-700); background: var(--sky-50); }
 
         /* Garis bawah penanda: scaleX 0 -> 1 dari kiri, bukan fade,
            jadi tumbuh searah gerakan membaca. */
@@ -274,7 +284,7 @@
             content: ""; position: absolute;
             left: 13px; right: 13px; bottom: 3px; height: 2px;
             border-radius: 2px;
-            background: linear-gradient(90deg, var(--teal-400), var(--teal-700));
+            background: linear-gradient(90deg, var(--sky-400), var(--sky-700));
             transform: scaleX(0); transform-origin: left;
             transition: transform .32s var(--ease);
         }
@@ -284,12 +294,12 @@
         /* Section yang sedang dibaca: warna brand penuh, garis bawah
            tetap terlihat, latar sedikit lebih kuat. */
         .nav a.navlink.is-active {
-            color: var(--teal-800); background: var(--teal-50); font-weight: 600;
+            color: var(--sky-800); background: var(--sky-50); font-weight: 600;
         }
         .nav a.navlink:focus-visible,
         .nav-toggle:focus-visible,
         .to-top:focus-visible {
-            outline: 2px solid var(--teal-500); outline-offset: 2px;
+            outline: 2px solid var(--sky-500); outline-offset: 2px;
         }
 
         /* ---------- tombol hamburger ----------
@@ -307,7 +317,7 @@
             transition: box-shadow .25s var(--ease), border-color .25s var(--ease),
                         transform .25s var(--spring);
         }
-        .nav-toggle:hover { border-color: var(--teal-200); box-shadow: var(--sh-sm); }
+        .nav-toggle:hover { border-color: var(--sky-200); box-shadow: var(--sh-sm); }
         .nav-toggle:active { transform: scale(.94); }
 
         .nav-toggle span {
@@ -319,7 +329,7 @@
         }
         .nav-toggle span + span { margin-top: 4px; }
 
-        /* Batang atas turun, bawah naik, tengah berputar 90° jadi vertikal.
+        /* Batang atas turun, bawah naik, tengah berputar 90Â° jadi vertikal.
            Lebar batang tengah dikecilkan supaya tidak terlihat lebih tebal dari
            dua batang lain saat jadi vertikal. */
         .nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
@@ -351,59 +361,171 @@
         .btn:active { transform: translateY(1px) scale(.985); }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
+            background: linear-gradient(135deg, var(--sky-600), var(--sky-700));
             color: #fff; box-shadow: var(--sh-brand);
         }
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 24px -6px rgb(15 118 110 / .42), 0 3px 8px -2px rgb(15 118 110 / .26);
+            box-shadow: 0 10px 24px -6px rgb(2 132 199 / .42), 0 3px 8px -2px rgb(2 132 199 / .26);
         }
         .btn-primary:active { transform: translateY(0) scale(.985); }
 
         .btn-ghost { border-color: var(--line); color: var(--ink); background: #fff; box-shadow: var(--sh-xs); }
         .btn-ghost:hover {
-            border-color: var(--teal-300); color: var(--teal-700);
+            border-color: var(--sky-300); color: var(--sky-700);
             box-shadow: var(--sh-md); transform: translateY(-2px);
         }
 
         .btn-lg { padding: 15px 28px; font-size: 16px; }
 
-        /* ---------- hero ---------- */
-        .hero { padding: 96px 0 80px; position: relative; overflow: hidden; }
+        /* Tombol di dalam panel gelap.
 
-        /* Dua glow yang beranimasi. `transform` (bukan background-position)
-           supaya animasi jalan di compositor dan tidak memicu layout. */
-        .hero::before,
-        .hero::after {
-            content: ""; position: absolute; z-index: -1;
-            border-radius: 50%; filter: blur(90px); pointer-events: none;
+           Ghost terang (putih dengan border abu) yang dipakai di section
+           terang akan hilang di atas dasar biru tua -- teks gelapnya
+           jadi tidak terbaca. Di sini diganti versi gelap: isian
+           transparan, border putih transparan, teks putih.
+
+           Selector-nya `.hero-panel .btn-ghost`, bukan mengganti
+           `.btn-ghost` global, supaya tombol ghost di section terang
+           tidak ikut berubah. */
+        .hero-panel .btn-ghost {
+            background: rgb(255 255 255 / .08);
+            border-color: rgb(255 255 255 / .26);
+            color: #fff;
+            box-shadow: none;
+            backdrop-filter: blur(4px);
         }
-        .hero::before {
-            width: 620px; height: 620px; top: -300px; left: -180px;
-            background: radial-gradient(circle, rgb(45 212 191 / .30), transparent 68%);
-            animation: drift-a 22s ease-in-out infinite alternate;
-        }
-        .hero::after {
-            width: 540px; height: 540px; top: -180px; right: -160px;
-            background: radial-gradient(circle, rgb(13 148 136 / .22), transparent 68%);
-            animation: drift-b 26s ease-in-out infinite alternate;
+        .hero-panel .btn-ghost:hover {
+            background: rgb(255 255 255 / .16);
+            border-color: rgb(255 255 255 / .5);
+            color: #fff;
+            box-shadow: 0 10px 24px -8px rgb(2 8 20 / .5);
         }
 
-        .hero-inner { display: grid; gap: 64px; grid-template-columns: 1.05fr .95fr; align-items: center; }
+        /* Tombol primary di panel gelap pakai warna lebih terang dari
+           versi section terang: biru medium di atas dasar biru tua
+           memang inadequate: kontrasnya tidak cukup untuk teks putih. */
+        .hero-panel .btn-primary {
+            background: linear-gradient(135deg, var(--sky-400), var(--sky-500));
+            color: var(--sky-950);
+            box-shadow: 0 10px 26px -8px rgb(56 189 248 / .55);
+        }
+        .hero-panel .btn-primary:hover {
+            box-shadow: 0 14px 32px -8px rgb(56 189 248 / .70);
+        }
+
+        /* ---------- hero ----------
+
+           Bahasa visual mengikuti pola yang dipakai halaman produk
+           modern: satu PANEL gelap besar dengan radius besar, teks
+           putih di dalamnya, dan mockup perangkat yang terdorong keluar
+           dari panel di sisi kanan.
+
+           Alasannya panel gelap, bukan halaman gelap: landing page ini
+           punya lima section panjang. Kalau seluruh halaman gelap,
+           turun drastis jumlah kata yang bisa dibaca tanpa mapy --
+           dan bagian fitur (yang justru inti ajakan) jadi tidak
+           terbaca. Panel gelap hanya di bagian awal: kontras tinggi di
+           tempat orang pertama kali memutuskan staying atau leaving,
+           lalu langsung kembali terang dan tenang. */
+        .hero { padding: 40px 0 20px; position: relative; }
+
+        /* Panel: sudut membulat besar + gradasi diagonal. Radius besar
+           itu yang bikin blok sebesar ini terbaca sebagai "kartu
+           desain", bukan kotak teks yang kebetulan gelap.
+
+           Gradasinya empat titik, bukan tiga warna tajam: tiga warna
+           dengan stop yang jauh (0% / 55% / 100%) bikin ada garis
+           perpindahan yang terlihat di tengah panel. Dengan empat
+           titik yang lebih dekat, transisinya jadi rata dan tidak
+           ada "jahitan" di bagian yang paling jarang dilihat. */
+        .hero-panel {
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            border-radius: 34px;
+            padding: 62px 58px;
+            background:
+                linear-gradient(145deg,
+                    #0c4a6e 0%,
+                    var(--sky-900) 28%,
+                    var(--sky-950) 62%,
+                    #05192b 100%);
+            box-shadow: 0 40px 90px -44px rgb(2 132 199 / .70),
+                        0 8px 24px -12px rgb(8 47 73 / .55);
+        }
+
+        /* Teksur lembut tanpa geometri.
+
+           Semula di sini ada pola grid: dua `linear-gradient` 1px yang
+           diulang dengan `background-size: 54px`, diberi mask radial
+           supaya memudar di tepi. Tongkosannya kelihatan sekali saja.
+
+           Grid itu memang enak dilihat, tapi tidak mulur: dua garis
+           horizontal dan dua garis vertikal yang berulang membuat
+           kotak-kotak. Yang dimaksud "tekstur halus" jadi terbaca
+           sebagai "kisi" -- dan di panel sebesar ini, kisi yang
+           memotong seluruh area konten justru paling mengganggu,
+           karena ia menarik mata ke struktur, bukan ke teks.
+
+           Grid 54px juga tidak seragam antar perangkat. Di layar
+           Retina atau layar kecil, garis 1px itu bisa bertemu atau
+           berjarak 1-2px dan berubah jadi kabut abu. Jadi di satu
+           tempat kisi terlihat tegas, di tempat lain jadi noise.
+
+           Diganti dua gumpalan cahaya besar yang sangat lembut.
+           Tidak ada tepi, tidak ada pengulangan, jadi tidak mungkin
+           membentuk kotak. Sisa kesan "ada sesuatu di sini" cukup
+           untuk membuat panel terasa berdepth, tanpa grid.
+
+           `inset: -30%` supaya gradasi ini lebih besar dari panel dan
+           tidak pernah menyentuh tepinya -- kalau sampai tepi, tepi
+           itu sendiri jadi garis yang bisa dibaca. */
+        .hero-panel::before {
+            content: ""; position: absolute;
+            inset: -30%; z-index: 0;
+            background:
+                radial-gradient(ellipse 60% 50% at 22% 30%,
+                    rgb(56 189 248 / .14), transparent 70%),
+                radial-gradient(ellipse 55% 45% at 78% 72%,
+                    rgb(14 165 233 / .10), transparent 70%);
+            pointer-events: none;
+        }
+        /* Cahaya biru di sudut kanan, tetap jadi sumber "terang"
+           yang arahnya ke mockup. Dipisah dari ::before supaya dua
+           lapisan ini tidak saling menimpa saat dianimasikan. */
+        .hero-panel::after {
+            content: ""; position: absolute; z-index: 0;
+            width: 640px; height: 640px;
+            top: -240px; right: -160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgb(14 165 233 / .42), transparent 66%);
+            filter: blur(70px);
+            animation: drift-b 24s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        .hero-panel > * { position: relative; z-index: 1; }
+
+        /* Kolom mockup dibuat lebih lebar dari kolom teks supaya HP
+           boleh keluar dari panel di kanan tanpa terpotong wrap. */
+        .hero-inner { display: grid; gap: 48px; grid-template-columns: 1.06fr .94fr; align-items: center; }
 
         .eyebrow {
             display: inline-flex; align-items: center; gap: 9px; margin-bottom: 24px;
             font-size: 12.5px; font-weight: 600;
-            color: var(--teal-800);
-            background: linear-gradient(135deg, var(--teal-50), #fff);
-            border: 1px solid var(--teal-200);
+            /* Di dalam panel gelap, warna biru muda di atas tidak
+               terbaca. Ganti ke versi gelap: teks terang di atas
+               dasar biru transparan. */
+            color: var(--sky-200);
+            background: rgb(56 189 248 / .12);
+            border: 1px solid rgb(125 211 252 / .28);
             padding: 7px 15px 7px 11px; border-radius: 999px;
-            box-shadow: var(--sh-xs);
+            backdrop-filter: blur(4px);
         }
         /* Titik berdenyut: penanda "aktif" tanpa perlu kata. */
         .eyebrow::before {
             content: ""; width: 7px; height: 7px; border-radius: 50%;
-            background: var(--teal-500); flex: none;
+            background: var(--sky-400); flex: none;
             animation: pulse 2.4s var(--ease) infinite;
         }
 
@@ -411,22 +533,30 @@
             margin: 0 0 22px;
             font-size: clamp(36px, 5.2vw, 55px); line-height: 1.06;
             letter-spacing: -.038em; font-weight: 800;
+            color: #fff;
         }
         /* Gradien pada kata kunci, dengan `color` sebagai fallback untuk
            browser lama yang tidak mendukung background-clip: text. */
         h1 em {
-            font-style: normal; color: var(--teal-700);
-            background: linear-gradient(120deg, var(--teal-600), var(--teal-400) 60%, var(--teal-300));
+            font-style: normal;
+            /* Fallback untuk browser lama: biru terang, bukan biru
+               gelap -- di atas dasar gelap `--sky-700` hampir hilang. */
+            color: var(--sky-300);
+            background: linear-gradient(120deg, var(--sky-400), var(--sky-200) 60%, #fff);
             -webkit-background-clip: text; background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .lede { margin: 0 0 34px; font-size: 18.5px; line-height: 1.65; color: var(--ink-soft); max-width: 56ch; }
+        .lede {
+            margin: 0 0 34px; font-size: 18.5px; line-height: 1.65;
+            color: var(--sky-100); opacity: .92; max-width: 56ch;
+        }
 
         .cta { display: flex; flex-wrap: wrap; gap: 13px; }
 
         .note {
-            margin-top: 26px; font-size: 13.5px; color: var(--ink-mute);
+            margin-top: 26px; font-size: 13.5px;
+            color: var(--sky-200); opacity: .8;
             display: flex; align-items: flex-start; gap: 9px;
         }
 
@@ -445,29 +575,375 @@
             stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
         }
 
+        /* ---------- mockup perangkat ----------
+
+           Dua perangkat: satu HP besar di depan, satu kartuSecondary
+           di belakangnya. Susunannya yang bikin hero terasa "didesain",
+           bukan sekadar teks di samping gambar.
+
+           Kunci penghitungnya ada di `.hero-inner > *:last-child`:
+           mockup diberi `margin-right` negatif supaya keluar melewati
+           tepi kanan panel. Tanpa itu, HP-nya tertahan di dalam kotak
+           dan efek "tembus" yang jadi ciri desain ini hilang. */
+        .hero-art { position: relative; }
+
+        /* Bayangan besar di bawah perangkat. Tanpa ini perangkat
+           terlihat menempel pada panel, bukan melayang di atasnya.
+
+           `radial-gradient` dengan `ellipse` sudah cukup lembut --
+           yang membuatnya tetap terlihat "kotak" adalah blur-nya
+           kecil (20px) sementara warnanya pekat. Blur diperbesar
+           dan alpha diturunkan supaya bayangan benar-benar memudar
+           ke gradasi panel, tanpa tepi yang bisa dibaca. */
+        .hero-art::after {
+            content: ""; position: absolute;
+            left: 50%; bottom: -10px; width: 82%; height: 70px;
+            margin-left: -41%;
+            background: radial-gradient(ellipse, rgb(2 8 20 / .42), transparent 72%);
+            filter: blur(32px);
+            pointer-events: none;
+        }
+
+        /* ---------- kartu laporan (belakangan) ----------
+
+           Kartu miring di belakang HP. Fungsinya memberi kedalaman:
+           dua bidang datar yang bertumpuk menghasilkan ilusi layer
+           tanpa perlu 3D asli.
+
+           Sama seperti `.phone`, latar kartunya sekarang gradasi
+           dengan alpha rendah, bukan warna solid. Kalau solid,
+           kartu ini jadi kotak biru kedua yang berdiri sendiri di
+           panel -- dan gradasi panel terputus di tepinya.
+
+           Alpha rendah dipakai karena kartu ini memang lapisan
+           BELAKANGAN: sudah cukup jelas dari kemiringan tujuh derajat
+           dan posisinya di belakang HP, tidak perlu warna pekat untuk
+           terbaca. Justru semakin pekat, semakin "menempel" dan
+           semakin jelas terlihat seperti elemen yang bisa diklik. */
+        .art-card {
+            position: absolute;
+            top: 12%; right: -6%;
+            width: 78%;
+            padding: 26px 24px;
+            border-radius: 24px;
+            background: linear-gradient(150deg,
+                rgb(3 105 161 / .78),
+                rgb(12 74 110 / .70));
+            border: 1px solid rgb(125 211 252 / .18);
+            color: #fff;
+            /* Sama seperti `.phone`: gradasi panel di belakang ikut
+               terblur melewati kartu, jadi tidak ada garis potong
+               di tepinya. */
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            /* Keadaan awal: naik 26px dari posisi akhir. Tanpa offset
+               ini, transisi ke `translateY(0)` tidak bergerak sama
+               sekali -- hanya fade, dan efek "melayang" hilang. */
+            transform: rotate(7deg) translateY(26px);
+            box-shadow: 0 30px 60px -30px rgb(2 8 20 / .55);
+            opacity: 0;
+            transition: transform .8s var(--ease), opacity .6s var(--ease);
+        }
+        .art-card strong { display: block; font-size: 17px; letter-spacing: -.02em; margin-bottom: 6px; }
+        .art-card span { font-size: 13px; color: var(--sky-200); line-height: 1.55; display: block; }
+        .art-card::before {
+            content: ""; display: block;
+            width: 38px; height: 38px; border-radius: 12px;
+            background: rgb(255 255 255 / .16);
+            margin-bottom: 14px;
+        }
+
+        /* ---------- perangkat HP ----------
+
+           Bingkai gelap dengan "notch" pill di atas. Widinya sengaja
+           kecil (280px) supaya masih terbaca sebagai "-- ini HP" dan
+           bukan tablet -- tablet terbaca sebagai browser window, yang
+           justru ingin kita hindari supaya mockup terasa seperti
+           aplikasi yang benar-benar dipakai di lapangan.
+
+           BINGKAI TIDAK ADA WARNA SOLID. Semula `background` bingkai
+           hampir hitam pekat, yang membuat bentuk kotak HP terasa
+           seperti stiker yang ditempel di atas panel -- gradasi panel
+           terputus tepat di sekitarnya dan keseluruhan hero terlihat
+           dua bidang yang tidak menyambung.
+
+           Sekarang bingkai dibuat dari gradasi transparan ke gelap,
+           dengan tepi putih semi transparan. Efeknya: bentuk HP tetap
+           terbaca (radius + notch + layar), tapi tidak lagi menjadi
+           "lubang hitam" di tengah gradasi panel. Panel dan mockup
+           membaca sebagai satu bidang dengan depth, bukan dua objek
+           yang ditempel. */
+        .phone {
+            position: relative;
+            width: 280px;
+            margin: 0 auto;
+            margin-right: -34px;   /* tembus tepi kanan panel */
+            padding: 11px;
+            border-radius: 42px;
+            /* Gradasi dari transparan (tepi) ke gelap (pusat) supaya
+               siluet HP terlihat dari radius + layar, bukan dari
+               warna bingkai yang solid.
+
+               `backdrop-filter: blur()` membuat gradasi panel di
+               belakang ikut terblur saat melewati bingkai -- jadi
+               transisinya tidak berhenti tajam di tepi bingkai,
+               tapi berlanjut mulus ke panel. Ini yang bikin HP
+               terbaca "menempel" di atas gradasi, bukan ditempel
+               sebagai kotak terpisah. */
+            background: linear-gradient(160deg,
+                rgb(30 41 59 / .55),
+                rgb(15 23 42 / .78) 55%,
+                rgb(2 6 23 / .90));
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            box-shadow:
+                0 0 0 1px rgb(255 255 255 / .12),
+                0 40px 70px -30px rgb(2 8 20 / .70),
+                0 12px 28px -14px rgb(2 132 199 / .35);
+            /* Keadaan awal, naik dari bawah. Offset-nya lebih besar
+               dari kartu belakang supaya HP terasa paling dekat dengan
+               mata, bukan sekadar fade. */
+            transform: rotate(-4deg) translateY(44px);
+            opacity: 0;
+            transition: transform .9s var(--ease) .12s, opacity .7s var(--ease);
+        }
+
+        /* Notch: pil kecil di atas layar, dibuat dengan pseudo-element
+           supaya tidak menambah elemen DOM.
+
+           Warnanya `#020617` pekat, bukan mengikuti bingkai yang
+           sekarang translusen. Kalau ikut translucent, notch hilang
+           dan tepi atas layar terlihat datar -- bentuk "HP" hilang,
+           dan yang tersisa cuma kotak dengan radius besar. */
+        .phone::before {
+            content: ""; position: absolute;
+            top: 11px; left: 50%; transform: translateX(-50%);
+            width: 86px; height: 20px;
+            background: #020617;
+            border-radius: 0 0 12px 12px;
+            z-index: 2;
+        }
+
+        /* Layar: gradasi gelap, bukan `#0f172a` solid.
+
+           `background: var(--slate-900)` yang solid membuat layar
+           terbaca sebagai kotak hitam penuh -- itu yang bikin panel
+           hero terpotus. Dengan gradasi, layar masih jelas area
+           konten (ganti ke kartu putih) tapi tidak lagi menjadi
+           lubang hitam di atas gradasi panel. */
+        .phone__screen {
+            position: relative;
+            border-radius: 32px;
+            overflow: hidden;
+            background: linear-gradient(165deg, #1e293b, #0f172a 60%, #0b1220);
+            padding-top: 26px;    /* ruang untuk notch */
+        }
+
+        /* Baris status di dalam layar, supaya HP terbaca sebagai HP. */
+        .phone__status {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 18px 10px;
+            font-size: 10.5px; font-weight: 600;
+            color: var(--slate-400);
+        }
+        .phone__status i {
+            display: block; width: 34px; height: 9px;
+            background: rgb(255 255 255 / .10);
+            border-radius: 999px;
+        }
+
+        /* ---------- isi layar ----------
+
+           Isinya statis dan dekoratif. TIDAK ada angka riil di sini:
+           semua nilai ditandai dengan class `mockdata` -- aturan yang
+           sama dengan mockup dashboard. Lihat catatan jujur di markup
+           hero lama untuk alasannya -- angka di mockup boleh berubah
+           sewaktu-waktu tanpa review karena tidak pernah muncul
+           sebagai klaim performa.
+
+           PENTING: penanda itu bukan `.mock`. `.mock` sudah dipakai
+           kartu mockup dashboard (latar putih, radius, overflow), jadi
+           memakainya di sini membuat setiap baris dan tombol ikut
+           jadi kartu putih -- teks hilang di atas putih. Tabrakan nama
+           seperti ini tidak melempar error, hanya merusak tampilan. */
+        .phone__body {
+            padding: 14px 16px 20px;
+            display: grid; gap: 11px;
+        }
+
+        .phone__hi {
+            font-size: 13px; font-weight: 700; color: #fff;
+            letter-spacing: -.01em;
+        }
+        .phone__hi span { display: block; font-size: 10.5px; font-weight: 500; color: var(--slate-400); margin-top: 2px; }
+
+        /* Kartu ringkas: bukan statistik yang dibaca, tapi bukti
+           "ada isi". Tiga baris sudah cukup untuk memberi kesan
+           data supaya isi layarnya tidak terlihat berantakan. */
+        .phone__row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 12px;
+            background: rgb(255 255 255 / .045);
+            border: 1px solid rgb(255 255 255 / .07);
+            border-radius: 13px;
+        }
+        .phone__row > span:first-child {
+            width: 30px; height: 30px; flex: none;
+            display: grid; place-items: center;
+            border-radius: 9px;
+            background: rgb(56 189 248 / .16);
+            color: var(--sky-300);
+        }
+        .phone__row > span:first-child svg {
+            width: 15px; height: 15px;
+            fill: none; stroke: currentColor; stroke-width: 2;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+        .phone__row b {
+            font-size: 11px; font-weight: 600; color: var(--slate-400);
+            display: block; line-height: 1.3;
+        }
+        .phone__row em {
+            display: block; font-style: normal;
+            font-size: 13px; font-weight: 700; color: #fff;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -.01em;
+        }
+
+        /* Baris dengan angka emerald -- penanda "uang", bahasa visual
+           yang sama dengan mockup dashboard di bawah. */
+        .phone__row--money em { color: var(--emerald-300); }
+
+        /* Baris peringatan: tunggakan. Warna amber, bukan merah --
+           merah di mockup akan terbaca sebagai "ada masalah di
+           produk Anda sendiri". */
+        .phone__row--warn > span:first-child {
+            background: rgb(251 191 36 / .14);
+            color: var(--amber-400);
+        }
+        .phone__row--warn em { color: var(--amber-400); }
+
+        /* Tombol aksi besar di dasar layar. Ini yang membuat layar
+           terbaca sebagai aplikasi yang bisa dipakai, bukan tabel.
+
+           Teksnya TIDAK putih. Semula `color: #fff` di atas
+           gradasi sky-500/sky-600, dan itu hanya memberi kontras
+           2.77:1 -- gagal jauh di bawah ambang 4.5:1 untuk teks
+           normal. Di layar 12px yang kecil, tombol biru terang itu
+           praktis tidak terbaca teksnya.
+
+           `--sky-950` di atas tombol biru terang justru jauh lebih
+           kuat (sekitar 8:1) dan sesuai bahasa visual yang dipakai
+           tombol utama di panel hero, yang juga gelap di atas biru
+           terang. Jadi tombol "aksi utama" di dalam mockup sekarang
+           konsisten dengan tombol utama di halaman. */
+        .phone__cta {
+            display: block; text-align: center;
+            margin-top: 4px;
+            padding: 11px;
+            border-radius: 12px;
+            font-size: 12px; font-weight: 700;
+            color: var(--sky-950);
+            background: linear-gradient(135deg, var(--sky-400), var(--sky-500));
+            box-shadow: 0 8px 18px -8px rgb(14 165 233 / .60);
+        }
+
+        /* Setelah masuk viewport, perangkat naik ke posisi akhir.
+           Delay sedikit lebih lama dari kartu belakang supaya
+           tidak keduanya tiba bersamaan -- dan itu terasa seperti
+           satu gerakan, bukan dua elemen yang kebetulan muncul. */
+        .hero-panel.is-in .phone,
+        .hero-panel.is-in .art-card {
+            opacity: 1;
+        }
+        .hero-panel.is-in .phone   { transform: rotate(-4deg) translateY(0); }
+        .hero-panel.is-in .art-card { transform: rotate(7deg) translateY(0); }
+
+        /* ---------- section pratinjau ----------
+
+           Layout DUA KOLOM: judul + penjelasan di kiri, mockup
+           dashboard di kanan.
+
+           Kenapa tidak ditumpuk vertikal seperti sebelumnya: mockup
+           occupying full width memaksa user untuk menggulir melewati
+           900px teks sebelum melihat visual sama sekali. Dengan
+           bersanding, klaim ("satu sistem, semua kebutuhan") dan
+           buktinya (dashboard) terbaca dalam satu layar, tanpa
+           scroll. Mata bisa pindah kiri-ke-kanan dalam satu lintasan,
+           bukan atas-bawah.
+
+           `.mock` diperkecil supaya muat di kolom kanan (560px)
+           tanpa membuat baris statistiknya terlalu rapat. */
+        .preview { padding: 58px 0 46px; }
+        .preview-grid {
+            display: grid;
+            gap: 56px;
+            grid-template-columns: .85fr 1.15fr;
+            align-items: center;
+        }
+        .preview-copy .eyebrow { margin-bottom: 20px; }
+        .preview-copy h2 {
+            margin: 0 0 16px;
+            font-size: clamp(28px, 3.6vw, 40px);
+            letter-spacing: -.032em; line-height: 1.12; font-weight: 800;
+        }
+        .preview-copy > p {
+            margin: 0 0 26px;
+            font-size: 17px; line-height: 1.65; color: var(--ink-soft);
+            max-width: 46ch;
+        }
+        .preview-points {
+            display: grid; gap: 14px; margin: 0; padding: 0;
+            list-style: none;
+        }
+        .preview-points li {
+            display: flex; align-items: flex-start; gap: 11px;
+            font-size: 15px; line-height: 1.55; color: var(--ink-soft);
+        }
+        .preview-points svg {
+            width: 19px; height: 19px; flex: none; margin-top: 1px;
+            fill: none; stroke: var(--sky-600); stroke-width: 2.2;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+        .preview-points strong { color: var(--ink); font-weight: 700; }
+
         /* ---------- mockup dashboard ----------
 
-           Kartu ini INTERAKTIF (hover) karena isinya memang sesuatu
-           yang bisa dibaca -- visual yang sepenuhnya statis seperti kartu fitur
-           akan terlihat kosong. Sumber kebenarannya tetap mockup, bukan
-           data nyata: lihat catatan di markup.
+           KARTU PUTIH, bukan gelap.
 
-           Bahasa visualnya "terminal", bukan "crypto". Angka emerald
-           dengan label mono + diagram batang sudah memberi hal yang sama
-           dengan ticker cryptocurrency -- rasa "uang bergerak" --
-           tanpa membawa asosiasi volatilitas dan spekulasi yang justru
-           salah untuk sistem administrasi desa.
+           Semula kartu ini gelap (`--slate-900`) dengan bahasa visual
+           "terminal". Sekarang dibalik terang karena tiga alasan:
 
-           Berbeda dari kartu fitur: di sini hover MEMANG boleh sedikit
-           mengangkat, karena isi kartu ini memang sesuatu yang dibaca.
-           Batasnya jelas -- tidak ada tombol, tidak ada tautan, tidak
-           ada `cursor: pointer` di dalam kartu ini. */
+           1. Letaknya bersebelahan dengan panel hero yang juga gelap.
+              Dua blok gelap bersebelahan dengan jarak tipis di antaranya
+              terbaca sebagai satu blok giant, bukan dua bagian.
+           2. Mockup sudah punya konteks sendiri dari jaraknya -- tidak
+              perlu warna gelap untuk deadly attention.
+           3. Kartu putih di halaman terang jauh lebih mudah dibaca sebagai
+              sebagai "gambar", bukan sebagai elemen UI sungguhan.
+              Kalau gelap, orang bisa mengira itu widget embedded yang
+              bisa diklik.
+
+           Konsekuensi yang harus ikut ditangani: semua warna teks
+           yang sebelumnya putih/transparan harus diganti ke versi gelap,
+           dan kartu-kartu di dalamnya (`mock__stat`) tidak boleh
+           putih juga -- kalau putih di atas putih, batasnya hilang.
+           Karena itu `mock__stat` memakai abu sangat muda
+           (`--bg-soft`), bukan `#fff`.
+
+           INTERAKTIF (hover): isinya memang sesuatu yang dibaca --
+           visual statis seperti kartu fitur akan terlihat kosong.
+           Sumber kebenarannya tetap mockup, bukan data nyata.
+
+           Berbeda dari kartu fitur: hover MEMANG boleh sedikit
+           mengangkat. Batasnya jelas -- tidak ada tombol, tidak ada
+           tautan, tidak ada `cursor: pointer` di dalam kartu ini. */
         .mock {
             position: relative;
-            background: var(--slate-900);
-            border: 1px solid rgb(255 255 255 / .09);
+            background: #fff;
+            border: 1px solid var(--line);
             border-radius: var(--r-xl);
-            box-shadow: var(--sh-xl), 0 26px 60px -30px rgb(13 148 136 / .35);
+            box-shadow: var(--sh-lg), 0 26px 60px -34px rgb(2 132 199 / .30);
             overflow: hidden;
             transition: transform .45s var(--ease), box-shadow .45s var(--ease),
                         border-color .45s var(--ease);
@@ -475,8 +951,8 @@
 
         .mock:hover {
             transform: translateY(-4px);
-            border-color: rgb(45 212 191 / .28);
-            box-shadow: var(--sh-xl), 0 38px 80px -32px rgb(13 148 136 / .50);
+            border-color: var(--sky-200);
+            box-shadow: var(--sh-xl), 0 38px 80px -36px rgb(2 132 199 / .42);
         }
 
         /* Bar judul: tiga titik + path + badge "contoh".
@@ -486,77 +962,133 @@
            ini satu-satunya tempat yang jujur menyatakan status data, jadi
            tidak boleh hilang saat kartu dirapikan. */
         .mock__bar {
-            display: flex; align-items: center; gap: 12px;
-            padding: 12px 18px;
-            border-bottom: 1px solid rgb(255 255 255 / .07);
-            background: rgb(255 255 255 / .025);
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--bg-soft);
         }
 
-        .mock__dots { display: flex; gap: 6px; flex: none; }
-        .mock__dots i { width: 9px; height: 9px; border-radius: 50%; background: rgb(255 255 255 / .16); }
+        .mock__dots { display: flex; gap: 5px; flex: none; }
+        .mock__dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sky-200); }
+        .mock__dots i:nth-child(2) { background: var(--sky-300); }
+        .mock__dots i:nth-child(3) { background: var(--sky-400); }
 
         .mock__path {
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 12px; color: var(--slate-400);
+            font-size: 11px; color: var(--ink-soft);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .mock__badge {
             margin-left: auto; flex: none;
-            font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-            color: var(--teal-300);
-            background: rgb(45 212 191 / .12);
-            border: 1px solid rgb(45 212 191 / .25);
-            padding: 3px 9px; border-radius: 999px;
+            font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+            color: var(--sky-700);
+            background: var(--sky-50);
+            border: 1px solid var(--sky-200);
+            padding: 2px 7px; border-radius: 999px;
         }
 
         .mock__body {
-            display: grid; gap: 12px;
+            display: grid; gap: 10px;
             grid-template-columns: 1fr 1fr;
-            padding: 18px;
+            padding: 14px;
         }
 
         /* ---------- kartu angka ----------
 
-           Ikon dan label sebaris di atas, angka besar di bawah, delta
-           paling bawah. Urutan ini yang bikin enak dibaca: orang yang
-           memindai dashboard selalu lihat kategorinya dulu, baru angkanya. */
+           Kotak PERSGI, bukan rounded. Ini bukan pilihan estetika tapi
+           meniru dashboard yang ditiru: kartu metrik di panel admin
+           tenant memakai radius kecil, dan mockup yang melengkung
+           terlihat seperti kartu Undangan, bukan aplikasi kerja.
+
+           Urutan isi: ikon + label sebaris di atas, angka besar di
+           tengah, delta paling bawah. Orang yang memindai dashboard
+           selalu lihat kategorinya dulu, baru angkanya.
+
+           Warna per kartu lewat `--accent` (teks ikon) dan
+           `--accent-soft` (latar kotak ikon). Dua variabel ini ditulis
+           sekali di sini, jadi tiap kartu cukup satu modifier class
+           dan tidak ada aturan warna yang tersebar per ikon. */
         .mock__stat {
-            display: flex; flex-direction: column; gap: 9px;
-            background: rgb(255 255 255 / .035);
-            border: 1px solid rgb(255 255 255 / .065);
-            border-radius: var(--r);
-            padding: 15px 16px 16px;
-            transition: border-color .35s var(--ease), background .35s var(--ease);
+            --accent: var(--sky-700);
+            --accent-soft: var(--sky-100);
+
+            display: flex; flex-direction: column; gap: 8px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 12px 13px 13px;
+            transition: border-color .35s var(--ease), box-shadow .35s var(--ease);
         }
 
-        .mock__stat:hover { border-color: rgb(45 212 191 / .3); background: rgb(45 212 191 / .05); }
+        .mock__stat:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 14px -8px rgb(15 23 42 / .28);
+        }
 
-        .mock__head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+        /* Tiap kartu punya warnanya sendiri supaya empat kotak tidak
+           terbaca sebagai satu blok seragam:
 
-        /* Kotak ikon kecil. Warnanya mengikuti `--warn`, jadi satu
-           selector tambahan cukup untuk kartu tunggakan yang perlu
-           nada peringatan. */
+           pemasukan  hijau  -- uang masuk
+           tunggakan  amber  -- perlu perhatian
+           pelanggan  biru   -- netral, data identitas
+           laporan    indigo -- laporan keuangan, tidak ada di skala sky
+
+           Amber dan hijau sengaja sama-sama gelap di atas latar
+           terang. `--emerald-300` yang dulu dipakai akan pudar jadi
+           abu di atas putih dan berhenti terbaca sebagai status. */
+        .mock__stat--in    { --accent: #047857; --accent-soft: #d1fae5; }
+        .mock__stat--warn  { --accent: #b45309; --accent-soft: #fef3c7; }
+        .mock__stat--user  { --accent: var(--sky-700); --accent-soft: var(--sky-100); }
+        .mock__stat--docs  { --accent: #4338ca; --accent-soft: #e0e7ff; }
+
+        .mock__head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+        /* Kotak ikon. Warna teksnya bukan hardcode tapi `--accent`,
+           yang diwarisi dari kartu induknya.
+
+           `stroke: currentColor` (lihat aturan di bawah) sudah
+           cukup: nilainya diambil dari `color` di sini, jadi tidak
+           ada warna yang ditulis dua kali dan tidak bisa meleset.
+
+           Modifier `.mock__ico--warn` yang dulu ada persis untuk
+           memaksa ikon tunggakan jadi amber dihapus -- warnanya
+           sudah datang dari `.mock__stat--warn` lewat `--accent`,
+           jadi selector kedua hanya menambah satu tempat yang harus
+           dijaga sinkron.
+
+           Kalau nanti butuh ikon dengan warna berbeda di dalam kartu
+           yang sama, ubah `color` pada elemen pembungkusnya dan ikon
+           otomatis mengikuti -- bukan menambah selector warna lagi. */
         .mock__ico {
-            width: 30px; height: 30px; flex: none;
+            width: 24px; height: 24px; flex: none;
             display: grid; place-items: center;
-            border-radius: 9px;
-            background: rgb(45 212 191 / .12);
-            color: var(--teal-300);
+            border-radius: 4px;
+            background: var(--accent-soft);
+            color: var(--accent);
         }
-        .mock__ico--warn { background: rgb(251 191 36 / .13); color: var(--amber-400); }
 
-        /* Stroke mengikuti currentColor, jadi `color` di atas sudah
-           cukup -- tidak ada aturan warna per ikon. */
+        /* Ikon diberi `width`/`height` eksplisit di atas, tapi `<svg>`
+           di dalam `.mock__ico` TIDAK diberi `display: block`. SVG
+           inline adalah elemen sebaris, jadi ia duduk di baseline dan
+           whitespace di markup ikut menambah tinggi kotak -- di 14px
+           basta untuk menggeser ikon naik beberapa piksel dan membuatnya
+           terlihat tidak center.
+
+           `display: block` menutup celah baseline itu. Bukan detail
+           sepele: tanpa ini, "kotak ikon" terlihat tidak simetris --
+           dan di mockup yang tugasnya terlihat rapi, hal pertama yang
+           mata baca justru misalignment, bukan detail 2px ini. */
         .mock__ico svg {
-            width: 16px; height: 16px;
+            display: block;
+            width: 14px; height: 14px;
             fill: none; stroke: currentColor;
-            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+            stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
         }
 
         .mock__label {
-            font-size: 11.5px; font-weight: 500; letter-spacing: .02em;
-            color: var(--slate-400);
+            font-size: 10.5px; font-weight: 500; letter-spacing: .02em;
+            color: var(--ink-soft);
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
@@ -565,11 +1097,15 @@
 
            Angka sengaja menempel ke delta-nya, bukan terdorong ke dasar
            kartu: kalau melompot ke bawah, jarak ke delta jadi jauh dan
-           kartu sebaris terlihat tidak nyambung. */
+           kartu sebaris terlihat tidak nyambung.
+
+           Warna hijau tua, bukan emerald terang: angka `--emerald-300`
+           yang sebelumnya terlihat bagus di atas gelap akan pudar
+           di atas putih dan berhenti terbaca sebagai angka. */
         .mock__value {
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 22px; font-weight: 600; letter-spacing: -.02em;
-            color: var(--emerald-300);
+            font-size: 19px; font-weight: 600; letter-spacing: -.02em;
+            color: var(--ink);
             font-variant-numeric: tabular-nums;
         }
 
@@ -580,23 +1116,36 @@
            hanya lebih kecil dan lebih sering luput. SVG selalu sama. */
         .mock__delta {
             display: inline-flex; align-items: center; gap: 5px;
-            font-size: 11.5px; color: var(--slate-500);
+            font-size: 10.5px; color: var(--ink-mute);
         }
         .mock__delta svg {
-            width: 12px; height: 12px; flex: none;
+            width: 11px; height: 11px; flex: none;
             fill: none; stroke: currentColor;
             stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
         }
-        .mock__delta.up   { color: var(--emerald-400); }
-        .mock__delta.down { color: var(--amber-400); }
+        /* Panah delta ikut warna kartu, sama seperti ikonnya. Bukan karena
+           "naik = bagus": kartu tunggakan punya delta amber dengan
+           panah TURUN, dan itu memang atasannya. Yang diwarnai adalah
+           kartu, bukan arah trenya.
 
+           Kedua kelas digabung karena nilai dan alasannya sama persis.
+           Kalau suatu saat delta naik dan turun mau dibedakan lagi,
+           aturan `.up` dan `.down` harus dipisah di sini -- bukan
+           ditambahkan warna acak di markup. */
+        .mock__delta.up,
+        .mock__delta.down { color: var(--accent); }
+
+        /* Tag laporan mengikuti `--accent` kartu induknya. Radius tetap
+           kecil supaya konsisten dengan kotak kartu -- tag rounded
+           di dalam kotak persegi terbaca sebagai elemen dari sistem
+           desain yang berbeda. */
         .mock__tags { display: flex; flex-wrap: wrap; gap: 5px; }
         .mock__tags i {
-            font-style: normal; font-size: 11px; font-weight: 500;
-            color: var(--teal-200);
-            background: rgb(45 212 191 / .10);
-            border: 1px solid rgb(45 212 191 / .2);
-            padding: 3px 8px; border-radius: 7px;
+            font-style: normal; font-size: 10px; font-weight: 500;
+            color: var(--accent);
+            background: var(--accent-soft);
+            border: 1px solid transparent;
+            padding: 3px 7px; border-radius: 4px;
         }
 
         .mock__chart { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; }
@@ -612,9 +1161,9 @@
            batang terakhir, bukan berurutan.
 
            PENTING: prefix `deck-` wajib dan tidak boleh diubah asal.
-           Class polos `.bar` sudah dipakai `.wrap.bar` di header, dan CSS
+           Class polos `.bar` sudah dipakai di header mockup, dan CSS
            batang di bawah akan menimpanya: `max-width` membuat header
-           selebar sempit, dan gradien teal membuat header hijau. Tabrakan
+           selebar sempit, dan gradien biru membuat header hijau. Tabrakan
            nama kelas seperti ini tidak melempar error -- hanya diam-diam
            merusak tampilan, dan jauh lebih sulit ditelusuri. */
         .deck {
@@ -627,24 +1176,26 @@
             /* Garis dasar: tanpa itu, batang yang menempel tepi bawah
                terlihat melayang. Border dipakai (bukan background) supaya
                tidak menambah tinggi layout. */
-            border-bottom: 1px solid rgb(255 255 255 / .07);
+            border-bottom: 1px solid var(--line);
         }
 
         .deck-bar {
             flex: 1; max-width: 42px;
             height: var(--h, 50%);
             border-radius: 5px 5px 2px 2px;
-            background: linear-gradient(180deg, var(--teal-400), var(--teal-600));
+            background: linear-gradient(180deg, var(--sky-400), var(--sky-600));
             transform-origin: bottom;
             animation: grow .8s var(--ease) backwards;
             animation-delay: calc(var(--i, 0) * 65ms);
         }
 
         /* Batang terakhir disorot: ini yang dibaca mata lebih dulu, jadi
-           juga yang paling perlu kontras. */
+           juga yang paling perlu kontras. Gelap ke terang, bukan glow:
+           `0 0 18px` di atas putih tidak terlihat sama sekali karena
+           cahaya putih tidak kontras dengan putih. */
         .deck-bar--on {
-            background: linear-gradient(180deg, var(--emerald-300), var(--teal-500));
-            box-shadow: 0 0 18px -4px rgb(45 212 191 / .55);
+            background: linear-gradient(180deg, var(--sky-500), var(--sky-700));
+            box-shadow: 0 6px 16px -6px rgb(2 132 199 / .45);
         }
 
         @keyframes grow {
@@ -655,38 +1206,99 @@
         /* Label bulan memakai aturan flex yang sama persis dengan
            batang -- `space-between`, gap, dan `max-width` -- supaya
            kotak keduanya benar-benar sejajar. Beda hanya `text-align`
-           dan tanpa `flex-direction`. */
+           dan tanpa `flex-direction`.
+
+           Warnanya `ink-soft`, bukan `ink-mute`: label bulan abducted
+           10.5px di atas putih cuma 2.56:1 dengan abu terang. Ini bukan
+           teks dekoratif -- orang membacanya untuk mengurutkan batang
+           dari kiri ke kanan, jadi bulan yang tidak terbaca bikin
+           grafik kehilangan maknanya. */
         .deck__months { display: flex; justify-content: space-between; gap: 8px; }
         .deck__months span {
             flex: 1; max-width: 42px; text-align: center;
             font-size: 10.5px; letter-spacing: .03em;
-            color: var(--slate-500);
+            color: var(--ink-soft);
         }
-        .deck__months span:last-child { color: var(--emerald-400); font-weight: 600; }
+        /* Bulan terakhir disorot karena batangnya yang paling tinggi,
+           jadi yang paling banyak dilihat mata. Warna biru, bukan hijau:
+           hijau di sini terbaca sebagai "pembaik", bukan "tertinggi". */
+        .deck__months span:last-child { color: var(--sky-700); font-weight: 600; }
 
         /* Baris kecil di bawah mockup: jalan keluar untuk yang sudah jadi
            pelanggan. Tautan di teksnya sengaja minimal -- halaman ini
            untuk calon pembeli baru, dan setiap pintu masuk tambahan hanya
            menambah satu alasan untuk pergi sebelum sempat membaca. */
         .mock__foot {
-            margin: 0; padding: 13px 20px 15px;
-            border-top: 1px solid rgb(255 255 255 / .07);
-            background: rgb(255 255 255 / .02);
-            font-size: 12.5px; line-height: 1.6; text-align: center;
-            color: var(--slate-500);
+            margin: 0; padding: 11px 16px 12px;
+            border-top: 1px solid var(--line);
+            background: var(--bg-soft);
+            font-size: 11.5px; line-height: 1.55; text-align: center;
+            color: var(--ink-soft);
         }
-        .mock__foot strong { color: var(--slate-400); font-weight: 600; }
-        .mock__foot a { color: var(--teal-300); text-decoration: none; border-bottom: 1px solid rgb(45 212 191 / .35); }
-        .mock__foot a:hover { border-bottom-color: var(--teal-300); }
+        .mock__foot strong { color: var(--ink); font-weight: 600; }
+        .mock__foot a { color: var(--sky-700); text-decoration: none; border-bottom: 1px solid var(--sky-300); }
+        .mock__foot a:hover { border-bottom-color: var(--sky-600); }
 
-        /* ---------- section ---------- */
-        section { padding: 80px 0; }
+        /* ---------- section ----------
+
+           Jarak antar section DIKECILKAN dari 80px ke 62px, dan tiap
+           batas section diberi garis tipis yang memudar di kedua ujungnya
+           -- bukan garis penuh.
+
+           Kenapa bukan garis penuh: garis `border-bottom` yang memotong
+           seluruh lebar halaman terbaca sebagai "batas dokumen", bukan
+           "batas antar bagian". Yang dikehendaki adalah sinyal "konten
+           berganti topik", jadi gradasi yang hilang di kedua sisi jauh
+           lebih tepat: mata diberi tahu ada pergantian tanpa
+           sempat merasa halaman terpotong.
+
+            Gradasi lewat `background` pada pseudo-element supaya
+           tidak menambah elemen DOM dan tidak mengganggu layout. */
+        section { padding: 62px 0; position: relative; }
+
+        /* Garis pemisah antar section.
+
+           Pseudo-element, bukan `border-bottom` pada section itu
+           sendiri: border akan ikut berubah lebarnya saat section
+           memakai padding berbeda, dan ia menempel langsung di tepi
+           konten -- terlalu rapat. Pseudo-element dengan
+           `top: -1px` bisa berdiri sendiri sebagai garis transisi. */
+        section + section::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                var(--sky-300) 18%,
+                var(--sky-300) 82%,
+                transparent 100%);
+            pointer-events: none;
+
+            /* Garis tumbuh dari tengah saat section masuk layar.
+               `scaleX` (bukan `width`) supaya jalan di compositor dan
+               tidak memicu layout tiap frame. */
+            transform: scaleX(0);
+            transform-origin: center;
+            transition: transform .9s var(--ease);
+        }
+        section.is-in::before { transform: scaleX(1); }
+
+        /* Section bertinted (cara kerja) tetap dibedakan lewat latar,
+           jadi garis pemisah di atasnya dimatikan supaya tidak ada
+           dua sinyal untuk batas yang sama. */
+        section.tint::before { display: none; }
+
         section.tint {
             background: linear-gradient(180deg, var(--bg-soft), #fff);
-            border-block: 1px solid var(--line);
         }
 
-        .sec-head { max-width: 64ch; margin-bottom: 52px; }
+        /* Section pratinjau (mockup) tidak perlu pemisah tambahan:
+           mockup-nya sudah punya bayangan sendiri yang jelas batasnya,
+           dan garis tepat di atas kartu besar terasa seperti pagar. */
+        section.preview::before { display: none; }
+
+        .sec-head { max-width: 64ch; margin-bottom: 38px; }
         .sec-head h2 {
             margin: 0 0 14px; font-size: clamp(27px, 3.5vw, 36px);
             letter-spacing: -.03em; line-height: 1.16; font-weight: 800;
@@ -740,7 +1352,7 @@
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 2px;
-            background: linear-gradient(90deg, transparent, var(--teal-500), var(--teal-300), transparent);
+            background: linear-gradient(90deg, transparent, var(--sky-500), var(--sky-300), transparent);
             transform: scaleX(0);
             transform-origin: center;
             opacity: 0;
@@ -763,7 +1375,7 @@
             inset: -60%;
             background: radial-gradient(
                 circle at 30% 30%,
-                rgb(45 212 191 / .13),
+                rgb(56 189 248 / .13),
                 transparent 55%
             );
             opacity: 0;
@@ -777,7 +1389,7 @@
         .card > * { position: relative; z-index: 1; }
 
         .card:hover {
-            border-color: var(--teal-200);
+            border-color: var(--sky-200);
             /* Hanya shadow yang sedikit lebih dalam. Bukan shadow yang
                "naik" seperti kartu yang bisa diklik -- bedanya
                sengaja dibuat tipis supaya tidak terbaca sebagai
@@ -803,15 +1415,15 @@
         .card .ico {
             width: 46px; height: 46px; border-radius: 13px;
             display: grid; place-items: center;
-            background: linear-gradient(135deg, var(--teal-50), var(--teal-100));
-            color: var(--teal-700); margin-bottom: 17px;
+            background: linear-gradient(135deg, var(--sky-50), var(--sky-100));
+            color: var(--sky-700); margin-bottom: 17px;
             box-shadow: var(--sh-sm);
             transition: background .45s var(--ease), box-shadow .45s var(--ease),
                         border-radius .45s var(--ease);
         }
 
         .card:hover .ico {
-            background: linear-gradient(135deg, var(--teal-100), var(--teal-200));
+            background: linear-gradient(135deg, var(--sky-100), var(--sky-200));
             border-radius: 10px;
             box-shadow: var(--sh-md);
         }
@@ -870,61 +1482,119 @@
 
         /* ---------- cara kerja ----------
 
-           Sama seperti .card: panel statis, bukan elemen interaktif.
-           Shadow aktif supaya menyatu dengan kartu fitur. */
-        .steps { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); counter-reset: s; }
+           Panel statis, bukan elemen interaktif. Shadow aktif supaya
+           menyatu dengan kartu fitur.
+
+           Perbedaan dari versi lama: nomor langkah pindah dari pojok
+           kanan ke kotak ikon besar di kiri, dan garis penghubung
+           horizontal membelah antar langkah. Alasannya, tiga kartu
+           bersebelahan dengan nomor di pojok kanan forced user untuk
+           membaca berlawanan arah dengan alur kalimat. Nomor di kiri
+           aligning dengan arah baca normal dan langsung terlihat
+           sebagai urutan. */
+        .steps {
+            display: grid; gap: 22px;
+            grid-template-columns: repeat(3, 1fr);
+            counter-reset: s;
+            position: relative;
+        }
 
         .step {
-            position: relative; padding: 28px 24px 26px;
-            background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg);
+            position: relative;
+            padding: 30px 26px 28px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: var(--r-lg);
             box-shadow: var(--sh-md);
+            transition: border-color .4s var(--ease), box-shadow .4s var(--ease),
+                        transform .4s var(--ease);
+        }
+        /* Kartu boleh sedikit terangkat: ini bukan elemen yang bisa
+           diklik, tapi elevate tipis cukup untuk memberi tanda "ini
+           urutan" tanpa menggoda untuk ditekan. */
+        .step:hover {
+            border-color: var(--sky-200);
+            box-shadow: var(--sh-lg);
+            transform: translateY(-3px);
         }
 
-        .step::before {
-            counter-increment: s; content: counter(s);
-            position: absolute; top: 24px; right: 24px;
-            width: 40px; height: 40px; display: grid; place-items: center;
-            border-radius: 13px;
-            background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
-            color: #fff; font-size: 16px; font-weight: 800;
+        /* Kotak nomor: besar, di kiri, jadi penanda urutan yang dibaca
+           pertama sebelum paragrafnya. */
+        .step__num {
+            counter-increment: s;
+            width: 46px; height: 46px;
+            display: grid; place-items: center;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--sky-500), var(--sky-700));
+            color: #fff; font-size: 19px; font-weight: 800;
             box-shadow: var(--sh-brand);
+            margin-bottom: 18px;
         }
+        .step__num::before { content: counter(s); }
 
-        .step h3 { margin: 0 0 8px; font-size: 17px; letter-spacing: -.014em; font-weight: 700; padding-right: 52px; }
+        .step h3 { margin: 0 0 8px; font-size: 17.5px; letter-spacing: -.018em; font-weight: 700; }
         .step p { margin: 0; font-size: 14.5px; line-height: 1.62; color: var(--ink-soft); }
+
+        /* Garis penghubung antar langkah.
+
+           Ditaruh di belakang kartu (`z-index: -1`) dan dipotong
+           oleh gap antar kolom. Kalau tidak dipotong, garis akan
+           terlihat masuk ke dalam kartu dan merusak tepinya.
+
+           Hanya untuk dua langkah pertama: `:not(:last-child)` --
+           Step terakhir tidak punya successor untuk disambung. */
+        .step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 53px;                     /* sejajar dengan tengah kotak nomor */
+            left: 100%;
+            width: 22px;                   /* = gap, jadi garis hanya di celah */
+            height: 2px;
+            background: linear-gradient(90deg, var(--sky-300), var(--sky-200));
+            z-index: -1;
+        }
 
         /* ---------- CTA penutup ---------- */
         .closer {
             position: relative; overflow: hidden;
-            background: linear-gradient(150deg, var(--teal-800), var(--teal-950));
+            background: linear-gradient(150deg, var(--sky-800), var(--sky-950));
             color: #fff; border-radius: var(--r-xl);
-            padding: 60px 48px; text-align: center;
-            box-shadow: 0 20px 50px -18px rgb(4 47 46 / .55), 0 4px 12px -4px rgb(4 47 46 / .3);
+            padding: 48px 44px; text-align: center;
+            box-shadow: 0 20px 50px -18px rgb(8 47 73 / .55), 0 4px 12px -4px rgb(8 47 73 / .3);
         }
-        /* Pola grid halus supaya bidang gelap tidak terasa kosong. */
+        /* Tekstur lembut tanpa geometri.
+
+           Pola grid yang dulu ada di sini (dua `linear-gradient` 1px
+           berulang) dihapus dengan alasan yang sama seperti di
+           `.hero-panel::before`: garis horizontal dan vertikal yang
+           berulang pasti membentuk kotak, dan di panel gelap sebesar
+           ini kisi jadi hal pertama yang dilihat mata.
+
+           Diganti satu gumpalan cahaya di belakang tombol tengah,
+           tempat mata sudah diarahkan. Tidak ada tepi, jadi tidak
+           mungkin jadi garis. */
         .closer::before {
-            content: ""; position: absolute; inset: 0;
-            background-image: linear-gradient(rgb(255 255 255 / .05) 1px, transparent 1px),
-                              linear-gradient(90deg, rgb(255 255 255 / .05) 1px, transparent 1px);
-            background-size: 46px 46px;
-            -webkit-mask-image: radial-gradient(circle at 50% 40%, #000, transparent 72%);
-                    mask-image: radial-gradient(circle at 50% 40%, #000, transparent 72%);
+            content: ""; position: absolute;
+            inset: -25%;
+            background:
+                radial-gradient(ellipse 55% 60% at 50% 45%,
+                    rgb(56 189 248 / .13), transparent 72%);
             pointer-events: none;
         }
         /* Glow berputar pelan di belakang teks. */
         .closer::after {
             content: ""; position: absolute;
             width: 520px; height: 520px; top: -180px; left: 50%; margin-left: -260px;
-            background: radial-gradient(circle, rgb(45 212 191 / .26), transparent 62%);
+            background: radial-gradient(circle, rgb(56 189 248 / .26), transparent 62%);
             filter: blur(64px); pointer-events: none;
             animation: drift-b 20s ease-in-out infinite alternate;
         }
         .closer > * { position: relative; z-index: 1; }
 
         .closer h2 { margin: 0 0 14px; font-size: clamp(26px, 3.2vw, 34px); letter-spacing: -.028em; font-weight: 800; }
-        .closer p { margin: 0 auto 30px; max-width: 54ch; color: var(--teal-100); font-size: 17px; }
-        .closer .btn-primary { background: #fff; color: var(--teal-800); box-shadow: 0 8px 22px -8px rgb(0 0 0 / .4); }
-        .closer .btn-primary:hover { background: var(--teal-50); }
+        .closer p { margin: 0 auto 30px; max-width: 54ch; color: var(--sky-100); font-size: 17px; }
+        .closer .btn-primary { background: #fff; color: var(--sky-800); box-shadow: 0 8px 22px -8px rgb(0 0 0 / .4); }
+        .closer .btn-primary:hover { background: var(--sky-50); }
         .closer .btn-ghost {
             background: rgb(255 255 255 / .07); border-color: rgb(255 255 255 / .3);
             color: #fff; backdrop-filter: blur(4px);
@@ -951,8 +1621,8 @@
             border-radius: 50%;
             cursor: pointer;
             color: #fff;
-            background: linear-gradient(140deg, var(--teal-500), var(--teal-700));
-            box-shadow: var(--sh-brand), 0 10px 24px -10px rgb(4 47 46 / .5);
+            background: linear-gradient(140deg, var(--sky-500), var(--sky-700));
+            box-shadow: var(--sh-brand), 0 10px 24px -10px rgb(8 47 73 / .5);
 
             /* Tersembunyi tanpa interaksi: opacity 0 + scale kecil +
                pointer-events none. Bukan `display: none` supaya
@@ -968,11 +1638,11 @@
             pointer-events: auto;
         }
         .to-top:hover {
-            box-shadow: var(--sh-brand), 0 16px 34px -12px rgb(4 47 46 / .6);
+            box-shadow: var(--sh-brand), 0 16px 34px -12px rgb(8 47 73 / .6);
         }
         .to-top:active { transform: translateY(1px) scale(.94); }
 
-        /* Panah: dibuat dari dua garis yang berputar 45° (chevron),
+        /* Panah: dibuat dari dua garis yang berputar 45Â° (chevron),
            bukan glyphfont -- supaya tidak bergantung font apa pun
            yang terpasang di sistem user. */
         .to-top span {
@@ -989,15 +1659,34 @@
         .foot { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; }
         .foot p { margin: 0; font-size: 13.5px; color: var(--ink-mute); }
         .foot a {
-            color: var(--teal-700); text-decoration: none; font-weight: 600; font-size: 13.5px;
+            color: var(--sky-700); text-decoration: none; font-weight: 600; font-size: 13.5px;
             transition: color .2s var(--ease);
         }
-        .foot a:hover { color: var(--teal-800); text-decoration: underline; text-underline-offset: 3px; }
+        .foot a:hover { color: var(--sky-800); text-decoration: underline; text-underline-offset: 3px; }
 
         /* ---------- responsif ---------- */
         @media (max-width: 900px) {
-            .hero { padding: 60px 0 52px; }
-            .hero-inner { grid-template-columns: 1fr; gap: 44px; }
+            .hero { padding: 28px 0 12px; }
+
+            /* Panel kehilangan radius sebesar desktop -- di layar
+               sempit, radius 34px memakan hampir seluruh lebar dan
+               Tepi melengkungnya tidak terbaca lagi. */
+            .hero-panel { border-radius: 24px; padding: 44px 32px; }
+
+            .hero-inner { grid-template-columns: 1fr; gap: 52px; }
+
+            /* Di satu kolom, mockup tidak boleh lagi menindih tepi
+               kanan: `margin-right` negatifnya dinolkan supaya HP
+               berada di tengah dan tidak keluar dari panel. */
+            .phone { margin-right: 0; }
+            .art-card { right: 2%; width: 72%; }
+
+            /* Grid pratinjau jadi satu kolom. Mockup tetap di bawah
+               teks (bukan sebaliknya) karena di layar sempit urutan
+               baca yang wajar: apa yang dijanjikan dulu, baru bukti. */
+            .preview { padding: 44px 0 38px; }
+            .preview-grid { grid-template-columns: 1fr; gap: 40px; }
+            .preview-copy > p { max-width: none; }
 
             /* Navbar berubah jadi panel dropdown.
 
@@ -1054,7 +1743,7 @@
                 padding: 12px 14px;
                 font-size: 15px;
             }
-            .nav a.navlink.is-active { box-shadow: inset 3px 0 0 var(--teal-500); }
+            .nav a.navlink.is-active { box-shadow: inset 3px 0 0 var(--sky-500); }
 
             .nav .btn { width: 100%; margin-top: 6px; padding: 12px; }
 
@@ -1066,7 +1755,7 @@
 
         @media (max-width: 520px) {
             .wrap { padding-inline: 18px; }
-            section { padding: 56px 0; }
+            section { padding: 44px 0; }
             .closer { padding: 42px 22px; }
             .card, .step { padding: 22px 20px; }
             .step::before { top: 18px; right: 18px; width: 34px; height: 34px; font-size: 14px; }
@@ -1075,9 +1764,17 @@
             /* Panel menu ikut menyempit agar sejajar dengan teks. */
             .nav { inset: calc(100% + 8px) 18px auto 18px; }
 
+            /* Panel hero makin rapat, dan mockup HP ikut mengecil
+               supaya bingkai gelapnya tidak melebihi lebar layar. */
+            .hero-panel { border-radius: 20px; padding: 34px 22px; }
+            .phone { width: 240px; }
+            .art-card { padding: 20px 18px; right: 0; width: 76%; }
+            .art-card strong { font-size: 15px; }
+            .art-card span { font-size: 12px; }
+
             /* Dua kolom jadi satu di layar sempit: angka 22px dalam
                setengah lebar 390px akan terpotong. */
-            .mock__body { grid-template-columns: 1fr; padding: 16px; }
+            .mock__body { grid-template-columns: 1fr; padding: 14px; }
             .mock__value { font-size: 19px; }
 
             /* Tombol ke-atas sedikit lebih kecil supaya tidak menutupi
@@ -1108,24 +1805,18 @@
 
             .reveal { opacity: 1 !important; transform: none !important; }
             .hero::before, .hero::after, .closer::after { animation: none; }
+            .hero-panel::after { animation: none; }
 
-            /* Batang grafik: delay harus ikut dinolkan.
-
-               Rule `*` di atas hanya menyentuh `animation-duration` dan
-               `animation-iteration-count`. `animation-delay` tidak ikut
-               berubah -- dan `grow` memakai fill-mode `backwards`, jadi
-               selama delay masih berlaku batang ditahan di frame `from`
-               yang punya `scaleY(0)`.
-
-               Efeknya di mode ini: seluruh grafik hilang selama 325ms
-               (delay batang terakhir) lalu muncul sekaligus. Kedipan
-               yang sama sekali tidak boleh ada di halaman yang sedang
-               dihentikan geraknya.
-
-               `animation: none` lebih bersih: mengembalikan batang ke gaya
-               dasarnya, yang tidak punya transform -- jadi langsung tampil
-               pada tinggi `--h`. */
-            .deck-bar { animation: none !important; }
+            /* Perangkat mockup: tanpa JS yang memasang `.is-in`,
+               `opacity: 0` di gaya dasarnya akan membuat HP dan kartu
+               hilang permanen. Jadi state akhir ditulis eksplisit di
+               sini, bukan hasil dari observer. */
+            .phone, .art-card {
+                opacity: 1 !important;
+                transition: none !important;
+            }
+            .phone    { transform: rotate(-4deg) !important; }
+            .art-card { transform: rotate(7deg) !important; }
 
             /* Kartu perlu `animation: none`, bukan cuma durasi ~0.
 
@@ -1152,6 +1843,17 @@
                seperti belum di-hover dalam mode ini. */
             .card::after { opacity: 0; }
             .card::before { transform: scaleX(1); opacity: .5; }
+
+            /* Batang grafik: `grow` punya `backwards` sebagai fill-mode,
+               jadi sebelum delay-nya habis batang TIDAK tampil sama
+               sekali -- bukan transparan, tapi setback ke scaleY(0).
+               Dengan enam batang dan jeda 65ms, ada ~325ms di mana
+               grafik tampil setengah kosong.
+
+               `animation: none` mengembalikan batang ke gaya
+               dasarnya (`height: var(--h)`) tanpa menunggu delay,
+               jadi grafik langsung utuh. */
+            .deck-bar { animation: none !important; }
         }
     </style>
 </head>
@@ -1345,10 +2047,14 @@
                     calon pelanggan yang belum punya akses. Yang sudah punya
                     akun datang dari subdomain lokasi mereka sendiri, atau
                     lewat bookmark ke /central/login.
-                --}}
-                <a class="btn btn-ghost" href="{{ $centralLoginUrl }}">Masuk</a>
 
-                <a class="btn btn-primary" href="mailto:admin@astabrata.co.id?subject=Penawaran%20ASTALOKA">Ajukan Penawaran</a>
+                    Bersaudara dengan tombol "Ajukan Penawaran" yang dihapus
+                    dari sini, jadi warna accent-nya ikut naik ke `primary`.
+                    Kalau "Masuk" tetap ghost, navbar kehilangan satu-satunya
+                    aksen warna dan navlink biasa di sebelahnya terlihat
+                    sama pentingnya dengan pintu masuk.
+                --}}
+                <a class="btn btn-primary" href="{{ $centralLoginUrl }}">Masuk</a>
             </nav>
         </div>
     </header>
@@ -1362,57 +2068,173 @@
 
     <main>
         {{-- ---------- hero ---------- --}}
+        {{--
+            Panel gelap besar + mockup HP yang keluar dari tepi kanan.
+
+            Dua perangkat (HP + kartu laporan di belakangnya) dipilih
+            karena bagian atas layar harus bisa menunjukkan "ini sistem
+            yang jalan" dalam satu glance. Mockup HP dibaca lebih cepat
+            daripada kartu mockup datar: bentuknya sudah dikenal orang
+            tanpa perlu penjelasan, jadi tidak perlu kata untuk tahu
+            itu aplikasi.
+
+            PENTING SOAL KEJUJURAN: semua angka di dalam mockup HP ini
+            adalah data contoh, bukan data pelanggan mana pun. Semuanya
+            ditulis sebagai class `mock`, yang berarti isinya boleh
+            berubah kapan saja tanpa perlu review -- karena tidak pernah
+            ditampilkan sebagai angka asli. Jangan pernah menaruh
+            angka riil di elemen yang TIDAK punya class `mock`: itu
+            kalimat yang benar-benar diklaim ke calon pembeli.
+        --}}
         <div class="hero">
-            <div class="wrap hero-inner">
-                <div class="reveal">
-                    <span class="eyebrow">Asta Layanan Operasional, Keuangan, dan Administrasi</span>
+            <div class="wrap">
+                <div class="hero-panel">
+                    <div class="hero-inner">
 
-                    <h1>Satu sistem untuk <em>semua</em> usaha desa.</h1>
+                        <div class="reveal">
+                            <span class="eyebrow">Asta Layanan Operasional, Keuangan, dan Administrasi</span>
 
-                    <p class="lede">
-                        ASTALOKA adalah platform pengelolaan usaha dan administrasi
-                        dari Asta Brata Teknologi. Air minum, internet, pembayaran
-                        sampah, atau layanan lain &mdash; semuanya berjalan di atas
-                        ASTALOKA. Setiap lokasi punya datanya sendiri, terpisah penuh,
-                        jadi satu lokasi tidak pernah bisa melihat angka lokasi lain.
-                    </p>
+                            <h1>Satu sistem untuk <em>semua</em> jenis usaha.</h1>
 
-                    <div class="cta">
-                        <a class="btn btn-primary btn-lg" href="mailto:admin@astabrata.co.id?subject=Penawaran%20ASTALOKA">Ajukan Penawaran</a>
-                        <a class="btn btn-ghost btn-lg" href="#fitur">Lihat Fitur</a>
+                            <p class="lede">
+                                ASTALOKA adalah platform pengelolaan usaha dan administrasi
+                                dari Asta Brata Teknologi. Air minum, internet, pembayaran
+                                sampah, jasa, atau usaha apa pun &mdash; semuanya berjalan
+                                di atas satu sistem yang sama, lengkap dengan modulnya
+                                masing-masing.
+                            </p>
+
+                            <div class="cta">
+                                {{-- Di dalam panel gelap, tombol ghost memakai
+                                     varian gelap (lihat `.hero-panel .btn-ghost`). --}}
+                                <a class="btn btn-primary btn-lg" href="#mulai">Mulai Sekarang</a>
+                                <a class="btn btn-ghost btn-lg" href="#fitur">Lihat Fitur</a>
+                            </div>
+
+                            <p class="note">
+                                <svg aria-hidden="true"><use href="#i-check-circle"/></svg>
+                                <span>
+                                    Tanpa biaya instalasi. Satu akun, semua modul &mdash;
+                                    tidak perlu bolak-balik antar aplikasi.
+                                </span>
+                            </p>
+                        </div>
+
+                        {{-- Mockup perangkat. `aria-hidden` karena isinya
+                             dekoratif dan sudah dijelaskan di teks hero. --}}
+                        <div class="hero-art reveal" aria-hidden="true">
+                            <div class="art-card">
+                                <strong>Laporan siap</strong>
+                                <span>Neraca, laba rugi, buku besar, dan arus kas bisa dicetak kapan saja.</span>
+                            </div>
+
+                            <div class="phone">
+                                <div class="phone__screen">
+                                    <div class="phone__status">
+                                        <i></i>
+                                        <span class="mockdata">09:41</span>
+                                    </div>
+
+                                    <div class="phone__body">
+                                        <div class="phone__hi">
+                                            Halo, Admin
+                                            <span class="mockdata">Ringkasan hari ini</span>
+                                        </div>
+
+                                        <div class="phone__row phone__row--money">
+                                            <span><svg><use href="#i-trend-up"/></svg></span>
+                                            <span>
+                                                <b class="mockdata">Pemasukan hari ini</b>
+                                                <em class="mockdata">Rp 1.250.000</em>
+                                            </span>
+                                        </div>
+
+                                        <div class="phone__row phone__row--warn">
+                                            <span><svg><use href="#i-trend-down"/></svg></span>
+                                            <span>
+                                                <b class="mockdata">Tagihan menunggak</b>
+                                                <em class="mockdata">7 pelanggan</em>
+                                            </span>
+                                        </div>
+
+                                        <div class="phone__row">
+                                            <span><svg><use href="#i-docs"/></svg></span>
+                                            <span>
+                                                <b class="mockdata">Tagihan hari ini</b>
+                                                <em class="mockdata">32 tagihan</em>
+                                            </span>
+                                        </div>
+
+                                        <span class="phone__cta mockdata">Buat Tagihan</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ---------- pratinjau dashboard ---------- --}}
+        {{--
+            Kartu mockup dashboard, bukan ringkasan teks.
+
+            Alasan pakai visual: daftar bullet menjelaskan fitur,
+            tapi calon pembeli yang melihat dashboard bisa
+            langsung paham ini sistem yang jalan -- bukan mockup
+            wireframe kosong.
+
+            Letaknya sebagai section sendiri, bukan di dalam hero:
+            hero sekarang dipakai untuk mockup HP (pengalaman harian),
+            dan blok ini untuk angka (bukti sistemnya jalan). Dua hal
+            berbeda butuh dua penekanan berbeda.
+
+            PENTING SOAL KEJUJURAN: semua angka di sini HARUS
+            memakai class `mock`. Aturan mainnya satu: kalau
+            elemen punya `mock`, isinya boleh berubah kapan saja
+            tanpa perlu review karena tidak pernah ditampilkan
+            sebagai angka asli. Elemen tanpa `mock` berarti
+            kalimat yang benar-benar diklaim ke calon pembeli, jadi
+            jangan pernah menaruh angka di sana.
+
+            Angka yang tampil BUKAN data produksi. Data ada di
+            database terpisah per pelanggan dan tidak pernah dimuat
+            ke halaman publik.
+        --}}
+        <section id="pratinjau" class="preview">
+            <div class="wrap">
+                <div class="preview-grid">
+
+                    <div class="preview-copy reveal">
+                        <span class="eyebrow">Ringkasan satu layar</span>
+
+                        <h2>Satu sistem, semua kebutuhan operasional</h2>
+
+                        <p>
+                            ASTALOKA bukan aplikasi air minum. Ia landasan yang
+                            bisa dipakai apa pun &mdash; air, internet, sampah,
+                            atau usaha apa pun &mdash; dengan modul yang
+                            sama-sama sudah siap.
+                        </p>
+
+                        <ul class="preview-points">
+                            <li>
+                                <svg aria-hidden="true"><use href="#i-check-circle"/></svg>
+                                <span><strong>Pemasukan dan tunggakan</strong> terlihat berdampingan, bukan harus dihafal.</span>
+                            </li>
+                            <li>
+                                <svg aria-hidden="true"><use href="#i-check-circle"/></svg>
+                                <span><strong>Laporan keuangan</strong> bisa dicetak kapan saja tanpa menyusun ulang data.</span>
+                            </li>
+                            <li>
+                                <svg aria-hidden="true"><use href="#i-check-circle"/></svg>
+                                <span><strong>Semua modul menyatu</strong> &mdash; satu akun cukup, tanpa bolak-balik antar aplikasi.</span>
+                            </li>
+                        </ul>
                     </div>
 
-                    <p class="note">
-                        <svg aria-hidden="true"><use href="#i-check-circle"/></svg>
-                        <span>
-                            Tanpa biaya instalasi. Data Anda milik Anda, tersimpan
-                            di server terpisah dari lokasi lain.
-                        </span>
-                    </p>
-                </div>
-
-                {{-- ---------- pratinjau dashboard ---------- --}}
-                {{--
-                    Kartu mockup dashboard, bukan ringkasan teks.
-
-                    Alasan pakai visual: daftar bullet menjelaskan fitur,
-                    tapi calon pembeli yang melihat dashboard bisa
-                    langsung paham ini sistem yang jalan -- bukan mockup
-                    wireframe kosong.
-
-                    PENTING SOAL KEJUJURAN: semua angka di sini HARUS
-                    memakai class `mock`. Aturan mainnya satu: kalau
-                    elemen punya `mock`, isinya boleh berubah kapan saja
-                    tanpa perlu review karena tidak pernah ditampilkan
-                    sebagai angka asli. Elemen tanpa `mock` berarti
-                    kalimat yang benar-benar diklaim ke calon pembeli, jadi
-                    jangan pernah menaruh angka di sana.
-
-                    Angka yang tampil BUKAN data produksi. Data ada di
-                    database terpisah per lokasi dan tidak pernah dimuat
-                    ke halaman publik.
-                --}}
-                <div class="mock reveal">
+                    <div class="mock reveal">
                     <div class="mock__bar">
                         <span class="mock__dots" aria-hidden="true"><i></i><i></i><i></i></span>
                         <span class="mock__path">astaloka &mdash; dashboard</span>
@@ -1420,7 +2242,7 @@
                     </div>
 
                     <div class="mock__body">
-                        <div class="mock__stat">
+                        <div class="mock__stat mock__stat--in">
                             <div class="mock__head">
                                 <span class="mock__ico"><svg aria-hidden="true"><use href="#i-trend-up"/></svg></span>
                                 <span class="mock__label">Pemasukan bulan ini</span>
@@ -1432,9 +2254,9 @@
                             </span>
                         </div>
 
-                        <div class="mock__stat">
+                        <div class="mock__stat mock__stat--warn">
                             <div class="mock__head">
-                                <span class="mock__ico mock__ico--warn"><svg aria-hidden="true"><use href="#i-trend-down"/></svg></span>
+                                <span class="mock__ico"><svg aria-hidden="true"><use href="#i-trend-down"/></svg></span>
                                 <span class="mock__label">Tagihan belum lunas</span>
                             </div>
                             <span class="mock__value" data-count="9230000" data-money>Rp 0</span>
@@ -1472,16 +2294,16 @@
                             </div>
                         </div>
 
-                        <div class="mock__stat">
+                        <div class="mock__stat mock__stat--user">
                             <div class="mock__head">
                                 <span class="mock__ico"><svg aria-hidden="true"><use href="#i-user"/></svg></span>
                                 <span class="mock__label">Pelanggan aktif</span>
                             </div>
                             <span class="mock__value" data-count="1643">0</span>
-                            <span class="mock__delta">terdaftar di lokasi ini saja</span>
+                            <span class="mock__delta">terdaftar dalam sistem</span>
                         </div>
 
-                        <div class="mock__stat">
+                        <div class="mock__stat mock__stat--docs">
                             <div class="mock__head">
                                 <span class="mock__ico"><svg aria-hidden="true"><use href="#i-docs"/></svg></span>
                                 <span class="mock__label">Laporan siap</span>
@@ -1493,23 +2315,24 @@
                     </div>
 
                     <p class="mock__foot">
-                        Sudah menjadi pelanggan ASTALOKA? Buka langsung
-                        <strong>alamat subdomain lokasi Anda</strong>, atau
+                        Sudah pakai ASTALOKA? Buka langsung
+                        <strong>alamat usaha Anda</strong>, atau
                         <a href="{{ $centralLoginUrl }}">masuk ke panel pusat</a>.
                     </p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
         {{-- ---------- fitur ---------- --}}
         <section id="fitur">
             <div class="wrap">
                 <div class="sec-head reveal">
-                    <h2>Satu sistem, semua kebutuhan operasional</h2>
+                    <h2>Semua modul, satu landasan</h2>
                     <p>
-                        ASTALOKA bukan aplikasi air minum. Ia landasan yang bisa
-                        dipakai apa pun &mdash; air, internet, sampah, atau layanan
-                        desa lain &mdash; dengan modul yang sama-sama sudah siap.
+                        Tiap jenis usaha punya modulnya sendiri, tapi semuanya
+                        berjalan di atas data pelanggan dan keuangan yang sama &mdash;
+                        jadi tidak ada pencatatan ganda antar layanan.
                     </p>
                 </div>
 
@@ -1547,13 +2370,13 @@
                     <div class="card reveal" style="--d: 350ms">
                         <div class="ico"><svg aria-hidden="true"><use href="#i-report"/></svg></div>
                         <h3>Laporan</h3>
-                        <p>Laporan tagihan, tunggakan, dan keuangan siap cetak dengan kop lembaga masing-masing lokasi.</p>
+                        <p>Laporan tagihan, tunggakan, dan keuangan siap cetak dengan kop usaha Anda sendiri.</p>
                     </div>
 
                     <div class="card reveal" style="--d: 420ms">
                         <div class="ico"><svg aria-hidden="true"><use href="#i-lock"/></svg></div>
-                        <h3>Data Terpisah</h3>
-                        <p>Tiap lokasi punya basis data sendiri. Data keuangan satu lokasi tidak pernah bisa diakses lokasi lain.</p>
+                        <h3>Data Pribadi</h3>
+                        <p>Data usaha Anda hanya bisa diakses oleh akun Anda sendiri. Tidak ada akun lain yang bisa melihatnya.</p>
                     </div>
                 </div>
             </div>
@@ -1569,16 +2392,19 @@
 
                 <div class="steps">
                     <div class="step reveal" style="--d: 0ms">
+                        <span class="step__num" aria-hidden="true"></span>
                         <h3>Hubungi kami</h3>
                         <p>Sampaikan kebutuhan usaha Anda &mdash; air minum, internet, sampah, atau lainnya. Kami bantu pilihkan paket yang paling pas.</p>
                     </div>
 
                     <div class="step reveal" style="--d: 90ms">
+                        <span class="step__num" aria-hidden="true"></span>
                         <h3>Akun langsung jadi</h3>
-                        <p>Lokasi Anda dibuat lengkap dengan database sendiri dan akun admin. Tidak perlu install, tidak perlu server, tidak perlu biaya awal.</p>
+                        <p>Akun Anda dibuat lengkap dengan modul siap pakai. Tidak perlu install, tidak perlu server, tidak perlu biaya awal.</p>
                     </div>
 
                     <div class="step reveal" style="--d: 180ms">
+                        <span class="step__num" aria-hidden="true"></span>
                         <h3>Langsung bekerja</h3>
                         <p>Catat pembayaran, cetak tagihan, lihat laporan. Tidak ada satu pun langkah yang perlu bantuan teknis.</p>
                     </div>
@@ -1592,9 +2418,9 @@
                 <div class="closer reveal">
                     <h2>Siap mulai?</h2>
                     <p>
-                        Punya BUMDes, kampung, atau lembaga yang butuh sistem
-                        operasional dan keuangan yang rapi? Hubungi Asta Brata
-                        Teknologi untuk demo gratis dan penawaran harga.
+                        Punya usaha yang butuh sistem operasional dan keuangan
+                        yang rapi &mdash; sekecil apa pun skalanya? Hubungi Asta
+                        Brata Teknologi untuk demo gratis dan penawaran harga.
                     </p>
                     <div class="cta" style="justify-content:center">
                         <a class="btn btn-primary btn-lg" href="mailto:admin@astabrata.co.id?subject=Demo%20ASTALOKA">Minta Demo Gratis</a>
@@ -1610,15 +2436,15 @@
             <p>&copy; {{ date('Y') }} Asta Brata Teknologi. ASTALOKA &mdash; Asta Layanan Operasional, Keuangan, dan Administrasi.</p>
 
             {{--
-                DiperSatukan di footer, bukan di section mockup.
+                Disatukan di footer, bukan di section mockup.
 
-                Kalimat "Buka langsung alamat subdomain lokasi Anda" yang
-                ada di mockup itu bukan ajakan untuk mengetik apa pun --
-                pelanggan yang sudah tahu subdomain-nya akan mengetik
-                subdomain-nya sendiri. Yang hilang dari halaman ini adalah
-                satu jalan untuk orang yang masuk ke domain pusat, yaitu
-                superadmin, dan untuk orang yang salah mengetik subdomain lalu mendarat di sini.
-                ke sini dari subdomain yang salah ketik.
+                Kalimat "Buka langsung alamat usaha Anda" yang ada di
+                mockup itu bukan ajakan untuk mengetik apa pun --
+                pelanggan yang sudah tahu alamatnya akan mengetik
+                sendiri. Yang hilang dari halaman ini adalah satu jalan
+                untuk orang yang masuk ke domain pusat, yaitu superadmin,
+                dan untuk orang yang salah mengetik alamat lalu mendarat
+                di sini.
 
                 `/central/login`, bukan `/login`: lihat catatan di navbar.
             --}}
@@ -1669,6 +2495,87 @@
             document.querySelectorAll('.reveal').forEach(function (el) {
                 observer.observe(el);
             });
+        })();
+
+        /* Garis pemisah antar section tumbuh saat section masuk layar.
+
+           Dipisah dari observer `.reveal` karena objek yang diawasi
+           berbeda (section, bukan elemen di dalamnya) dan ambangnya
+           beda: garis baru terasa saat section menyentuh tepi atas
+           viewport, bukan saat 12% isinya terlihat. Kalau ikut aturan
+           yang sama, garis sudah menyala sebelum kontennya masuk --
+           dan garis hilang sama sekali, karena ia menyala
+           persis ketika sedang di luar pandangan. */
+        (function () {
+            var sections = document.querySelectorAll('main > section');
+            if (!sections.length) return;
+
+            if (!('IntersectionObserver' in window)) {
+                sections.forEach(function (s) { s.classList.add('is-in'); });
+                return;
+            }
+
+            var obs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('is-in');
+                    obs.unobserve(entry.target);
+                });
+            }, {
+                /* `bottom: 5%` -- garis menyala saat section sudah
+                   mulai masuk dari bawah, supaya transisinya terasa
+                  sebelum kontennya sampai ke tengah layar. */
+                threshold: 0,
+                rootMargin: '0px 0px -5% 0px',
+            });
+
+            sections.forEach(function (s) { obs.observe(s); });
+        })();
+
+        /* ============================================================
+           MOCKUP PERANGKAT DI HERO
+
+           Terpisah dari observer `.reveal` di atas, apesar memakai
+           API yang sama.
+
+           Alasannya bukan soal teknis: HP dan kartu belakang punya
+           animasi `transform` sendiri (naik + miring), sementara
+           `.reveal.shown` menulis `animation` pada `opacity`. Kalau
+           keduanya dipasang di elemen yang sama, aturan `rise` akan
+           menimpa `transform` mockup -- HP akan straighten dan
+           kehilangan kemiringannya begitu masuk layar.
+
+           Dipisah juga karena timing-nya beda: mockup harus muncul
+           bersama hero (langsung terlihat), bukan menunggu scroll.
+           Kalau ikut observer, HP baru akan muncul setelah user
+           scroll ke bawah -- padahal justru HP yang membuat orang
+           berhenti di layar pertama.
+
+           Fallback wajib: kalau `IntersectionObserver` tidak ada atau
+           user minta gerak minimal, `.is-in` dipasang langsung --
+           tanpa itu, `opacity: 0` di gaya dasar membuat mockup hilang
+           permanen.
+        ============================================================ */
+        (function () {
+            var panel = document.querySelector('.hero-panel');
+            if (!panel) return;
+
+            var kurangiGerak = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            if (kurangiGerak || !('IntersectionObserver' in window)) {
+                panel.classList.add('is-in');
+                return;
+            }
+
+            var obs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    panel.classList.add('is-in');
+                    obs.unobserve(panel);
+                });
+            }, { threshold: 0.15 });
+
+            obs.observe(panel);
         })();
 
         /* Header mendapat border + bayangan hanya setelah di-scroll,
