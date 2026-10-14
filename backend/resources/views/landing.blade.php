@@ -120,17 +120,16 @@
 
         html {
             scroll-behavior: smooth;
-            /*
-             * Clip horizontal di level `html`, bukan `body`.
-             *
-             * Glow di `.hero::before/after` sengaja ditempatkan keluar
-             * viewport (left: -180px, right: -160px). `overflow-x: hidden`
-             * di `body` TIDAK selalu meng-clip-nya -- di beberapa browser
-             * `overflow` pada `body` dipropagasi ke viewport dan jadi
-             * `visible`, sehingga halaman bisa bergeser ke samping di
-             * ponsel. Memotong di `html` bekerja konsisten karena langsung
-             * membentuk clipping context untuk seluruh turunan.
-             */
+            /* Clip horizontal di level `html`, bukan `body`.
+
+             Mockup HP sengaja diberi `margin-right` negatif supaya
+             keluar melewati tepi kanan panel hero. `overflow-x: hidden`
+             di `body` TIDAK selalu meng-clip-nya -- di beberapa browser
+             `overflow` pada `body` dipropagasi ke viewport dan jadi
+             `visible`, sehingga halaman bisa bergeser ke samping di
+             ponsel. Memotong di `html` bekerja konsisten karena langsung
+             membentuk clipping context untuk seluruh turunan.
+          */
             overflow-x: hidden;
         }
 
@@ -172,14 +171,6 @@
         @keyframes fade {
             from { opacity: 0; }
             to   { opacity: 1; }
-        }
-        @keyframes pop {
-            from { opacity: 0; transform: scale(.94) translate3d(0, 18px, 0); }
-            to   { opacity: 1; transform: none; }
-        }
-        @keyframes drift-a {
-            from { transform: translate3d(0, 0, 0) scale(1); }
-            to   { transform: translate3d(70px, 50px, 0) scale(1.12); }
         }
         @keyframes drift-b {
             from { transform: translate3d(0, 0, 0) scale(1.08); }
@@ -1804,8 +1795,7 @@
             }
 
             .reveal { opacity: 1 !important; transform: none !important; }
-            .hero::before, .hero::after, .closer::after { animation: none; }
-            .hero-panel::after { animation: none; }
+            .closer::after, .hero-panel::after { animation: none; }
 
             /* Perangkat mockup: tanpa JS yang memasang `.is-in`,
                `opacity: 0` di gaya dasarnya akan membuat HP dan kartu
