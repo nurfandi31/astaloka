@@ -197,6 +197,23 @@
            muncul berurutan, bukan semuanya sekaligus. */
         .reveal.shown { animation: rise .78s var(--ease) var(--d, 0ms) forwards; }
 
+        /* PENTING: `.hero-art` punya class `reveal` sekaligus transform
+           geser dari JS. Keduanya menulis properti `transform`.
+
+           Kalau `rise` yang dipakai, `animation` dengan fill-mode
+           `forwards` akan MENYIMPAN frame akhirnya (`transform: none`)
+           dan terus menimpanya -- hasilnya mockup terkunci di tengah
+           dan tidak bisa digeser sama sekali.
+
+           Karena itu `.hero-art` punya `rise-mockup` sendiri: sama
+           sama fade, tapi tanpa menulis `transform` sama sekali.
+           Transform dikuasai penuh oleh JS. */
+        @keyframes rise-mockup {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        .hero-art.reveal.shown { animation: rise-mockup .78s var(--ease) var(--d, 0ms) forwards; }
+
         /* ---------- header ---------- */
         header {
             position: sticky;
@@ -243,7 +260,7 @@
             /* `ink-soft`, bukan `ink-mute`. `ink-mute` (#94a3b8) di
                atas putih cuma 2.56:1 -- gagal di teks sekecil 11px.
                Ini baris yang menjelaskan produk dalam dua kata, jadi
-               termasukç¬¬ä¸€æ¬¡ yang harusnya terbaca, bukan dekorasi. */
+               termasuk teks yang harusnya terbaca, bukan dekorasi. */
             color: var(--ink-soft); letter-spacing: 0; line-height: 1.15;
         }
 
@@ -320,7 +337,7 @@
         }
         .nav-toggle span + span { margin-top: 4px; }
 
-        /* Batang atas turun, bawah naik, tengah berputar 90Â° jadi vertikal.
+        /* Batang atas turun, bawah naik, tengah berputar 90 derajat jadi vertikal.
            Lebar batang tengah dikecilkan supaya tidak terlihat lebih tebal dari
            dua batang lain saat jadi vertikal. */
         .nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
@@ -368,6 +385,28 @@
         }
 
         .btn-lg { padding: 15px 28px; font-size: 16px; }
+
+        /* Ikon di dalam tombol.
+
+           Symbol ikon digambar dengan `fill: none` + `stroke: currentColor`,
+           jadi satu gaya garis bisa dipakai ulang di seluruh halaman. Yang
+           tidak bisa adalah lambang-brand: WhatsApp berbentuk siluet
+           penuh, dan kalau hanya digores akan terbaca sebagai gelembung
+           kosong, bukan sebagai logo.
+
+           Perbedaan itu ditulis di sini sebagai kelas `.i-solid`, bukan
+           di dalam `<symbol>`, supaya aturan "semua ikon lain bergaya
+           garis" tetap berlaku untuk apa pun yang ditambahkan nanti.
+
+           `flex: none` supaya ikon tidak ikut gepeng kalau teks tombol
+           panjang, dan ukuran dikunci supaya tidak mewarisi lebar penuh
+           dari elemen svg di dalam flex. */
+        .btn svg {
+            width: 17px; height: 17px; flex: none;
+            fill: none; stroke: currentColor;
+            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+        }
+        .btn svg.i-solid { fill: currentColor; stroke: none; }
 
         /* Tombol di dalam panel gelap.
 
@@ -568,7 +607,7 @@
 
         /* ---------- mockup perangkat ----------
 
-           Dua perangkat: satu HP besar di depan, satu kartuSecondary
+           Dua perangkat: satu HP besar di depan, satu kartu laporan
            di belakangnya. Susunannya yang bikin hero terasa "didesain",
            bukan sekadar teks di samping gambar.
 
@@ -594,6 +633,74 @@
             filter: blur(32px);
             pointer-events: none;
         }
+
+        /* ---------- lapisan geser mockup ----------
+
+           Mockup (HP + kartu laporan) sekarang bisa DIGESER dengan
+           mouse atau jari. Normal-flow positioning tidak cukup untuk
+           dua alasan:
+
+           1. `.phone` sengaja memakai `margin-right: -34px` supaya
+              keluar melewati tepi kanan panel. Kalau posisinya diubah
+              lewat `left`/`right`, offset itu hilang dan HP terkunci
+              di dalam panel -- efek "tembus" yang jadi ciri desain
+              ini ikut hilang.
+
+           2. `.art-card` memakai `top: 12%; right: -6%`. Dua nilai
+              positional itu tidak bisa digeser tanpa mengubah
+              posisinya sendiri.
+
+           Jadi pergeseran tidak dipasang pada HP atau kartu secara
+           langsung, melainkan pada `.hero-art` lewat `transform`.
+           Anak-anaknya tetap pada posisinya yang sudah dirancang.
+
+           Batas geser TIDAK boleh keluar dari kotak panel biru.
+           `.hero-panel` punya `overflow: hidden`, jadi anak yang keluar
+           akan terpotong bersih di tepi panel -- bukan melayang di atas
+           halaman. Ini yang membuat mockup tetap terbaca sebagai bagian
+           dari panel, bukan stiker yang bisa ditarik keluar. */
+        .hero-art {
+            /* Transform di sini TIDAK boleh bercampur dengan animasi
+               masuk HP: `.phone` sudah punya `transform` sendiri
+               (rotate + translateY) dan `.art-card` punya yang lain.
+               Menumpuk transform di dua tingkat membuat satu menimpa
+               yang lain -- HP akan kehilangan kemiringannya begitu
+               digeser. */
+            transform: translate3d(var(--sx, 0px), var(--sy, 0px), 0);
+            will-change: transform;
+            cursor: grab;
+            /* Menonaktifkan gestur bawaan browser di area ini. Tanpa
+               ini, drag horizontal di layar sentuh memicu navigasi
+               Mundur/ maju di sebagian browser, dan mockup yang
+               sedang digeser ikut terlempar ke halaman sebelumnya.
+
+               Aman karena `touch-action: none` hanya di area mockup.
+               Halaman tetap bisa di-scroll normal dari teks hero. */
+            touch-action: none;
+        }
+
+        /* State saat sedang dipegang. `transition: none` supaya
+           transform mengikuti jari 1:1 -- kalau transisi ikut jalan,
+           HP tertinggal di belakang jari dan terasa lengket.
+
+           `z-index` dinaikkan supaya HP tidak tenggelam di bawah
+           `.art-card` saat keduanya bertumpuk di tengah panel. */
+        .hero-art.is-dragging {
+            cursor: grabbing;
+            transition: none;
+            z-index: 2;
+        }
+
+        /* "Pegas" saat dilepas. Hanya berlaku saat TIDAK sedang
+           dipegang, jadi transisi ini hanya menyala setelah pointer
+           dilepas dan tidak mengganggu kelancaran saat digeser. */
+        .hero-art:not(.is-dragging) {
+            transition: transform .55s var(--ease);
+        }
+
+        /* Dipasang JS kalau pengguna meminta gerak minimal. Drag tetap
+           aktif; yang hilang hanya animasi pegas saat dilepas. */
+        .hero-art.no-spring { transition: none; }
 
         /* ---------- kartu laporan (belakangan) ----------
 
@@ -1199,7 +1306,7 @@
            kotak keduanya benar-benar sejajar. Beda hanya `text-align`
            dan tanpa `flex-direction`.
 
-           Warnanya `ink-soft`, bukan `ink-mute`: label bulan abducted
+           Warnanya `ink-soft`, bukan `ink-mute`: label bulan berukuran
            10.5px di atas putih cuma 2.56:1 dengan abu terang. Ini bukan
            teks dekoratif -- orang membacanya untuk mengurutkan batang
            dari kiri ke kanan, jadi bulan yang tidak terbaca bikin
@@ -1526,6 +1633,37 @@
         .step h3 { margin: 0 0 8px; font-size: 17.5px; letter-spacing: -.018em; font-weight: 700; }
         .step p { margin: 0; font-size: 14.5px; line-height: 1.62; color: var(--ink-soft); }
 
+        /* Tautan di dalam kartu langkah.
+
+           Hanya langkah pertama yang punya tautan, tapi selector-nya bukan
+           `.step:first-child` -- kartu yang bisa diklik adalah isi langkah
+           itu, dan selector posisi akan ikut bergeser kalau nanti ada
+           langkah keempat yang ditambahkan di tengah.
+
+           Margin atas menyamakan jarak teks ke tautan dengan jarak tautan
+           ke paragraf, supaya tombol kecil itu terlihat sengaja ada, bukan
+           ditempel. */
+        .step__cta {
+            margin-top: 16px;
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 9px 16px; border-radius: var(--r-sm);
+            background: var(--sky-50); border: 1px solid var(--sky-200);
+            color: var(--sky-800); font-size: 14px; font-weight: 600;
+            text-decoration: none;
+            transition: background .22s var(--ease), border-color .22s var(--ease),
+                        transform .18s var(--ease), box-shadow .28s var(--ease);
+        }
+        .step__cta:hover {
+            background: #fff; border-color: var(--sky-400);
+            transform: translateY(-2px); box-shadow: var(--sh-md);
+        }
+        .step__cta svg {
+            width: 16px; height: 16px; flex: none;
+            fill: none; stroke: currentColor;
+            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+        }
+        .step__cta svg.i-solid { fill: currentColor; stroke: none; }
+
         /* Garis penghubung antar langkah.
 
            Ditaruh di belakang kartu (`z-index: -1`) dan dipotong
@@ -1592,6 +1730,49 @@
         }
         .closer .btn-ghost:hover { border-color: #fff; background: rgb(255 255 255 / .16); }
 
+        /* Kontak alternatif di bawah tombol.
+
+           Satu blok dua baris: label + nomor telepon, lalu alamat email.
+           Ditumpuk, bukan satu baris panjang, karena pada layar sempit
+           "Atau hubungi langsung: +62 882-0066-44656 astabratamgl@gmail.com"
+           tidak muat tanpa membuat satu kata per baris.
+
+           Tipografi sengaja satu tingkat lebih kecil dari tombol: ini
+           jalan cadangan, bukan tujuan utama. Tapi tetap di atas warna
+           teks utama -- `--sky-100` dengan opacity penuh, bukan
+           `--sky-200` seperti `.note` di hero, karena yang diklik di sini
+           harus terbaca sekilas tanpa membaca seluruh blok. */
+        .kontak-alt {
+            margin-top: 22px;
+            display: flex; flex-wrap: wrap; align-items: center;
+            justify-content: center; gap: 6px 10px;
+            font-size: 14.5px;
+        }
+        .kontak-alt__label { color: rgb(255 255 255 / .72); }
+
+        .kontak-alt a, .kontak-email a {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: #fff; font-weight: 600;
+            text-decoration: none;
+            transition: opacity .2s var(--ease);
+        }
+        .kontak-alt a:hover, .kontak-email a:hover { opacity: .82; text-decoration: underline; text-underline-offset: 3px; }
+
+        /* Nomor telepon diberi garis bawah tipis, bukan hanya perubahan
+           warna: di atas dasar gelap, `color` saja tidak selalu terbaca
+           sebagai "ini bisa diklik". */
+        .kontak-alt a { text-decoration: underline; text-decoration-color: rgb(255 255 255 / .35); text-underline-offset: 4px; }
+        .kontak-alt a:hover { text-decoration-color: #fff; }
+
+        .kontak-email { margin: 10px 0 0; display: flex; justify-content: center; gap: 8px; font-size: 14.5px; }
+
+        .kontak-alt svg, .kontak-email svg {
+            width: 16px; height: 16px; flex: none;
+            fill: none; stroke: currentColor;
+            stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+            opacity: .85;
+        }
+
         /* ---------- tombol kembali ke atas ----------
 
            Pojok kanan bawah, fixed. Muncul hanya setelah halaman
@@ -1633,7 +1814,7 @@
         }
         .to-top:active { transform: translateY(1px) scale(.94); }
 
-        /* Panah: dibuat dari dua garis yang berputar 45Â° (chevron),
+        /* Panah: dibuat dari dua garis yang berputar 45 derajat (chevron),
            bukan glyphfont -- supaya tidak bergantung font apa pun
            yang terpasang di sistem user. */
         .to-top span {
@@ -1984,6 +2165,32 @@
                 <circle cx="12" cy="12" r="9"/>
                 <path d="M8.5 12.2l2.4 2.4 4.6-4.9"/>
             </symbol>
+
+            {{-- Kontak: WhatsApp, telepon, email.
+
+                 Ketiganya digambar dengan mode garis, sama seperti symbol
+                 lain. WhatsApp tetap punya dua lapis path: siluet yang
+                 penuh (path pertama) dan handset di dalamnya (path kedua).
+
+                 Path siluet tidak diberi `fill` sendiri karena aturan
+                 fill ada di pemakaiannya (`.i-solid`), bukan di sini:
+                 sebagai `<use>` di tombol bewarna solid, WhatsApp harus
+                 ikut warna teks tombol. Bentuk penuh dengan garis saja
+                 akan terbaca sebagai gelembung kosong, bukan sebagai
+                 logo -- itu sebabnya ada kelas `.i-solid`. --}}
+            <symbol id="i-wa" viewBox="0 0 24 24">
+                <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2z"/>
+                <path d="M17.2 14.2c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35z"/>
+            </symbol>
+
+            <symbol id="i-telepon" viewBox="0 0 24 24">
+                <path d="M21 16.9v2.5a1.9 1.9 0 0 1-2.1 1.9 18.8 18.8 0 0 1-8.2-2.9 18.5 18.5 0 0 1-5.7-5.7A18.8 18.8 0 0 1 2.1 4.4 1.9 1.9 0 0 1 4 2.3h2.5a1.9 1.9 0 0 1 1.9 1.6c.12.9.34 1.8.65 2.64a1.9 1.9 0 0 1-.43 2L7.5 9.7a15 15 0 0 0 5.7 5.7l1.16-1.16a1.9 1.9 0 0 1 2-.43c.84.31 1.73.53 2.64.65A1.9 1.9 0 0 1 21 16.9z"/>
+            </symbol>
+
+            <symbol id="i-email" viewBox="0 0 24 24">
+                <rect x="2" y="4.5" width="20" height="15" rx="2.2"/>
+                <path d="M2.8 6.6L12 13l9.2-6.4"/>
+            </symbol>
         </defs>
     </svg>
 
@@ -2004,6 +2211,43 @@
     @php
         $spaBase = rtrim((string) config('tenancy.frontend_url'), '/');
         $centralLoginUrl = $spaBase ? $spaBase . '/central/login' : '/central/login';
+
+        // Kontak penjualan ASTALOKA.
+        //
+        // Ditulis sekali di sini dan dipakai ulang di hero, langkah
+        // "Hubungi kami", section penutup, dan footer. Sebelumnya tiap
+        // tombol menulis alamatnya sendiri, jadi satu nomor salah ketik
+        // harus dibetulkan di beberapa tempat, dan tidak ada yang
+        // ingat tempat terakhir.
+        //
+        // Dua kanal, sesuai cara orang menghubungi usaha kecil:
+        // WhatsApp/telepon untuk yang mau bicara langsung, email untuk
+        // yang memang butuh dokumen (proposal, daftar fitur, contoh
+        // laporan). Satu nomor untuk WA dan telepon: nomor WhatsApp
+        // selalu bisa diputar, jadi tidak perlu nomor kedua.
+        //
+        // Bentuk link:
+        // - `wa.me` butuh internasional TANPA "+" dan tanpa spasi.
+        // - `tel:` butuh "+62..." agar tetap bisa dipakai dari luar
+        //   negeri.
+        // - `rawurlencode` untuk teks dan subjek: kalau nama usaha
+        //   pemesan mengandung spasi atau "&", query string-nya rusak
+        //   dan aplikasi mail membuka pesan yang terpotong.
+
+        $kontakWaAngka = '62882006644656';       // wa.me: tanpa "+"
+        $kontakWaTampil = '+62 882-0066-44656';  // yang dilihat manusia
+        // tel: +62... (tanpa spasi, tanpa tanda hubung)
+        $kontakTelepon = 'tel:+' . $kontakWaAngka;
+        $kontakEmail = 'astabratamgl@gmail.com';
+
+        $sapaanDemo = 'Halo Asta Brata Teknologi, saya mau minta demo gratis ASTALOKA untuk usaha saya. Mohon informasinya, terima kasih.';
+        $sapaanHarga = 'Halo Asta Brata Teknologi, saya mau tanya soal paket dan harga ASTALOKA. Mohon informasinya, terima kasih.';
+
+        $kontakWaDemo = 'https://wa.me/' . $kontakWaAngka . '?text=' . rawurlencode($sapaanDemo);
+        $kontakWaHarga = 'https://wa.me/' . $kontakWaAngka . '?text=' . rawurlencode($sapaanHarga);
+
+        $kontakEmailDemo = 'mailto:' . $kontakEmail . '?subject=' . rawurlencode('Minta Demo ASTALOKA');
+        $kontakEmailHarga = 'mailto:' . $kontakEmail . '?subject=' . rawurlencode('Penawaran Harga ASTALOKA');
     @endphp
 
     <header>
@@ -2096,8 +2340,26 @@
 
                             <div class="cta">
                                 {{-- Di dalam panel gelap, tombol ghost memakai
-                                     varian gelap (lihat `.hero-panel .btn-ghost`). --}}
-                                <a class="btn btn-primary btn-lg" href="#mulai">Mulai Sekarang</a>
+                                     varian gelap (lihat `.hero-panel .btn-ghost`).
+
+                                     Tombol pertama TIDAK lagi `#mulai` seperti
+                                     sebelumnya. Menuju section penutup hanya
+                                     memindahkan orang ke daftar tombol yang
+                                     sama persis -- satu klik tambahan tanpa
+                                     informasi baru. Link WhatsApp membawa
+                                     pesannya sudah terisi, jadi dari sini
+                                     calon pembeli sudah sampai di tujuan
+                                     dalam satu klik.
+
+                                     `#mulai` tidak dihapus dari halaman:
+                                     masih dipakai navbar dan section cara
+                                     kerja. --}}
+                                <a class="btn btn-primary btn-lg"
+                                   href="{{ $kontakWaDemo }}"
+                                   target="_blank" rel="noopener">
+                                    <svg class="i-solid" aria-hidden="true"><use href="#i-wa"/></svg>
+                                    Minta Demo Gratis
+                                </a>
                                 <a class="btn btn-ghost btn-lg" href="#fitur">Lihat Fitur</a>
                             </div>
 
@@ -2385,6 +2647,10 @@
                         <span class="step__num" aria-hidden="true"></span>
                         <h3>Hubungi kami</h3>
                         <p>Sampaikan kebutuhan usaha Anda &mdash; air minum, internet, sampah, atau lainnya. Kami bantu pilihkan paket yang paling pas.</p>
+                        <a class="step__cta" href="{{ $kontakWaHarga }}" target="_blank" rel="noopener">
+                            <svg class="i-solid" aria-hidden="true"><use href="#i-wa"/></svg>
+                            Chat WhatsApp
+                        </a>
                     </div>
 
                     <div class="step reveal" style="--d: 90ms">
@@ -2412,10 +2678,58 @@
                         yang rapi &mdash; sekecil apa pun skalanya? Hubungi Asta
                         Brata Teknologi untuk demo gratis dan penawaran harga.
                     </p>
+
+                    {{--
+                        Tiga pintu masuk, bukan satu.
+
+                        Tombol pertama selalu WhatsApp: itu yang paling
+                        sering dipakai calon pembeli, dan pesannya sudah
+                        terisi, jadi tidak ada langkah tambahan untuk
+                        menulis pertanyaan dari nol.
+
+                        Email tetap jadi tombol kedua, bukan disembunyikan
+                        di teks: ada yang memang lebih suka mengirim proposal,
+                        dan dari aplikasi email prospective bisa lebih cepat
+                        daripada lewat aplikasi pesan.
+
+                        Nomor telepon jadi tautan kecil di bawahnya, untuk
+                        yang lebih suka bicara.
+
+                        Teks tombol menyebut kanalnya, karena ikon saja
+                        tidak selalu terbaca. Ini juga satu-satunya bagian
+                        halaman yang boleh menyebut nomor: nomor support
+                        teknis yang dipakai di dalam aplikasi berbeda, dan
+                        mencampurkannya di sini akan membuat calon pembeli
+                        menghubungi orang yang salah.
+                    --}}
                     <div class="cta" style="justify-content:center">
-                        <a class="btn btn-primary btn-lg" href="mailto:admin@astabrata.co.id?subject=Demo%20ASTALOKA">Minta Demo Gratis</a>
-                        <a class="btn btn-ghost btn-lg" href="mailto:admin@astabrata.co.id?subject=Penawaran%20ASTALOKA">Tanya Harga</a>
+                        <a class="btn btn-primary btn-lg"
+                           href="{{ $kontakWaDemo }}"
+                           target="_blank" rel="noopener">
+                            <svg class="i-solid" aria-hidden="true"><use href="#i-wa"/></svg>
+                            Minta Demo Gratis
+                        </a>
+                        <a class="btn btn-ghost btn-lg" href="{{ $kontakEmailHarga }}">
+                            <svg aria-hidden="true"><use href="#i-email"/></svg>
+                            Tanya Harga via Email
+                        </a>
                     </div>
+
+                    <div class="kontak-alt">
+                        <span class="kontak-alt__label">Atau hubungi langsung:</span>
+
+                        <a href="{{ $kontakTelepon }}">
+                            <svg aria-hidden="true"><use href="#i-telepon"/></svg>
+                            {{ $kontakWaTampil }}
+                        </a>
+                    </div>
+
+                    <p class="kontak-email">
+                        <a href="{{ $kontakEmailDemo }}">
+                            <svg aria-hidden="true"><use href="#i-email"/></svg>
+                            {{ $kontakEmail }}
+                        </a>
+                    </p>
                 </div>
             </div>
         </section>
@@ -2441,6 +2755,24 @@
             <p>
                 Sudah punya akun?
                 <a href="{{ $centralLoginUrl }}">Masuk ke panel</a>
+            </p>
+
+            {{--
+                Kontak di footer, bukan di dalam mockup.
+
+                Alasannya sama seperti soal `/central/login` di atas: yang
+                hilang dari halaman ini adalah jalan untuk orang yang sudah
+                agen di bawah domain pusat -- yaitu yang sedang membaca
+                footer, bukan yang sedang menekan tombol di tengah halaman.
+
+                Nomor dan email memakai variabel yang sama dengan hero dan
+                section penutup. Kalau suatu saat nomor berubah, tempatnya
+                satu: bagian `@php` paling atas.
+            --}}
+            <p>
+                <a href="{{ $kontakWaHarga }}" target="_blank" rel="noopener">WhatsApp {{ $kontakWaTampil }}</a>
+                &nbsp;&middot;&nbsp;
+                <a href="mailto:{{ $kontakEmail }}">{{ $kontakEmail }}</a>
             </p>
         </div>
     </footer>
@@ -2566,6 +2898,152 @@
             }, { threshold: 0.15 });
 
             obs.observe(panel);
+        })();
+
+        /* ============================================================
+           MOCKUP HERO BISA DIGESER
+
+           HP dan kartu laporan bisa ditarik dengan mouse atau jari.
+           Kartu laporan selama ini menutupi sebagian teks di
+           belakangnya, jadi begitu digeser ke samping teks itu jadi
+           bisa dibaca.
+
+           Batasnya dihitung dari kotak panel, bukan dari mockup.
+           Mockup memang sengaja keluar melewati tepi kanan panel,
+           jadi kalau batasnya ikut dihitung dari mockup, mockup bisa
+           ditarik terlalu jauh dan HP menghilang dari layar. Yang
+           dijaga adalah "mockup tidak pernah keluar dari bagian panel
+           yang terlihat".
+        ============================================================ */
+        (function () {
+            var art = document.querySelector('.hero-art');
+            var panel = document.querySelector('.hero-panel');
+            if (!art || !panel) return;
+
+            /* Drag tetap jalan meski pengguna meminta gerak minimal.
+               Yang dimatikan hanya "pegas" saat dilepas. Preferensi soal
+               motion tidak sama dengan preferences soal kendali
+               pointer: mematikan drag akan membuat mockup terkunci di
+               posisi yang tidak bisa diatur user. */
+            var kurangiGerak = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            var geser = { x: 0, y: 0 };
+            var mulai = { x: 0, y: 0 };
+            var batas = { x: 0, y: 0 };
+            var sedang = false;
+            var penanda = null;
+
+            /* Batas maksimum geser dihitung ulang setiap resize.
+
+               `offsetWidth`/`offsetHeight` dipakai, bukan
+               `clientWidth`, supaya border panel ikut terukur.
+
+               Posisi `.hero-art` ikut dibaca lewat
+               `getBoundingClientRect` karena ia duduk di kolom grid,
+               jadi rata kirinya tidak sama dengan rata kiri panel --
+               tanpa selisih ini, mockup bisa bergeser melewati tepi
+               panel, meskipun kelihatannya masih di dalam. */
+            function hitungBatas() {
+                var kotakPanel = panel.getBoundingClientRect();
+                var kotakArt = art.getBoundingClientRect();
+
+                /* Sisa ruang yang tidak dipakai mockup di dalam panel. */
+                var sisaX = kotakPanel.right - kotakArt.right;
+                var sisaY = kotakPanel.bottom - kotakArt.bottom;
+
+                /* Sisa negatif berarti mockup sudah melewati tepi panel
+                   di sisi itu -- yang memang disengaja untuk bagian
+                   kanan. Nilai 0 dipakai supaya sisi yang sudah
+                   melewati tidak bisa digeser lebih jauh lagi. */
+                batas.x = Math.max(0, sisaX);
+                batas.y = Math.max(0, sisaY);
+            }
+
+            function terapkan() {
+                art.style.setProperty('--sx', geser.x + 'px');
+                art.style.setProperty('--sy', geser.y + 'px');
+            }
+
+            function mulaiGeser(event) {
+                /* Abaikan yang bisa ditekan. Mockup tidak punya tombol
+                   sungguhan, tapi `Buat Tagihan` terlihat seperti
+                   tombol; membiarkan drag tetap jalan di atasnya tidak
+                   merusak apa pun, tapi Abaikan ini membuat perilaku
+                   di elemen interaktif lain di halaman konsisten. */
+                if (event.target.closest && event.target.closest('a, button')) return;
+
+                sedang = true;
+                hitungBatas();
+                penanda = event.pointerId;
+
+                /* Titik awal dikurangi posisi sekarang, supaya mockup
+                   tidak melompat ke titik kursor saat drag dimulai --
+                   titik itu adalah titik jangkar, bukan titik awal
+                   koordinat. */
+                mulai.x = event.clientX - geser.x;
+                mulai.y = event.clientY - geser.y;
+
+                /* `setPointerCapture` membuat event tetap terkirim ke
+                   elemen ini walau pointer sudah keluar dari tepinya.
+                   Tanpa itu, drag yang keluar sedikit dari mockup akan
+                   "hilang" di tengah jalan. */
+                if (art.setPointerCapture) {
+                    try { art.setPointerCapture(event.pointerId); } catch (e) { /* tidak didukung */ }
+                }
+
+                art.classList.add('is-dragging');
+            }
+
+            function geserKan(event) {
+                if (!sedang || event.pointerId !== penanda) return;
+
+                geser.x = Math.min(Math.max(event.clientX - mulai.x, -batas.x), batas.x);
+                geser.y = Math.min(Math.max(event.clientY - mulai.y, -batas.y), batas.y);
+
+                terapkan();
+            }
+
+            function selesaiGeser(event) {
+                if (!sedang) return;
+                if (penanda !== null && event.pointerId !== penanda) return;
+
+                sedang = false;
+                penanda = null;
+                art.classList.remove('is-dragging');
+
+                /* Lepaskan capture supaya klik berikutnya di halaman
+                   lain tidak lagi dialihkan ke `.hero-art`. */
+                if (art.releasePointerCapture && event.pointerId !== undefined) {
+                    try { art.releasePointerCapture(event.pointerId); } catch (e) { /* sudah lepas */ }
+                }
+            }
+
+            art.addEventListener('pointerdown', mulaiGeser);
+
+            /* Listener di `window`, bukan di `art`. Kalau hanya di
+               `art`, pointer yang keluar dari elemen tidak mengirim
+               event apa pun, dan `.is-dragging` akan nyangkut selamanya
+               -- mockup ikut terkunci dan tidak bisa digeser lagi. */
+            window.addEventListener('pointermove', geserKan);
+            window.addEventListener('pointerup', selesaiGeser);
+            window.addEventListener('pointercancel', selesaiGeser);
+
+            /* `resize` mengubah ukuran panel, jadi batas lama tidak lagi
+               benar. Mockup dikembalikan ke tengah supaya tidak
+               menggantung di posisi yang sudah tidak valid. */
+            window.addEventListener('resize', function () {
+                geser.x = 0;
+                geser.y = 0;
+                hitungBatas();
+                terapkan();
+            });
+
+            hitungBatas();
+            terapkan();
+
+            /* "Pegas" saat dilepas dimatikan lewat class, bukan
+               `kurangiGerak` yang menonaktifkan seluruh drag. */
+            if (kurangiGerak) art.classList.add('no-spring');
         })();
 
         /* Header mendapat border + bayangan hanya setelah di-scroll,
