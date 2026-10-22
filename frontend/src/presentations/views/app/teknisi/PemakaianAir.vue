@@ -113,7 +113,7 @@
         <!-- Right Column: Stats & Info -->
         <div class="col-span-5! flex! flex-col! gap-6!">
           <div
-            class="bg-gradient-to-br from-blue-600 to-indigo-700! rounded-2xl! p-4! text-white! shadow-lg! shadow-blue-100! relative! overflow-hidden!"
+            class="bg-linear-brand!! rounded-2xl! p-4! text-white! shadow-lg! shadow-blue-100! relative! overflow-hidden!"
           >
             <div class="relative! z-10!">
               <p class="text-blue-100! text-[9px]! font-black! uppercase! tracking-widest! mb-3!">
@@ -205,7 +205,7 @@
 
       <!-- Mobile Progress Card -->
       <div
-        class="bg-gradient-to-br from-blue-600 to-indigo-700! rounded-2xl! p-4! text-white! shadow-lg! shadow-blue-100!"
+        class="bg-linear-brand!! rounded-2xl! p-4! text-white! shadow-lg! shadow-blue-100!"
       >
         <div v-if="stats.loading" class="animate-pulse!">
           <div class="h-4! w-32! bg-white/20! rounded! mb-4!"></div>

@@ -178,7 +178,7 @@
             <button
               @click="handleSave"
               :disabled="!isFormValid"
-              class="flex items-center! gap-2! bg-orange-500! hover:bg-orange-600! text-white! px-6! py-2.5! font-semibold! transition-all active:scale-95 rounded-lg! shadow-md! shadow-orange-200! disabled:opacity-50! disabled:cursor-not-allowed!"
+              class="flex items-center! gap-2! bg-slate-500! hover:bg-slate-600! text-white! px-6! py-2.5! font-semibold! transition-all active:scale-95 rounded-lg! shadow-md! shadow-slate-200! disabled:opacity-50! disabled:cursor-not-allowed!"
             >
               <font-awesome-icon icon="save" />
               Simpan Perubahan

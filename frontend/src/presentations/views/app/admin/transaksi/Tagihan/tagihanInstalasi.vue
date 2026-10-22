@@ -413,12 +413,7 @@
                   :disabled="
                     submitting || form.amount <= 0 || form.amount > selectedTicket.remaining
                   "
-                  class="flex-1! py-2.5! rounded-lg! font-bold! text-sm! flex! items-center! justify-center! gap-2! transition-all! disabled:opacity-50! disabled:cursor-not-allowed!"
-                  :class="
-                    form.amount >= selectedTicket.remaining
-                      ? 'bg-gradient-to-r! from-emerald-500! to-emerald-600! hover:from-emerald-600! hover:to-emerald-700! text-white! shadow-lg! shadow-emerald-200!'
-                      : 'bg-gradient-to-r! from-sky-500! to-blue-600! hover:from-sky-600! hover:to-blue-700! text-white! shadow-lg! shadow-sky-200!'
-                  "
+                  class="flex-1! py-2.5! rounded-lg! font-bold! text-sm! flex! items-center! justify-center! gap-2! transition-all! disabled:opacity-50! disabled:cursor-not-allowed! bg-slate-500! hover:bg-slate-600! text-white! shadow-lg! shadow-slate-200!"
                 >
                   <font-awesome-icon v-if="submitting" icon="spinner" spin />
                   <font-awesome-icon
@@ -719,7 +714,7 @@ const handleSubmit = async () => {
         confirmButtonText: 'Lihat Detail Diproses',
         denyButtonText: 'Lanjut Tagihan Instalasi',
         buttonsStyling: true,
-        confirmButtonColor: '#0284c7',
+        confirmButtonColor: 'var(--color-primary, #3b82f6)',
         denyButtonColor: '#10b981',
         reverseButtons: false,
         customClass: {
@@ -745,7 +740,7 @@ const handleSubmit = async () => {
         title: 'Pembayaran Berhasil',
         html: `<p style="font-size:13px;">Sisa tagihan: <strong style="color:#ea580c;">Rp ${formatRibuan(newRemaining)}</strong></p>`,
         icon: 'success',
-        confirmButtonColor: '#0284c7',
+        confirmButtonColor: 'var(--color-primary, #3b82f6)',
       })
     }
 

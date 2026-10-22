@@ -1,0 +1,107 @@
+/*
+|--------------------------------------------------------------------------
+| Token Palet Panel Pusat
+|--------------------------------------------------------------------------
+|
+| Satu tempat yang menentukan warna, radius, dan jarak untuk TIGA tempat
+| yang sebelumnya menulis paletnya sendiri:
+|
+|   CentralDashboardView.vue     (--bd-*)   dashboard bento
+|   CentralLokasiPopup.vue       (--pv-*)   pop-up detail lokasi
+|   CentralTagihanPopup.vue      (--tp-*)   pop-up detail tagihan
+|
+| Kenapa ini dipisah
+| =================
+|
+| Ketiganya ditulis untuk kebutuhan sama dan/langsung hasilnya sama. Yang
+| membedakan HANYA nama token-nya: dashboard menulis `--bd-text-dim` dan
+| `--bd-text-faint`, sedangkan kedua pop-up menulis `--tp-dim` dan
+| `--tp-faint` untuk hal yang persis sama. Tiga salinan dari satu palet
+| berarti mengubah warna di satu halaman tidak ikut mengubah halaman lain --
+| dan karena warnanya sama persis, perbedaan itu tidak pernah terlihat
+| sampai somebody notice they're out of sync.
+|
+| Yang DIPERTAHANKAN adalah nama lokal itu, dan itu disengaja:
+|
+|   1. Ada 256 pemanggilan `var()` di ketiga file itu. Mengganti nama
+|      semuanya adalah perubahan besar dengan risiko merusak halaman yang
+|      tidak bisa diuji otomatis, dibandingkan dengan masker yang hanya
+|      menyatukan sumber nilainya.
+|   2. Nama lokal lebih pendek dan lebih enak dibaca di konteksnya:
+|      `var(--pv-red)` di dalam pop-up lokasi lebih jelas daripada
+|      `var(--central-red)` yang sama artinya di tiga tempat.
+|
+| Jadi bentuknya: token global `--ct-*` di bawah adalah SATU-SATUNYA tempat
+| angka warna ditulis, dan setiap halaman memetakan nama lokalnya ke sana.
+| Menambah warna baru cukup di satu tempat -- dan halaman yang belum punya
+| nama lokal untuk warna itu otomatis menerimanya lewat pewarisan.
+|
+| Import dari `main.js`, bukan dari komponen: token harus terjangkau
+| elemen yang dirender komponen lain dan elemen di dalam <Teleport to="body">
+| yang berada di luar subtree layout.
+|
+*/
+
+/*
+| WARNA.
+|
+| Dipisah dua kelompok, dan pemisahannya bukan soal estetika:
+|
+|   -X      warna sebagai TEKS. Versi gelap dari palet yang sama, supaya
+|           kontrasnya tetap terbaca di atas putih.
+|   -fill   warna sebagai ISIAN. Versi terang -- warna terang enak sebagai
+|            isian di atas gelap, tapi sebagai teks di atas putih kontrasnya
+|            jalah.
+|   -tint   isian transparan untuk chip, pill, dan track bar.
+|
+| Warna diambil dari token yang sudah ada di aplikasi (`--color-*`), bukan
+| hex baru, supaya mengganti palet aplikasi ikut mengubah panel pusat.
+| Nilai hex hanya sebagai fallback, untuk halaman tetap rapi kalau token
+| belum termuat.
+|
+| Perhatikan bahwa `--ct-sky-tint` memakai `var(--color-primary-light)` --
+| sama dengan yang ditulis di `CentralTagihanPopup.vue` dan
+| `CentralLokasiPopup.vue`. Dashboard pernah menulis `#e0f2fe` langsung;
+| hasilnya identik karena `fallback` itu persis hex yang sama, dan sekarang
+| hanya ada satu nilai yang perluDijaga.
+*/
+:root {
+  /* Permukaan & garis */
+  --ct-line: var(--color-border, #e2e8f0);
+  --ct-line-strong: var(--color-gray-300, #cbd5e1);
+  --ct-surface-2: var(--color-gray-100, #f1f5f9);
+
+  /* Teks */
+  --ct-text: var(--color-text-main, #1e293b);
+  --ct-text-dim: var(--color-text-sub, #64748b);
+  --ct-text-faint: var(--color-gray-400, #94a3b8);
+
+  /* Aksen: warna sebagai teks */
+  --ct-sky: var(--color-primary-dark, #0284c7);
+  --ct-green: var(--color-green-800, #065f46);
+  --ct-amber: #b45309;
+  --ct-red: var(--color-red-800, #991b1b);
+  --ct-red-deep: #7f1d1d;
+  --ct-slate: var(--color-text-sub, #64748b);
+  --ct-violet: #6d28d9;
+
+  /* Aksen: warna sebagai isian */
+  --ct-sky-fill: var(--color-primary, #0ea5e9);
+  --ct-green-fill: var(--color-success, #10b981);
+  --ct-amber-fill: var(--color-warning, #f59e0b);
+  --ct-red-fill: var(--color-danger, #ef4444);
+  --ct-violet-fill: #8b5cf6;
+
+  /* Aksen: isian transparan */
+  --ct-sky-tint: var(--color-primary-light, #e0f2fe);
+  --ct-green-tint: var(--color-green-50, #d1fae5);
+  --ct-amber-tint: #fffbeb;
+  --ct-red-tint: var(--color-red-50, #fee2e2);
+  --ct-slate-tint: var(--color-gray-100, #f1f5f9);
+  --ct-violet-tint: #f5f3ff;
+
+  /* Bentuk & jarak */
+  --ct-radius: 16px;
+  --ct-radius-sm: 10px;
+  --ct-gap: 14px;
+}

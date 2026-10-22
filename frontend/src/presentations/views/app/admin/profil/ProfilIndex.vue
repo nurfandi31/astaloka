@@ -215,7 +215,7 @@
 
           <div class="modal-footer">
             <BaseButton variant="secondary" @click="closeModal">Batal</BaseButton>
-            <BaseButton variant="primary" @click="changePassword" :loading="isUpdatingPassword">
+            <BaseButton variant="secondary" @click="changePassword" :loading="isUpdatingPassword">
               Simpan Password
             </BaseButton>
           </div>

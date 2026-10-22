@@ -423,7 +423,7 @@ const handleSave = async () => {
         text: 'Paket & tarif layanan baru telah disimpan.',
         icon: 'success',
         confirmButtonText: 'Selesai',
-        confirmButtonColor: '#3b82f6',
+        confirmButtonColor: 'var(--color-primary, #3b82f6)',
       })
 
       router.push('/app/kelas-biaya')

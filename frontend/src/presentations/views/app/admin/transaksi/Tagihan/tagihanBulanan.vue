@@ -59,7 +59,7 @@
             >
               <div class="flex! items-center! gap-2.5! flex-1!">
                 <div
-                  class="w-9! h-9! rounded-lg! bg-gradient-to-tr! from-blue-600! to-sky-400! flex! items-center! justify-center! text-white! shadow-md! shadow-blue-500/20! flex-shrink-0! transform! transition-transform! hover:scale-105!"
+                  class="w-9! h-9! rounded-lg! bg-linear-brand! flex! items-center! justify-center! text-white! shadow-md! shadow-blue-500/20! flex-shrink-0! transform! transition-transform! hover:scale-105!"
                 >
                   <font-awesome-icon icon="box" class="text-sm!" />
                 </div>

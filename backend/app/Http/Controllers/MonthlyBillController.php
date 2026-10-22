@@ -355,7 +355,32 @@ class MonthlyBillController extends Controller
     {
         $request->validate([
             'payment_method' => 'nullable|string|in:cash,transfer',
-            'amount_paid' => 'nullable|numeric|min:0',
+
+            /*
+             * Nominal yang benar-benar diterima.
+             *
+             * Validasi DITARUH DI SINI karena endpoint ini dipanggil langsung
+             * juga oleh aplikasi kasir, bukan hanya lewat UI. UI sendiri
+             * mengirim nilai persis sama dengan `total_amount`
+             * (`tagihanBulanan.vue:428`), jadi identitas di bawah tidak
+             * mengubah perilaku alur normal.
+             *
+             * Kenapa `lte:total_amount` itu wajib:
+             *
+             * `amount_paid` disimpan apa adanya ke `bill_payments`, tapi
+             * jurnal pembayarannya dibangun dari KOMPONEN TAGIHAN
+             * (`$abodemen`, `$usageCharge`, `$denda`), bukan dari
+             * `amount_paid`. Jadi kalau request mengirim 500.000 untuk
+             * tagihan 195.000, kas hanya/books 195.000, kolom `amount_paid`
+             * berbunyi 500.000, status menjadi `paid`, dan 305.000 uang nyata
+             * hilang tanpa jejak di pembukuan mana pun.
+             *
+             * Batas atas menutup sisi lebih bayar. Sisi kurang bayar ditutup
+             * oleh `required` + `gte:0`: nilai 0 berarti "belum ada uang
+             * masuk", dan membukukan pendapatan tanpa kas masuk adalah kesalahan
+             * yang lebih diam-diam daripada pembayaran lebih.
+             */
+            'amount_paid' => ['required', 'numeric', 'gte:0'],
             // Tanggal pembayaran dari date picker FE. Divalidasi sebagai date
             // supaya string rusak ditolak 422 (bukan 500 dari Carbon::parse).
             //
@@ -380,6 +405,75 @@ class MonthlyBillController extends Controller
         $abodemen = (float) ($bill->abodemen ?? 0);
         $usageCharge = (float) ($bill->usage_charge ?? 0);
         $denda = (float) ($bill->penalty_amount ?? 0);
+
+        /*
+         * Total tagihan yang BENAR harus dibaca dari kolom `total_amount`,
+         * bukan dijumlahkan ulang dari komponen di atas.
+         *
+         * `BillingService:48` menyimpan `round($usageCharge + $abodemen + $penalty)`
+         * -- satu operasi pembulatan. Menjumlahkan ulang dari komponen yang
+         * sudah disimpan sebagai DECIMAL(12,2) bisa menghasilkan selisih
+         * beberapa rupiah karena pembulatan terjadi di dua tempat berbeda.
+         *
+         * Yang dibandingkan dengan `amount_paid` harus angka yang sama
+         * dengan yang tadinya dikirim frontend, yaitu total_amount.
+         *
+         * Jatuh ke penjumlahan komponen hanya sebagai jaring pengaman
+         * untuk tagihan lama yang `total_amount`-nya kosong atau nol
+         * padahal komponennya berisi -- kondisi yang bisa terjadi pada data
+         * hasil impor, bukan pada tagihan yang dibuat alur normal.
+         */
+        $totalTagihan = (float) ($bill->total_amount ?? 0);
+
+        if ($totalTagihan <= 0 && ($abodemen + $usageCharge + $denda) > 0) {
+            $totalTagihan = $abodemen + $usageCharge + $denda;
+        }
+
+        /*
+         * Rekonsiliasi nominal yang diterima terhadap tagihan.
+         *
+         * Jurnal pembayaran disusun dari komponen di atas, bukan dari
+         * `amount_paid`. Kalau keduanya berbeda, `bill_payments.amount_paid`
+         * (catatan uang yang benar-benar diterima) akan menyimpang dari yang
+         * tercatat di `transactions` (catatan uang yang dianggap masuk) --
+         * dan karena tagihan langsung berstatus `paid`, selisihnya tidak
+         * pernah terlihat lagi di mana pun.
+         *
+         * Dua sisi yang ditutup di sini:
+         *
+         *   - LEBIH BAYAR. Uang melebihi tagihan tidak boleh hilang. Tanpa
+         *     cek ini, kas hanya bertambah sebesar tagihan sedangkan uang
+         *     yang benar-benar masuk lebih besar, dan kelebihan itu tidak
+         *     punya akun tujuan -- tidak ada piutang pelanggan, tidak ada
+         *     catatan pengembalian.
+         *
+         *   - KURANG BAYAR. Nominal di bawah total berarti sebagian uang
+         *     belum masuk, tapi tagihan akan ditandai lunas penuh dan
+         *     seluruh pendapatan dibukukan. Itu kesalahan yang lebih
+         *     diam-diam daripada pembayaran lebih.
+         *
+         * Toleransi 1 rupiah untuk pembulatan floating point, bukan untuk
+         * pembulatan rupiah yang disengaja.
+         */
+        $amountPaid = (float) $request->amount_paid;
+        $selisih = $amountPaid - $totalTagihan;
+
+        if (abs($selisih) > 1.0) {
+            return response()->json([
+                'success' => false,
+                'message' => $selisih > 0
+                    ? 'Nominal pembayaran melebihi total tagihan sebesar '
+                        .number_format($selisih, 0, ',', '.').'. '
+                        .'Uang lebih tidak bisa langsung dicatat: tagihannya sudah lunas. '
+                        .'Catat kelebihan itu sebagai tagihan terpisah atau kembalikan ke pelanggan.'
+                    : 'Nominal pembayaran kurang dari total tagihan sebesar '
+                        .number_format(abs($selisih), 0, ',', '.').'. '
+                        .'Tagihan hanya bisa dilunasi penuh.',
+                'total_tagihan' => $totalTagihan,
+                'amount_paid' => $amountPaid,
+                'selisih' => $selisih,
+            ], 422);
+        }
         $relasi = $bill->customer?->customer_code ?? 'Bill #'.$bill->id;
         $namaPelanggan = trim((string) ($bill->customer?->user?->name ?: $bill->customer?->ticket?->applicant_name));
 
@@ -443,7 +537,17 @@ class MonthlyBillController extends Controller
         // Definisi bisnisnya tetap sama seperti versi lama: uang diterima
         // SEBELUM ambang generate tunggakan, sehingga tagihan ini pada saat
         // dibayar belum/seharusnya belum punya piutang.
-        $toleransiTgl = (int) (\App\Models\Setting::first()?->toleransi_tunggakan ?? 0);
+        //
+        // Angka ini dibaca sebagai TANGGAL dalam bulan pemakaian tagihan.
+        // Frontend `BillingForm.vue` menghitung ulang rumus yang sama untuk
+        // pratinjau, jadi keduanya harus memakai angka yang sama -- kalau
+        // tidak, pratinjau dan hasil sebenarnya berbeda dan user melihat
+        // status advance yang salah.
+        //
+        // RUMUSNYA TIDAK BERUBAH dari pamsides-v2. Yang berubah hanya
+        // sumber nilainya: `BillingTolerance` memperjelas bahwa satuan ini
+        // berbeda dari satuan `toleransi_tunggakan` di tiga tempat lain.
+        $toleransiTgl = app(\App\Services\BillingTolerance::class)->advanceDayOfMonth();
         $isAdvancePayment = false;
         $thresholdDate = null;
         if ($toleransiTgl >= 1) {
@@ -481,6 +585,26 @@ class MonthlyBillController extends Controller
         $revenueAbodemen = $piutangRows->has('4.1.01.02') ? '1.1.03.01' : '4.1.01.02';
         $revenuePemakaian = $piutangRows->has('4.1.01.03') ? '1.1.03.01' : '4.1.01.03';
 
+        /*
+         * Denda mengikuti aturan pemetaan yang sama dengan abodemen dan pemakaian.
+         *
+         * Sebelumnya denda SELALU dikreditkan ke `4.1.01.04` (pendapatan)
+         * meskipun piutangnya sudah dibukukan saat generate tunggakan. Itu
+         * membuat pendapatan denda terhitung dua kali: sekali saat piutang
+         * dibukukan, sekali lagi saat pembayaran -- padahal yang kedua
+         * seharusnya MENUTUP piutang.
+         *
+         * Sebagian besar tagihan menunggak berasal dari tagihan bulan
+         * sebelumnya yang dendanya sudah dihitung saat tagihan itu dibuat.
+         * Dendanya ikut menjadi bagian dari piutang yang sedang tertunggak,
+         * jadi wajar kalau pembayarannya menutup piutang itu juga.
+         *
+         * Kalau tidak ada baris piutang untuk dendanya, kreditnya tetap
+         * ke `4.1.01.04` seperti sebelumnya -- itu kasus tagihan yang
+         * dendanya belum sempat dibukukan sebagai piutang.
+         */
+        $revenueDenda = $piutangRows->has('4.1.01.04') ? '1.1.03.01' : '4.1.01.04';
+
         $restoredTicket = false;
         $overdueRevertedCount = 0;
         // Metode bayar ikut ditulis di keterangan jurnal supaya saat cetak laporan
@@ -502,7 +626,7 @@ class MonthlyBillController extends Controller
         // perubahan piutang ikut rollback sehingga jurnal piutang dan jurnal
         // pembayaran tidak pernah merusak transaksi setengah jadi.
         try {
-            DB::transaction(function () use ($bill, $request, $paidAtDate, $abodemen, $usageCharge, $denda, $isTunggakan, $isAdvancePayment, $needsPiutangRevert, $revenueAbodemen, $revenuePemakaian, $relasi, $userId, $accountDebetKas, $methodLabel, $ketAbodemen, $ketPemakaian, $ketDenda, &$restoredTicket, &$overdueRevertedCount, &$payment) {
+            DB::transaction(function () use ($bill, $request, $paidAtDate, $abodemen, $usageCharge, $denda, $totalTagihan, $isTunggakan, $isAdvancePayment, $needsPiutangRevert, $revenueAbodemen, $revenuePemakaian, $revenueDenda, $relasi, $userId, $accountDebetKas, $methodLabel, $ketAbodemen, $ketPemakaian, $ketDenda, &$restoredTicket, &$overdueRevertedCount, &$payment) {
             // Kunci baris tagihan (SELECT ... FOR UPDATE) supaya 2 request bersamaan
             // tidak bisa sama-sama membaca status 'unpaid' lalu membayarkan dua
             // kali. Cek status diulang di sini dengan baris terkunci — sebelumnya
@@ -561,9 +685,21 @@ class MonthlyBillController extends Controller
 
             $bill->update(['status' => 'paid']);
 
+            /*
+             * `amount_paid` sudah divalidasi AKURAT SAMA dengan
+             * `$totalTagihan` di atas (selisih lebih dari 1 rupiah ditolak
+             * dengan 422), sehingga kolom ini tidak lagi bisa menyimpang dari
+             * jurnal yang dibangun dari komponen tagihan.
+             *
+             * Nilai yang disimpan memakai `$totalTagihan`, bukan nilai mentah
+             * dari request: kalau frontend mengirim 195.000,4 dan pembulatan
+             * menyimpan total 195.000, menulis angka mentah akan membuat
+             * `bill_payments` berselisih 0,4 dari jurnal -- selisih kecil
+             * yang tetap berarti saat dua laporan dijumlahkan.
+             */
             $payment = BillPayment::create([
                 'bill_id' => $bill->id,
-                'amount_paid' => $request->amount_paid ?? $bill->total_amount,
+                'amount_paid' => $totalTagihan,
                 'confirmed_by' => $userId,
                 'paid_at' => $paidAtDate,
             ]);
@@ -618,7 +754,7 @@ class MonthlyBillController extends Controller
                 $trx = Transaction::create([
                     'tgl_transaksi' => $payment->paid_at,
                     'account_debet' => $accountDebetKas,
-                    'account_kredit' => '4.1.01.04',
+                    'account_kredit' => $revenueDenda,
                     'transaction_group' => null,
                     'reverence_type' => 'bill_payment',
                     'reverence_id' => $payment->id,

@@ -174,13 +174,13 @@ const formatDate = (date) => {
   font-weight: 400 !important;
 }
 :deep(.p-datepicker-input:hover) {
-  border-color: #60a5fa !important;
+  border-color: var(--color-primary-400, #60a5fa) !important;
   background-color: #ffffff !important;
   box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.05) !important;
 }
 :deep(.p-datepicker-input:focus),
 :deep(.p-datepicker.p-focus > .p-datepicker-input) {
-  border-color: #3b82f6 !important;
+  border-color: var(--color-primary, #3b82f6) !important;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 10px 15px -3px rgba(59, 130, 246, 0.05) !important;
   background-color: #ffffff !important;
 }
@@ -238,13 +238,13 @@ const formatDate = (date) => {
 :deep(.p-monthpicker-month:hover),
 :deep(.p-yearpicker-year:hover) {
   background-color: #f1f5f9 !important; /* Slate 100 */
-  color: #2563eb !important; /* Blue 600 */
+  color: var(--color-primary-600, #2563eb) !important; /* warna lokasi */
 }
 
 /* Selected State */
 :deep(.p-monthpicker-month.p-highlight),
 :deep(.p-yearpicker-year.p-highlight) {
-  background-color: #2563eb !important;
+  background-color: var(--color-primary-600, #2563eb) !important;
   color: #ffffff !important;
   box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2) !important;
 }

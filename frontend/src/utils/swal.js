@@ -1,8 +1,21 @@
 import Swal from 'sweetalert2'
 
+/*
+ * Warna tombol dialog TIDAK ditulis di sini.
+ *
+ * Nilai `confirmButtonColor` di bawah dievaluasi sekali saat modul ini
+ * diimpor -- dan saat itu branding belum dimuat, jadi nilainya pasti warna
+ * bawaan. Semua dialog yang dibuka belakangan akan punya tombol biru yang
+ * tidak pernah ikut berubah.
+ *
+ * Warnanya sekarang datang dari CSS: `.swal2-confirm` di `main.css` memakai
+ * `!important`, jadi penimpaan ini menang atas inline style dari SweetAlert2.
+ * Dengan begitu warnanya selalu mengikuti lokasi, tanpa perlu dievaluasi ulang
+ * tiap dialog, dan tanpa risiko warna yang terkunci di nilai import.
+ */
 export const swalOptions = {
-  confirmButtonColor: '#3b82f6',
-  cancelButtonColor: '#ef4444',
+  confirmButtonColor: 'var(--color-primary, #3b82f6)',
+  cancelButtonColor: 'var(--color-danger, #ef4444)',
 }
 
 export const MySwal = Swal.mixin(swalOptions)

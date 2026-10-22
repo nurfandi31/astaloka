@@ -4,6 +4,8 @@ namespace App\Models\Central;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -53,6 +55,59 @@ class TenantInvoice extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'tenant_id');
+    }
+
+    /**
+     * Rincian baris tagihan.
+     *
+     * Diurutkan lewat relasi, bukan lewat `orderBy()` di query pemanggil:
+     * setiap tempat yang memuat item untuk PDF atau form edit memerlukan
+     * urutan yang sama, dan `with()` menaruhnya di relasi supaya tidak bisa
+     * terlewat di satu jalur sementara jalur lain mengurutkannya.
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(TenantInvoiceItem::class, 'tenant_invoice_id')->orderBy('urutan');
+    }
+
+    /**
+     * Pembayaran tagihan ini.
+     *
+     * `HasOne`, bukan `HasMany`, dan itu bukan pertanyaan lain yang
+     * dijawab. Satu tagihan hanya punya satu pembayaran: index unik di
+     * `tenant_invoice_payments.tenant_invoice_id` yang menegakkan itu,
+     * jadi bentuk relasinya di sini mengikuti constraint itu.
+     *
+     * Dipakai `HasOne` karena bentuk JSON-nya ikut berubah: `HasOne`
+     * dibaca frontend sebagai satu objek, sedangkan `HasMany` mengirim
+     * array yang isinya nol atau satu elemen -- dan pemanggil harus
+     * memeriksa dua-duanya di setiap tempat. Tagihan yang belum dibayar
+     * mengirim `null`, yang jelas lebih jujur daripada array kosong yang
+     * terlihat seperti "sudah ada pembayarannya tapi tidak terbaca".
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(TenantInvoicePayment::class, 'tenant_invoice_id');
+    }
+
+    /**
+     * Rincian item sebagai satu baris teks untukcetakan.
+     *
+     * Invoice lama (sebelum tabel item ada) tidak punya baris apa pun. Untuk
+     * keduanya, teks ini harus selalu punya isi -- cetakan tidak boleh
+     * menampilkan baris DESCRIPTION kosong. Kalau tidak ada item, nama
+     * layanan diambil dari `keterangan`, dan kalau itu juga kosong barisnya
+     * dijatuhkan karena "jumlah" saja sudah tercetak di kolom TOTAL.
+     */
+    public function itemLabel(): string
+    {
+        if ($this->items->isNotEmpty()) {
+            return $this->items->first()->nama;
+        }
+
+        return trim((string) $this->keterangan) !== ''
+            ? (string) $this->keterangan
+            : 'Tagihan Langganan ASTALOKA';
     }
 
     public function isPaid(): bool

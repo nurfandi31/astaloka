@@ -3,12 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Models\MonthlyBill;
-use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\BillingTolerance;
 use App\Services\SuspendTransactionsTrigger;
+use App\Services\TenantCache;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -31,24 +31,17 @@ class GenerateOverdueTransactions extends Command
         // Ambang tunggakan: berapa HARI (dihitung dari hari generate) sebuah
         // tagihan dianggap menunggak.
         //
-        // Nilai ini dipakai sebagai JUMLAH HARI di sini dengan sengaja.
-        // `toleransi_tunggakan` punya dua consumers yang maknanya berbeda,
-        // dan ini yang menggeser ambangnya:
-        //   - `MonthlyBillController::pay` & `BillingForm.vue` memakainya
-        //     sebagai TANGGAL jatuh tempo dalam bulan pemakaian tagihan
-        //     (untuk deteksi ADVANCE payment).
-        //   - Command ini memakainya sebagai MAAF toleransi: tagihan baru
-        //     masuk piutang tunggakan setelah lewat N HARI.
+        // Nilai ini dibaca sebagai JUMLAH HARI di sini dengan sengaja,
+        // sementara `toleransi_tunggakan` dipakai sebagai TANGGAL di dua
+        // tempat lain. Perbedaan makna itu sekarang dikunci di
+        // `BillingTolerance`, bukan dibaca langsung dari `Setting`.
         //
-        // Jangan diubah jadi "hari toleransi di bulan pemakaian" — itu
-        // akan membuat ambang jatuh ke bulan SEBELUM jatuh tempo tagihan,
-        // sehingga praktis tidak ada tagihan yang lolos. Data aktual
-        // perusahaan: tagihan periode Agustus/2026 jatuh tempo 26-27
-        // September. Dengan ambang hari-toleransi (tanggal 6), ambangnya
-        // jadi 6 AGUSTUS — sehingga 26 September dianggap belum menunggak
-        // dan 3286 tagihan gagal diproses. Versi ini (6 hari sebelum hari
-        // generate) memberi ambang 30 September, yang sesuai.
-        $toleransi = (int) (Setting::first()?->toleransi_tunggakan ?? 0);
+        // Data aktual perusahaan: tagihan periode Agustus/2026 jatuh tempo
+        // 26-27 September. Dengan ambang hari-toleransi dalam bulan pemakaian
+        // (tanggal 6), ambangnya jatuh ke 6 AGUSTUS -- sehingga 26 September
+        // dianggap belum menunggak dan 3286 tagihan gagal diproses. Versi ini
+        // (6 hari sebelum hari generate) memberi ambang 30 September, sesuai.
+        $toleransi = app(BillingTolerance::class)->graceDays();
         $thresholdDate = date('Y-m-d', strtotime("$today -$toleransi days"));
 
         $overdueBills = MonthlyBill::where('status', 'unpaid')
@@ -60,14 +53,14 @@ class GenerateOverdueTransactions extends Command
             $this->info('Tidak ada tagihan menunggak.');
             // Tetap tulis ringkasan supaya frontend tidak salah menampilkan
             // "diproses 0" padahal prosesnya memang tidak menemukan apa pun.
-            $this->storeRunSummary($today, $thresholdDate, 0, 0, 0, 0);
+            $this->storeRunSummary($today, $thresholdDate, 0, 0, 0, 0, 0);
             return self::SUCCESS;
         }
 
         $systemUser = User::where('role', 'admin')->first();
         if (!$systemUser) {
             $this->error('User admin tidak ditemukan.');
-            $this->storeRunSummary($today, $thresholdDate, 0, $overdueBills->count(), 0, 0);
+            $this->storeRunSummary($today, $thresholdDate, 0, $overdueBills->count(), 0, 0, 0);
             return self::FAILURE;
         }
 
@@ -78,6 +71,7 @@ class GenerateOverdueTransactions extends Command
         // hari ini, karena pada run ulang tidak ada jurnal baru sama sekali.
         $jurnalAbodemen = 0;
         $jurnalPemakaian = 0;
+        $jurnalDenda = 0;
 
         $chunkSize = max(1, (int) $this->option('chunk'));
 
@@ -147,6 +141,11 @@ class GenerateOverdueTransactions extends Command
                     && ! $hasJournal($bill, '4.1.01.03'))
                 ->keyBy('id');
 
+            $needsDenda = $overdueBills
+                ->filter(fn ($bill) => (float) ($bill->penalty_amount ?? 0) > 0
+                    && ! $hasJournal($bill, '4.1.01.04'))
+                ->keyBy('id');
+
             // Tagihan yang benar-benar akan menghasilkan SATU BARIS JURNAL
             // atau lebih.
             //
@@ -164,6 +163,8 @@ class GenerateOverdueTransactions extends Command
                         && ! $hasJournal($bill, '4.1.01.02'))
                     || ((float) ($bill->usage_charge ?? 0) > 0
                         && ! $hasJournal($bill, '4.1.01.03'))
+                    || ((float) ($bill->penalty_amount ?? 0) > 0
+                        && ! $hasJournal($bill, '4.1.01.04'))
             );
 
             $skipped = $overdueBills->count() - $targets->count();
@@ -186,6 +187,7 @@ class GenerateOverdueTransactions extends Command
                     ?? 'Tanpa Nama';
                 $abodemen     = (float) ($bill->abodemen ?? 0);
                 $usageCharge  = (float) ($bill->usage_charge ?? 0);
+                $denda        = (float) ($bill->penalty_amount ?? 0);
 
                 $keteranganSuffix = 'bulan ' . $this->periodLabelLong($bill) .
                     ' an. ' . $customerName . ' (' . $relasi . ')';
@@ -221,7 +223,23 @@ class GenerateOverdueTransactions extends Command
                         $systemUser->id,
                         $bill,
                         '4.1.01.03',
-                        'Piutang Denda ' . $keteranganSuffix,
+                        /*
+                         * Keterangan ini SEHARUSNYA menyebut pemakaian, bukan
+                         * denda.
+                         *
+                         * `4.1.01.03` adalah akun "Tagihan Pemakaian"
+                         * (`AccountsTableSeeder.php:94`), sedangkan "Denda"
+                         * adalah `4.1.01.04`. Memakai label "Piutang Denda"
+                         * di sini membuat baris buku besar menampilkan
+                         * pendapatan denda pada akun pemakaian -- dan
+                         * membuat akun Denda yang sebenarnya tidak pernah
+                         * dipakai di jalur accrue piutang.
+                         *
+                         * Perbaikan ini mengubah TEKS SAJA. Kode akun, nilai,
+                         * dan seluruh perhitungan tidak tersentuh, sehingga
+                         * pembukuan yang sudah terjadi tidak berubah angkanya.
+                         */
+                        'Piutang Pemakaian ' . $keteranganSuffix,
                         $relasi,
                         $usageCharge
                     );
@@ -229,6 +247,44 @@ class GenerateOverdueTransactions extends Command
                     $adaJurnalBaru = true;
                     $affectedAccounts['1.1.03.01'] = true;
                     $affectedAccounts['4.1.01.03'] = true;
+                }
+
+                /*
+                 * Piutang Denda.
+                 *
+                 * Denda sudah terhitung di `monthly_bills.penalty_amount` sejak
+                 * tagihan dibuat, dan tagihan itu sudah menjadi bagian dari
+                 * apa yang harus ditagih dari pelanggan. Tanpa dibukukan,
+                 * akun `4.1.01.04` (Denda) tetap nol sampai tagihannya
+                 * dibayar -- padahal Piutang Usaha sudah membebani seluruh
+                 * `total_amount` termasuk dendanya.
+                 *
+                 * Akibatnya dua laporan tidak cocok: `4.1.01.04` tidak pernah
+                 * bergerak, sementara `1.1.03.01` bertambah sebesar total
+                 * tagihan. Saat dibayar, dendanya baru diakui dengan tanggal
+                 * `paid_at`, yang bisa 2-3 bulan setelah periode tagihan --
+                 * pendapatan masuk periode yang salah.
+                 *
+                 * `MonthlyBillController::pay` memakai pemetaan yang sama
+                 * untuk menutup piutang dendanya, sehingga kedua sisi
+                 * balance.
+                 */
+                if ($denda > 0 && $needsDenda->has($bill->id)) {
+                    $rows[] = $this->journalRow(
+                        $nextId++,
+                        $today,
+                        $now,
+                        $systemUser->id,
+                        $bill,
+                        '4.1.01.04',
+                        'Piutang Denda ' . $keteranganSuffix,
+                        $relasi,
+                        $denda
+                    );
+                    $jurnalDenda++;
+                    $adaJurnalBaru = true;
+                    $affectedAccounts['1.1.03.01'] = true;
+                    $affectedAccounts['4.1.01.04'] = true;
                 }
 
                 // Hanya tagihan yang benar-benar menghasilkan jurnal yang
@@ -264,7 +320,8 @@ class GenerateOverdueTransactions extends Command
                 $processed,
                 $skipped,
                 $jurnalAbodemen,
-                $jurnalPemakaian
+                $jurnalPemakaian,
+                $jurnalDenda
             );
             return self::SUCCESS;
         } catch (\Throwable $e) {
@@ -277,7 +334,7 @@ class GenerateOverdueTransactions extends Command
             $suspend->restore();
 
             $this->error('Gagal: ' . $e->getMessage());
-            $this->storeRunSummary($today, $thresholdDate, 0, $overdueBills->count(), 0, 0);
+            $this->storeRunSummary($today, $thresholdDate, 0, $overdueBills->count(), 0, 0, 0);
             return self::FAILURE;
         }
     }
@@ -405,20 +462,32 @@ class GenerateOverdueTransactions extends Command
         int $processed,
         int $skipped,
         int $jurnalAbodemen,
-        int $jurnalPemakaian
+        int $jurnalPemakaian,
+        int $jurnalDenda
     ): void {
         $totalUnpaid = (int) MonthlyBill::where('status', 'unpaid')->count();
         $totalOverdue = (int) MonthlyBill::where('status', 'unpaid')
             ->where('due_date', '<', $today)
             ->count();
+        /*
+         * Cache dashboard lokasi ini sudah basi karena piutang baru saja
+         * ditambah. Tanpa ini, statistik "tunggakan" di dashboard tetap
+         * menampilkan angka dari sebelum generate sampai TTL 60 detik habis.
+         */
+        $cache = app(TenantCache::class);
+        $cache->bump();
 
-        Cache::put('overdue_gen_run_summary', [
+        // Ringkasan ditulis pada kunci FLAG (tanpa versi), jadi tidak ikut
+        // tergeser oleh bump di atas. Pembacanya ada di
+        // ReceivableGenerator::execute() dan DashboardController.
+        $cache->flagPut('overdue_gen_run_summary', [
             'date'                => $today,
             'threshold_date'      => $thresholdDate,
             'processed'           => $processed,
             'skipped'             => $skipped,
             'jurnal_abodemen'     => $jurnalAbodemen,
             'jurnal_pemakaian'    => $jurnalPemakaian,
+            'jurnal_denda'        => $jurnalDenda,
             'total_unpaid'        => $totalUnpaid,
             'total_overdue'       => $totalOverdue,
             'timestamp'           => now()->toISOString(),

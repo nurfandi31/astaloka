@@ -132,7 +132,7 @@
           variant="secondary"
           size="md"
           @click="handleSubmit"
-          class="ml-auto px-5! py-2! rounded-xl shadow-lg shadow-blue-200/50"
+          class="ml-auto px-5! py-2! rounded-xl shadow-lg shadow-slate-200/50"
           icon="save"
         >
           Simpan Transaksi
@@ -156,7 +156,7 @@
       <ContentCard variant="bordered" padding="normal" hoverable>
         <div class="flex items-center gap-3 mb-2! pb-3 border-b border-slate-100/80">
           <div
-            class="w-9 h-9 rounded-xl bg-linear-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-200"
+            class="w-9 h-9 rounded-xl bg-linear-brand text-white flex items-center justify-center shadow-lg shadow-blue-200"
           >
             <font-awesome-icon icon="filter" />
           </div>
@@ -725,7 +725,19 @@ async function deleteTransaction(id) {
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
+    /*
+     * Cancel tidak diberi warna lokasi.
+     *
+     * Tombol "Batal" bukan aksi -- dia jalan keluar dari dialog. Kalau
+     * warnanya sama dengan tombol "Ya, Hapus" di sebelahnya, keduanya terlihat
+     * seperti dua pilihan yang setara, dan orang bisa salah klik karena
+     * mengira warna menentukan yang mana yang aman.
+     *
+     * Abu-abu netral dipakai di `.swal2-cancel` (main.css) untuk semua
+     * dialog. Nilai di sini ditimpa aturan itu, jadi baris ini hanya
+     * mengatakan bahwa cancel tidak boleh memakai warna brand.
+     */
+    cancelButtonColor: '#6b7280',
     confirmButtonText: 'Ya, Hapus',
     cancelButtonText: 'Batal',
   })
@@ -893,7 +905,11 @@ function handleOpenCetak() {
 
 <style scoped>
 .total-saldo-card {
-  background: linear-gradient(to bottom right, #0284c7, #0c4a6e);
+  background: linear-gradient(
+    to bottom right,
+    var(--color-primary, #0284c7),
+    var(--color-primary-700, #0c4a6e)
+  );
   border-radius: 1rem;
   padding: 1rem 1.25rem;
   color: white;

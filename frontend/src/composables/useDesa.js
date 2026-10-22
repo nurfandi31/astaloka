@@ -20,7 +20,11 @@ export function useDesa(router) {
         alamat: item.address,
         telepon: item.phone,
       }))
-    } catch (err) {
+    } catch {
+      // Daftar desa gagal diambil: tableData dibiarkan apa adanya supaya
+      // tabel menampilkan pesan kosong, bukan exception yang membuat seluruh
+      // halaman guard gagal.
+      tableData.value = []
     }
   }
 

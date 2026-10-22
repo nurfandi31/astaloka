@@ -45,6 +45,7 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MySwal } from '@/utils/swal'
 import axios from '@/utils/axios.js'
+import { hapusTenantSlug } from '@/utils/tenantSlug'
 import SidebarView from './SidebarView.vue'
 import TopNavigationView from './TopNavigationView.vue'
 import FooterView from './FooterView.vue'
@@ -151,6 +152,13 @@ const handleLogout = async () => {
       localStorage.removeItem('user_role')
       localStorage.removeItem('user_data')
       localStorage.removeItem('auth_expires_at')
+
+      /*
+       * `tenant_slug` ikut dibersihkan: slug-nya milik SESI ini. Kalau
+       * tersisa, orang berikutnya yang login di lokasi berbeda akan
+       * memakai request milik lokasi lama sampai ia masuk ulang.
+       */
+      hapusTenantSlug()
 
       // Catatan: penanda popup generate piutang yang pernah ada di
       // `sessionStorage` sudah DIHAPUS, jadi logout tidak perlu membersihkan

@@ -8,12 +8,16 @@ use Illuminate\Support\Facades\DB;
 class AkunLevel3Seeder extends Seeder
 {
     /**
-     * Run the database seeds.
-     */
+ * Run the database seeds.
+ *
+ * Ditulis ke koneksi `central` -- lihat {@see AkunLevel1Seeder}.
+ */
     public function run(): void
     {
+        $central = (string) config('tenancy.central_connection', 'central');
+
         // Kosongkan tabel terlebih dahulu sebelum diisi
-        DB::table('akun_level_3')->truncate();
+        DB::connection($central)->table('akun_level_3')->truncate();
 
         $data = [
             // ASET (Aset Lancar)
@@ -75,6 +79,6 @@ class AkunLevel3Seeder extends Seeder
             ['id' => 541, 'parent_id' => 54, 'lev1' => 5, 'lev2' => 4, 'lev3' => 1, 'lev4' => 0, 'kode_akun' => '5.4.01.00', 'nama_akun' => 'Beban PPh', 'posisi' => 1, 'jenis_mutasi' => 'debet'],
         ];
 
-        DB::table('akun_level_3')->insert($data);
+        DB::connection($central)->table('akun_level_3')->insert($data);
     }
 }

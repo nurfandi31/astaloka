@@ -9,7 +9,7 @@
         class="bg-white! w-full! h-full! md:h-auto! md:max-w-2xl! rounded-none! md:rounded-[2.5rem]! shadow-2xl! relative! flex! flex-col! overflow-hidden! animate-in! slide-in-from-bottom-full! md:fade-in! md:zoom-in-95! duration-300!"
         @click.stop
       >
-        <div class="h-2! bg-gradient-to-r! from-cyan-500! to-blue-600! w-full! shrink-0!"></div>
+        <div class="h-2! bg-linear-brand! w-full! shrink-0!"></div>
 
         <div
           class="px-5! md:px-6! py-4! md:py-5! border-b! border-slate-50! flex! items-center! justify-between! shrink-0!"
@@ -290,8 +290,9 @@
           class="p-3! md:p-4! bg-slate-50! border-t! border-slate-100! flex! items-center! justify-end!"
         >
           <BaseButton
+            variant="secondary"
             @click="handleSave"
-            class="w-full! md:w-auto! bg-slate-800! hover:bg-slate-900! px-8! py-3! rounded-xl! text-white! font-black! shadow-lg! shadow-slate-200! tracking-widest! text-xs! uppercase! transition-all!"
+            class="w-full! md:w-auto! px-8! py-3! rounded-xl! font-black! shadow-lg! shadow-slate-200! tracking-widest! text-xs! uppercase! transition-all!"
           >
             Simpan Data Pemakaian
           </BaseButton>

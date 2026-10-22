@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /** Status tiket instalasi yang boleh dilihat oleh teknisi. */
     public const TICKET_STATUSES_FOR_TEKNISI = ['surveyed', 'unpaid', 'processing', 'completed'];
@@ -24,16 +23,6 @@ class User extends Authenticatable
     public function canSeeAllTickets(): bool
     {
         return $this->role === 'admin';
-    }
-
-    public function tickets()
-    {
-        return $this->hasMany(InstallationTicket::class, 'created_by');
-    }
-
-    public function surveys()
-    {
-        return $this->hasMany(SurveyResult::class, 'surveyor_id');
     }
 
     public function meterReadings()
@@ -68,7 +57,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
 }

@@ -2,7 +2,7 @@
   <div class="pemakaian-air-root">
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4!">
       <div class="flex-1!">
-        <h1 class="text-xl md:text-2xl font-bold text-cyan-600! tracking-tight mb-1!">
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900! tracking-tight mb-1!">
           Data Pemakaian Air
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed">

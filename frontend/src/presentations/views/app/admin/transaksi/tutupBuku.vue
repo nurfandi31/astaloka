@@ -195,7 +195,7 @@
     </ContentCard>
 
     <BaseButton
-      variant="success-gradient"
+      variant="secondary"
       size="lg"
       class="fixed! bottom-6! right-6! z-50! rounded-full! shadow-2xl! scale-110! sm:scale-100!"
       @click="simpanPerubahanSaldo"

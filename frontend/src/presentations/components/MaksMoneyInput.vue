@@ -1,7 +1,11 @@
 <template>
   <div
     class="currency-input"
-    :class="{ 'mb-2': !noMargin, 'currency-input--sm': size === 'sm' }"
+    :class="{
+      'mb-2': !noMargin,
+      'currency-input--sm': size === 'sm',
+      'currency-input--error': error,
+    }"
   >
     <label v-if="label" class="currency-label">{{ label }}</label>
     <div class="currency-input-wrapper">
@@ -23,7 +27,15 @@
       />
     </div>
 
-    <div v-if="showHelper && helperText" class="helper-text">{{ helperText }}</div>
+    <!--
+      Error mengalahkan helper, bukan tampil berdampingan.
+
+      Dua pesan di bawah satu input yang sama selalu bertentangan: kalau
+      field-nya ditolak karena tidak valid, catatan helper tidak boleh
+      tetap terlihat seolah-olah hal itu hanya informasi tambahan.
+    -->
+    <div v-if="error" class="error-text">{{ error }}</div>
+    <div v-else-if="showHelper && helperText" class="helper-text">{{ helperText }}</div>
   </div>
 </template>
 
@@ -40,9 +52,18 @@ const props = defineProps({
   maxValue: { type: Number, default: null },
   showHelper: { type: Boolean, default: false },
   helperText: { type: String, default: '' },
+  /* Pesan validasi. Ditambahkan karena MaksMoneyInput dipakai berdampingan
+     dengan BaseInput di modal yang sama, dan keduanya harus menampilkan
+     error dengan gaya yang sama -- kalau tidak, isian yang berderet
+     terlihat berasal dari dua form berbeda. */
+  error: { type: String, default: '' },
   noMargin: { type: Boolean, default: false },
   size: { type: String, default: 'normal', validator: (v) => ['normal', 'sm'].includes(v) },
   hidePrefix: { type: Boolean, default: false },
+  /* Apakah isian kosong dianggap 0 atau tetap kosong. Lihat catatan di
+     `toNum()` -- ini yang membedakan kolom yang wajib diisi dari kolom
+     yang kosong berarti "biarkan sistem yang menghitung". */
+  emptyAsZero: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
@@ -57,11 +78,24 @@ watch(
   },
 )
 
-// Sync dari dalam ke luar — coerce ke Number agar parent computed tidak NaN/null
+/*
+ * Ubah nilai input menjadi angka untuk dikirim ke parent.
+ *
+ * Isian kosong dikonversi jadi 0 HANYA kalau `emptyAsZero` menyala
+ * (bawaan), karena hampir semua pemakai memperlakukan nominal kosong
+ * sebagai nol, dan `null` akan membuat `NaN` di perhitungan milik parent.
+ *
+ * `emptyAsZero` dimatikan untuk kolom yang boleh kosong, di mana kosong
+ * berarti "biarkan sistem yang mengisi". Contohnya kolom `jumlah` per item
+ * tagihan: kalau kosong ikut jadi 0, baris itu terkirim sebagai nominal
+ * nol dan melanggar aturan backend bahwa total item harus sama dengan
+ * total tagihan -- jadi bentuk kosongnya justru harus bertahan.
+ */
 function toNum(v) {
-  if (v === null || v === undefined || v === '') return 0
+  if (v === null || v === undefined || v === '') return props.emptyAsZero ? 0 : null
+
   const n = typeof v === 'number' ? v : Number(String(v).replace(/\./g, '').replace(',', '.'))
-  return Number.isFinite(n) ? n : 0
+  return Number.isFinite(n) ? n : props.emptyAsZero ? 0 : null
 }
 
 function handleInput(e) {
@@ -137,14 +171,16 @@ function handleFocus() {}
   font-weight: 400 !important;
 }
 :deep(.p-inputnumber-input:hover) {
-  border-color: #60a5fa !important;
+  border-color: var(--color-primary-400, #60a5fa) !important;
   background-color: #ffffff !important;
   box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.05) !important;
 }
 :deep(.p-inputnumber-input:focus),
 :deep(.p-inputnumber.p-focus > .p-inputnumber-input) {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 10px 15px -3px rgba(59, 130, 246, 0.05) !important;
+  border-color: var(--color-primary, #3b82f6) !important;
+  box-shadow:
+    0 0 0 4px rgba(59, 130, 246, 0.1),
+    0 10px 15px -3px rgba(59, 130, 246, 0.05) !important;
   background-color: #ffffff !important;
 }
 
@@ -154,5 +190,13 @@ function handleFocus() {}
 
 .helper-text {
   @apply mt-1.5 ml-1 text-xs text-slate-400;
+}
+
+/* Samakan dengan `.base-input__error` milik BaseInput: modal tagihan
+   mencampur keduanya dalam satu form, dan dua isian bersebelahan yang
+   kesalahannya tampil dengan gaya berbeda jauh lebih mengganggu daripada
+   pesan itu sendiri. */
+.error-text {
+  @apply mt-1.5 ml-1 text-xs text-red-500;
 }
 </style>

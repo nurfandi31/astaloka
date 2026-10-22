@@ -817,7 +817,7 @@ const buildPages = (res) => {
       ...p.payload,
       lembaga: p.payload?.lembaga || baseLembaga,
       pageInfo: {
-        ...(p.payload?.pageInfo || {}),
+        ...p.payload?.pageInfo,
         current: i + 1,
         total: totalPages,
       },

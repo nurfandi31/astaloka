@@ -30,11 +30,14 @@ use App\Http\Controllers\TunggakanController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VillageController;
 use App\Http\Controllers\PelaporanController;
+use App\Http\Controllers\PublicBrandingController;
 use App\Http\Controllers\WaterTariffBlockController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AlokasiLabaController;
 use App\Http\Controllers\KomisiSPSController;
+use App\Http\Controllers\MenuAccessController;
 use App\Http\Controllers\SignatureController;
+use App\Http\Controllers\ShortcutLoginController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -49,6 +52,74 @@ Route::post('/login', [AuthController::class, 'login'])
     ->middleware(['throttle:login', 'throttle:login-ip']);
 Route::get('/health', function () {
     return response()->json(['status' => 'OK']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Branding Halaman Login (publik)
+|--------------------------------------------------------------------------
+|
+| Mengembalikan judul, sub judul, deskripsi, dan warna milik lokasi yang
+| sedang melayani request -- untuk halaman login, yang belum punya sesi
+| apa pun.
+|
+| Sengaja DI LUAR `auth:sanctum`. Endpoint ini justru tidak adanya
+| autentikasi yang membuatnya berguna: kalau berada di balik auth, halaman
+| login tidak akan pernah bisa menampilkan teks dan warnanya sendiri,
+| karena tidak ada yang sudah login saat halaman itu dibuka.
+|
+| Data yang dikembalikan hanya empat field yang sudah tercetak di layar
+| publik. Tidak ada nama database, kredensial, alamat, tagihan, atau
+| domain nonaktif yang ikut terbawa. Lihat `PublicBrandingController`.
+|
+| Limiter longgar (60/menit) karena dipanggil sekali saat aplikasi dibuka,
+| bukan per aksi.
+|
+| Harus masuk `tenancy.invoice_exempt_paths`: middleware di sana menahan
+| request yang sudah punya sesi. Endpoint ini tidak punya sesi, jadi tidak
+| ada yang perlu dilindungi dari pemblokiran -- tapi teks halaman login juga
+| tidak boleh hilang begitu tagihan terlambat, karena justru saat itu orang
+| perlu membukanya untuk melihat tagihannya.
+|
+*/
+Route::get('/branding', PublicBrandingController::class)
+    ->middleware('throttle:60,1');
+
+/*
+|--------------------------------------------------------------------------
+| Login Pintasan (`/login/user`)
+|--------------------------------------------------------------------------
+|
+| Daftar user SATU LOKASI + masuk ke salah satunya tanpa password.
+| Halaman frontend-nya ada di `presentations/views/auth/ShortcutLoginView.vue`.
+|
+| Yang dilayani adalah lokasi yang sedang resolve dari request --
+| `TenantManager::current()`, dibaca lewat koneksi `tenant`. Tidak ada lokasi
+| lain yang ikut dibaca: daftar ini milik database lokasi itu, dan token yang
+| diterbitkan hanya berlaku di database itu juga. Endpoint ini TIDAK ada
+| untuk menjangkau lokasi lain -- untuk itu panel pusat punya jalannya sendiri.
+|
+| Sengaja DI LUAR `auth:sanctum` -- justru tidak adanya autentikasi yang
+| membuat endpoint ini berguna. Konsekuensinya harus jelas: siapa pun yang
+| tahu URL-nya bisa masuk sebagai user mana pun DI LOKASI INI. Matikan lewat
+| `SHORTCUT_LOGIN_ENABLED=false` sebelum aplikasi dipublikasikan.
+|
+| Limiter `login`/`login-ip` TIDAK dipakai di sini. Keduanya menghitung
+| berdasarkan `email` di body, sedangkan endpoint ini tidak punya email --
+| memakai limiter itu akan membuat semua pengguna pumped ke hitungan yang
+| sama dan saling memblokir. `throttle:60,1` per IP yang dipakai di sini
+| hanya menahan request berulang, tanpa mengunci siapa pun.
+|
+| Path juga wajib masuk `tenancy.invoice_exempt_paths`: endpoint ini membaca
+| database lokasi, jadi tidak boleh ikut terblokir 402 oleh
+| `EnforceInvoiceStatus` hanya karena tagihannya belum lunas. (Yang tetap
+| menolak login adalah `InvoiceGate` di dalam controller -- exempt di sini
+| soal middleware, bukan soal aturan tagihan.)
+|
+*/
+Route::prefix('login-user')->middleware('throttle:60,1')->group(function () {
+    Route::get('/', [ShortcutLoginController::class, 'index']);
+    Route::post('/login', [ShortcutLoginController::class, 'login']);
 });
 
 
@@ -85,6 +156,24 @@ Route::middleware('auth:sanctum')->group(function () {
      * hanya akan menduplikasi logika yang sudah hidup di satu tempat.
      */
     Route::get('monthly-bills/unpaid-summary', [MonthlyBillController::class, 'unpaidSummary']);
+
+    /*
+     | Katalog menu untuk menyusun sidebar.
+     |
+     | Sengaja TIDAK memakai `role:admin` seperti endpoint lain di file
+     | ini. Sidebar dirender untuk semua role, dan frontend memakai
+     | endpoint ini untuk tahu menu mana yang boleh ditampilkan --
+     | termasuk surveyor, teknisi, dan pelanggan. Response-nya sendiri
+     | sudah terpotong sesuai hak akses pemanggil (`MenuAccessController`
+     | hanya mengirim label untuk key yang diizinkan), jadi tidak ada
+     | yang bocor ke role lain.
+     |
+     | `menu-access/catalog` bukan soal hak akses, tapi soal isi sidebar.
+     | Endpoint untuk mengelola hak akses sudah tidak ada di aplikasi lokasi --
+     | managing-nya pindah ke panel pusat, karena tabelnya milik database tiap
+     | lokasi dan menyetelnya dari sini memaksa logout-login berulang.
+     */
+    Route::get('menu-access/catalog', [MenuAccessController::class, 'catalog']);
 });
 
 // Shared Routes (Bisa diakses Admin, Surveyor & Teknisi)
@@ -164,6 +253,21 @@ Route::middleware(['auth:sanctum', 'role:admin,teknisi'])->group(function () {
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/test-admin', fn () => response()->json(['message' => 'Kamu admin!']));
+
+    /*
+     * Hak akses menu per jabatan -- BACA SAJA. Lihat `MenuAccessController`.
+     *
+     * Endpoint simpan & reset TIDAK ada di sini lagi. Managing hak akses
+     * dipindah ke panel pusat (`api/central/locations/{location}/menu-access`)
+     * karena menyetelnya dari tiap lokasi memaksa logout-login berulang.
+     *
+     * `index` tetap ada supaya admin lokasi bisa melihat hak akses jabatan
+     * apa yang berlaku di tempatnya tanpa harus masuk ke panel pusat.
+     *
+     * `catalog` TIDAK di sini -- ada di grup semua role di atas, karena
+     * sidebar butuh katalognya untuk semua role.
+     */
+    Route::get('menu-access', [MenuAccessController::class, 'index']);
 
     Route::prefix('settings/sop')->group(function () {
         Route::get('/', [SopController::class, 'index']);

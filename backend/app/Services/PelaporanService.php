@@ -8,6 +8,7 @@ use App\Models\AkunLevel1;
 use App\Models\JenisLaporan;
 use App\Models\SubLaporan;
 use App\Models\Setting;
+use App\Support\JenisMutasi;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +18,8 @@ class PelaporanService
     {
         $d = $acc->amount ? $acc->amount->sum('debit') : 0;
         $k = $acc->amount ? $acc->amount->sum('kredit') : 0;
-        return ($acc->jenis_mutasi == 'kredit') ? ($k - $d) : ($d - $k);
+
+        return JenisMutasi::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k);
     }
 
 public function susunFlatRows($akun1, $surplus, $surplusAccount = '3.2.02.01')
@@ -112,26 +114,27 @@ public function loadAkunTree($tahun, $bulan)
      * struktur pohon ikut hilang -- jadi jangan difilter di sini.
      *
      * Duplikasi ditangani di susunFlatRows() lewat dedupe per kode_akun.
+     *
+     * Pohon dirakit manual oleh `PohonAkunService`, bukan dengan `with()`.
+     * Level 1-3 ada di database pusat, `accounts` ada di database lokasi, dan
+     * Eloquent selalu menjalankan relasi pada koneksi model induknya -- `with()`
+     * akan mencari `accounts` di `astaloka` dan gagal dengan
+     * `Table 'astaloka.accounts' doesn't exist`. Bentuk collection yang
+     * dikembalikan tetap sama, jadi pemanggil di hilir tidak perlu diubah.
      */
-    return AkunLevel1::where('lev1', '<=', '3')
-        ->with([
-            'akunLevel2.akunLevel3' => fn($q) => $q->orderBy('kode_akun', 'ASC'),
-            'akunLevel2.akunLevel3.accountParent.amount' => function ($q) use ($tahun, $bulan) {
-                $q->where(function ($q) use ($tahun, $bulan) {
-                    $q->where(function ($q) use ($tahun) {
-                        $q->where('tahun', '<', $tahun)
-                            ->where('bulan', '>=', '01')
-                            ->where('bulan', '<=', '12');
-                    })->orWhere(function ($q) use ($tahun, $bulan) {
-                        $q->where('tahun', $tahun)
-                            ->where('bulan', '>=', '01')
-                            ->where('bulan', '<=', $bulan);
-                    });
-                });
-            },
-        ])
-        ->orderBy('kode_akun', 'ASC')
-        ->get();
+    return app(PohonAkunService::class)->load($tahun, $bulan, function ($q) use ($tahun, $bulan) {
+        $q->where(function ($q) use ($tahun, $bulan) {
+            $q->where(function ($q) use ($tahun) {
+                $q->where('tahun', '<', $tahun)
+                    ->where('bulan', '>=', '01')
+                    ->where('bulan', '<=', '12');
+            })->orWhere(function ($q) use ($tahun, $bulan) {
+                $q->where('tahun', $tahun)
+                    ->where('bulan', '>=', '01')
+                    ->where('bulan', '<=', $bulan);
+            });
+        });
+    });
 }
 
     public function hitungSurplus($tahun, $bulan)
@@ -153,7 +156,7 @@ public function loadAkunTree($tahun, $bulan)
         $hitung = function($acc) {
             $d = $acc->amount ? $acc->amount->sum('debit') : 0;
             $k = $acc->amount ? $acc->amount->sum('kredit') : 0;
-            return ($acc->jenis_mutasi == 'kredit') ? ($k - $d) : ($d - $k);
+            return JenisMutasi::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k);
         };
 
         $pendapatan = $laba_rugi->where('lev1', '4')->sum($hitung);
@@ -179,7 +182,7 @@ public function loadAkunTree($tahun, $bulan)
                         $d = $acc->amount ? $acc->amount->sum('debit') : 0;
                         $k = $acc->amount ? $acc->amount->sum('kredit') : 0;
 
-                        return self::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k);
+                        return JenisMutasi::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k);
                     });
                 });
             });
@@ -214,7 +217,7 @@ public function loadAkunTree($tahun, $bulan)
                 $debit    = $amounts->where('bulan', '<=', $bulanStr)->sum('debit');
                 $kredit   = $amounts->where('bulan', '<=', $bulanStr)->sum('kredit');
                 
-                return ($acc->jenis_mutasi == 'kredit') ? ($kredit - $debit) : ($debit - $kredit);
+                return JenisMutasi::isKredit($acc->jenis_mutasi) ? ($kredit - $debit) : ($debit - $kredit);
             };
 
             $s_kom = $hitung($b1 - 1);
@@ -246,7 +249,7 @@ public function loadAkunTree($tahun, $bulan)
 
             $neracaDebit = 0; $neracaKredit = 0;
             if (in_array($acc->lev1, [1, 2, 3])) {
-                if ($acc->jenis_mutasi == 'kredit') {
+                if (JenisMutasi::isKredit($acc->jenis_mutasi)) {
                     $saldo = $k - $d;
                     $neracaKredit = $saldo > 0 ? $saldo : 0;
                     $neracaDebit  = $saldo < 0 ? abs($saldo) : 0;
@@ -375,14 +378,24 @@ public function labaTahunTertutup($tahun): float
     /**
      * Cek apakah jenis mutasi akun bersifat kredit.
      *
-     * Kolom `jenis_mutasi` kapitalisasinya tidak seragam di tabel `accounts`
-     * ('kredit' dan 'Kredit' sama-sama ada). Perbandingan `== 'kredit'`
-     * kebetulan bekerja karena longgar, tapi `===` tidak -- dipakai
-     * strtolower supaya aman untuk keduanya.
+     * Cuma alias ke {@see JenisMutasi::isKredit()}. Versi sebelumnya
+     * mendefinisikan ulang logikanya di sini, dan itu punya dua konsekuensi:
+     * `PelaporanController` ikut memanggilnya lewat nama ini, sementara
+     * sembilan call site lain di service dan controller yang sama
+     * membandingkan literal `'kredit'` secara langsung -- jadi "satu
+     * tempat yang aman" yang diklaim docblock ini sebenarnya tidak pernah
+     * berlaku. Digitasi yang berbeda kapitalisasi di database membuat
+     * call site yang memakai alias dan yang tidak menghasilkan saldo
+     * berbeda untuk akun yang sama.
+     *
+     * Ditinggalkan sebagai alias supaya tidak ada yang langsung memanggil
+     * nama lamanya, tapi logikanya tetap hanya ada di satu berkas.
+     *
+     * @deprecated Pakai {@see JenisMutasi::isKredit()} langsung.
      */
     public static function isKredit($jenisMutasi): bool
     {
-        return strtolower(trim((string) $jenisMutasi)) === 'kredit';
+        return JenisMutasi::isKredit($jenisMutasi);
     }
 
     public function getLabaRugiReport($tahun, $bulan)
@@ -451,7 +464,7 @@ public function getAccountData($whereAkun, $tahun, $bulan)
                 $k = (float) $row->kredit;
                 
                 // Pastikan logika mutasi benar
-                $val = ($a->jenis_mutasi == 'kredit') ? ($k - $d) : ($d - $k);
+                $val = JenisMutasi::isKredit($a->jenis_mutasi) ? ($k - $d) : ($d - $k);
                 
                 $rb = (int) $row->bulan;
                 if ($rb < $bulan) {

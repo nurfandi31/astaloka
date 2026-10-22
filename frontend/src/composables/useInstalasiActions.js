@@ -15,7 +15,7 @@ export function useInstalasiActions() {
       text: confirmText,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#3b82f6',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
       cancelButtonColor: '#64748b',
       confirmButtonText: 'Ya, Lanjutkan',
       cancelButtonText: 'Batal',
@@ -31,7 +31,7 @@ export function useInstalasiActions() {
         title: 'Berhasil!',
         text: 'Status berhasil diperbarui.',
         icon: 'success',
-        confirmButtonColor: '#3b82f6',
+        confirmButtonColor: 'var(--color-primary, #3b82f6)',
         confirmButtonText: 'OK',
       })
 
@@ -71,7 +71,7 @@ export function useInstalasiActions() {
       `,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#0284c7',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
       cancelButtonColor: '#64748b',
       confirmButtonText: 'Ya, Konfirmasi',
       cancelButtonText: 'Batal',
@@ -87,7 +87,7 @@ export function useInstalasiActions() {
         title: 'Berhasil!',
         text: 'Pembayaran berhasil dikonfirmasi. Status berubah ke Processing.',
         icon: 'success',
-        confirmButtonColor: '#0284c7',
+        confirmButtonColor: 'var(--color-primary, #3b82f6)',
         confirmButtonText: 'OK',
       })
 

@@ -17,7 +17,9 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\InventoryService;
 use App\Services\PelaporanService;
+use App\Services\PohonAkunService;
 use App\Services\SignatureService;
+use App\Support\JenisMutasi;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -1284,7 +1286,7 @@ class PelaporanController extends Controller
                             $d = $acc->amount ? $acc->amount->sum('debit') : 0;
                             $k = $acc->amount ? $acc->amount->sum('kredit') : 0;
 
-                            return PelaporanService::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k);
+                            return JenisMutasi::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k);
                         });
                 });
             });
@@ -1363,13 +1365,20 @@ class PelaporanController extends Controller
         $data['bulan_name'] = $this->bulanName($bulan);
         $periodeText = ' ('.strtoupper($data['bulan_name']).' '.$tahun.')';
 
-        $masters = MasterArusKas::with(['children.rek_debit:id,kode_akun,nama_akun', 'children.rek_kredit:id,kode_akun,nama_akun'])
+        $masters = MasterArusKas::with(['children', 'children.children'])
             ->where(function ($q) {
                 $q->whereNull('parent_id')->orWhere('parent_id', 0);
             })
             ->whereIn('id', [1, 2, 9, 27, 39])
             ->orderBy('id', 'ASC')
             ->get();
+
+        // `rek_debit`/`rek_kredit` menunjuk `akun_level_3` yang ada di database
+        // pusat, jadi tidak bisa dipanggil lewat `with()`. Diisi manual sekali
+        // untuk seluruh pohon;lihat MasterArusKas::withRekeningAkun().
+        MasterArusKas::withRekeningAkun($masters);
+        $masters->each(fn ($m) => MasterArusKas::withRekeningAkun($m->children));
+        $masters->each(fn ($m) => $m->children->each(fn ($c) => MasterArusKas::withRekeningAkun($c->children)));
 
 $saldoKas = (float) Transaction::whereNull('deleted_at')
             ->where(function ($q) {
@@ -1437,7 +1446,6 @@ $computeSaldo = function ($child) use ($tgl_awal, $tgl_akhir, $buildPrefix) {
 
         $renderNode = function ($node, &$items, &$sub_total) use (&$renderNode, $computeSaldo) {
             foreach ($node->children as $child) {
-                $child->load(['rek_debit:id,kode_akun,nama_akun', 'rek_kredit:id,kode_akun,nama_akun']);
                 if ($child->children->count() > 0) {
                     $items[] = [
                         'type' => 'sub-header',
@@ -1823,7 +1831,7 @@ $saldoSebelum = Amount::where('account_id', $account->id)
         // Hitung total debit/kredit bulan ini & final saldo untuk footer
         $totalDebitBulanIni = 0.0;
         $totalKreditBulanIni = 0.0;
-        $isKredit = strtolower((string) $account->jenis_mutasi) === 'kredit';
+        $isKredit = JenisMutasi::isKredit($account->jenis_mutasi);
         foreach ($trx as $t) {
             $isDebitSide = (string) $t['account_debet'] === (string) $kodeAkun;
             $nominal = (float) ($t['saldo'] ?? 0);
@@ -1908,7 +1916,7 @@ $saldoSebelum = Amount::where('account_id', $account->id)
             }])->get()->map(function ($a) {
                 $d = $a->amount ? $a->amount->sum('debit') : 0;
                 $k = $a->amount ? $a->amount->sum('kredit') : 0;
-                $a->saldo = ($a->jenis_mutasi == 'kredit') ? ($k - $d) : ($d - $k);
+                $a->saldo = JenisMutasi::isKredit($a->jenis_mutasi) ? ($k - $d) : ($d - $k);
                 $a->amount = $a->amount;
 
                 return $a;
@@ -1970,7 +1978,7 @@ $saldoSebelum = Amount::where('account_id', $account->id)
             foreach ($accs as $a) {
                 $d = $a->amount ? $a->amount->sum('debit') : 0;
                 $k = $a->amount ? $a->amount->sum('kredit') : 0;
-                $bulanIni = ($a->jenis_mutasi == 'kredit') ? ($k - $d) : ($d - $k);
+                $bulanIni = JenisMutasi::isKredit($a->jenis_mutasi) ? ($k - $d) : ($d - $k);
                 $items[] = [
                     'nama_akun' => $a->kode_akun.'. '.$a->nama_akun,
                     'sd_bulan_lalu' => 0,
@@ -2103,15 +2111,9 @@ $saldoSebelum = Amount::where('account_id', $account->id)
             }
         }
 
-        $akun1 = AkunLevel1::where('lev1', '<=', '3')
-            ->with([
-                'akunLevel2.akunLevel3' => fn ($q) => $q->orderBy('kode_akun', 'ASC'),
-                'akunLevel2.akunLevel3.accountParent.amount' => function ($q) use ($tahunLalu, $bulanLalu) {
-                    $q->where('tahun', $tahunLalu)->where('bulan', $bulanLalu);
-                },
-            ])
-            ->orderBy('kode_akun', 'ASC')
-            ->get();
+        $akun1 = app(PohonAkunService::class)->load($tahunLalu, $bulanLalu, function ($q) use ($tahunLalu, $bulanLalu) {
+            $q->where('tahun', $tahunLalu)->where('bulan', $bulanLalu);
+        });
 
         $labaRugi = Account::where('lev1', '>=', '4')->with(['amount' => function ($q) use ($tahunLalu, $bulanLalu) {
             $q->where('tahun', $tahunLalu)->where('bulan', $bulanLalu);
@@ -2121,7 +2123,7 @@ $saldoSebelum = Amount::where('account_id', $account->id)
             $d = $acc->amount ? $acc->amount->sum('debit') : 0;
             $k = $acc->amount ? $acc->amount->sum('kredit') : 0;
 
-            return ($acc->jenis_mutasi == 'kredit') ? ($k - $d) : ($d - $k);
+            return JenisMutasi::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k);
         };
 
         $pendapatan = $labaRugi->where('lev1', '4')->sum($hitung);
@@ -2164,7 +2166,7 @@ $saldoSebelum = Amount::where('account_id', $account->id)
                         $k = $acc->amount ? $acc->amount->sum('kredit') : 0;
                         $saldo = ($acc->kode_akun === $surplusAccount)
                             ? $surplus
-                            : (($acc->jenis_mutasi == 'kredit') ? ($k - $d) : ($d - $k));
+                            : (JenisMutasi::isKredit($acc->jenis_mutasi) ? ($k - $d) : ($d - $k));
                         $total_l3 += $saldo;
                         $temp_lev4[] = [
                             'type' => 'lev4',

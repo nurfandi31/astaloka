@@ -210,13 +210,13 @@
     <div class="flex! justify-center md:justify-end! mt-8! md:mt-6!">
       <BaseButton
         type="button"
-        variant="primary"
+        variant="secondary"
         icon="save"
         :disabled="saving"
         class="w-full! md:w-auto! rounded-xl! shadow-lg! shadow-slate-200!"
         @click="saveTemplates"
       >
-        {{ saving ? 'MenyimpanΓÇª' : 'Simpan Template' }}
+        {{ saving ? 'Menyimpan...' : 'Simpan Template' }}
       </BaseButton>
     </div>
 

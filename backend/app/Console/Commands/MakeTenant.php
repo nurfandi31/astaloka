@@ -80,7 +80,21 @@ class MakeTenant extends Command
             // 1. database
             $this->line("<fg=cyan>[1/4]</> Menyiapkan database `{$dbName}`...");
             if (! $sudahAda) {
-                $manager->createDatabase($slug);
+                /*
+                 * `createDatabaseNamed()`, bukan `createDatabase()`.
+                 *
+                 * `createDatabase($slug)` MENGHITUNG ULANG nama dari slug dan
+                 * mengabaikan `$dbName` sepenuhnya -- jadi `--database=` yang
+                 * sudah dibaca di atas akan diabaikan, tenant ditulis dengan
+                 * nama pilihan operator, sementara yang benar-benar dibuat
+                 * adalah `astaloka_<slug>`. Lokasi itu terdaftar normal,
+                 * aktif, dan tidak bisa dibuka karena databasenya tidak ada.
+                 *
+                 * Nama yang dipakai di sini sudah tervalidasi oleh
+                 * `createDatabaseNamed()`, dan sama dengan yang ditulis ke
+                 * registry pada langkah 2.
+                 */
+                $manager->createDatabaseNamed($dbName);
                 $this->line('      dibuat.');
             } else {
                 $this->line('      sudah ada, dipakai ulang.');
@@ -125,8 +139,10 @@ class MakeTenant extends Command
                 $this->line('      selesai.');
             }
 
-            // 4. admin lokasi + identitas settings
-            $this->makeLocationAdmin($tenant, $dbName, $sudahAda);
+            // 4. admin lokasi + akun demo + identitas settings
+            $this->makeLocationAdmin($tenant, $dbName, $sudahAda, (bool) $this->option('skip-migrate'));
+
+            $this->makeDemoUsers($tenant, (bool) $this->option('skip-migrate'));
         } catch (Throwable $e) {
             $this->error('Provisioning GAGAL: '.$e->getMessage());
 
@@ -177,27 +193,23 @@ class MakeTenant extends Command
         return $slug;
     }
 
+    /**
+     * Nama database diturunkan dari slug.
+     *
+     * Diarahkan ke `TenantManager::databaseNameFor()` dan bukan diulang di
+     * sini. Versi sebelumnya menyalin aturan prefix/normalisasi/pemotongan
+     * ke command ini DAN ke `LocationController`, dan kedua salinan itu
+     * tidak sama urutan operasinya begitu slug melewati 64 karakter --
+     * registry lalu menyimpan nama yang berbeda dari database yang benar-benar
+     * dibuat. Satu definisi di `TenantManager` adalah satu-satunya bentuk yang
+     * bisa tetap benar.
+     *
+     * Static karena murni fungsi tanpa keadaan: tidak butuh instance, tidak
+     * menyentuh koneksi MySQL.
+     */
     private function buildDatabaseName(string $slug): string
     {
-        $prefix = (string) config('tenancy.database_prefix', 'astaloka_lokasi_');
-        $batas = (int) config('tenancy.max_database_name_length', 64);
-
-        // Slug untuk URL boleh mengandung hyphen (`tirto-mulo`), tapi nama
-        // database tidak boleh -- MySQL menerima `-` di dalam nama database
-        // yang wajib di-backtick, dan `TenantManager::validateDatabaseName`
-        // menolaknya karena tidak bisa diparameterisasi. Jadi slug diganti ke
-        // underscore untuk nama database, sementara kolom `slug` tetap
-        // menyimpan bentuk aslinya (dengan hyphen) untuk URL.
-        $slugUntukDb = str_replace('-', '_', $slug);
-
-        $nama = $prefix.$slugUntukDb;
-
-        // Nama yang terpotong bisa berujung dengan underscore kembar, mis.
-        // prefix + slug panjang lalu dipotong tepat sebelum huruf. Bersihkan
-        // supaya tidak menghasilkan `astaloka_lokasi__` yang membingungkan.
-        $nama = rtrim($nama, '_');
-
-        return substr($nama, 0, $batas);
+        return TenantManager::databaseNameFor($slug);
     }
 
     private function databaseExists(string $name): bool
@@ -217,9 +229,26 @@ class MakeTenant extends Command
      * bisa dipakai, dan lebih baik dilewati daripada diam-diam memberi
      * password lemah yang tidak diketahui pemiliknya.
      */
-    private function makeLocationAdmin(Tenant $tenant, string $dbName, bool $sudahAda): void
+    private function makeLocationAdmin(Tenant $tenant, string $dbName, bool $sudahAda, bool $skipMigrate = false): void
     {
         $this->line('<fg=cyan>[4/4]</> Admin lokasi...');
+
+        // Tanpa migration, tabel `users` dan `settings` di database lokasi
+        // belum ada. INSERT ke `users` maupun applyTenantIdentity() sama-sama
+        // gagal dengan `Table 'astaloka_x.settings' doesn't exist` -- dan
+        // kegagalannya muncul SESUDAH langkah [3] dicetak "--skip-migrate"
+        // sebagai pilihan yang disengaja, jadi operator membaca
+        // "Provisioning GAGAL" lalu mengira lokasi barunya rusak. Padahal itu
+        // konsekuensi normal dari flag yang dia sendiri yang minta.
+        if ($skipMigrate) {
+            $this->line('      dilewati (--skip-migrate: database lokasi belum punya skema).');
+            $this->line('      Isi dulu skemanya, baru tambah admin:');
+            $this->line("        php artisan migrate --database={$dbName} --force");
+            $this->line("        php artisan tenancy:make-user {$tenant->slug} --email=... --password=...");
+            $this->writeTenantIdentity($tenant, $sudahAda, true);
+
+            return;
+        }
 
         $email = (string) ($this->option('admin-email') ?: '');
         $password = (string) ($this->option('admin-password') ?: '');
@@ -252,6 +281,58 @@ class MakeTenant extends Command
     }
 
     /**
+     * Buat empat akun demo di database lokasi.
+     *
+     * Dipanggil SETELAH admin lokasi, bukan sebelumnya. Alasannya urutan: akun
+     * demo memakai email yang sama untuk semua lokasi
+     * (`admin@gmail.com`, dst), dan bila admin form memakai email yang sama
+     * persis, `DemoUserSeeder` akan melihat email itu sudah dipakai dan
+     * berdiam. Sebaliknya kalau admin dibuat lebih dulu, baris admin form
+     * baris admin form sudah ada lebih dulu dan email demo tetap mendapat
+     * barisnya sendiri --
+     * dua akun berbeda, satu email, dan `users.email` punya unique index.
+     *
+     * Kegagalan TIDAK menggagalkan perintah: akun contoh bukan bagian dari
+     * lokasi yang bisa dipakai. Ditangkap dan dilaporkan, bukan dilempar,
+     * supaya operator melihat lokasi baru tetap siap -- beserta cara
+     * menambahkan akunnya manual kalau ternyata memang dibutuhkan.
+     */
+    private function makeDemoUsers(Tenant $tenant, bool $skipMigrate = false): void
+    {
+        if ($skipMigrate) {
+            $this->line('      dilewati (--skip-migrate: database lokasi belum punya skema).');
+            $this->line("        php artisan tenancy:make-demo-users {$tenant->slug}");
+
+            return;
+        }
+
+        try {
+            $dibuat = app(TenantManager::class)->seedDemoUsers($tenant);
+        } catch (Throwable $e) {
+            $this->warn('      akun demo GAGAL dibuat: '.$e->getMessage());
+            $this->line("        php artisan tenancy:make-demo-users {$tenant->slug}");
+
+            return;
+        }
+
+        if ($dibuat === 0) {
+            $this->line('      dilewati (sakelar TENANCY_DEMO_USERS mati, atau akunnya sudah ada).');
+
+            return;
+        }
+
+        $password = (string) config('tenancy.demo_users.password', 'password');
+
+        foreach ((array) config('tenancy.demo_users.emails', []) as $role => $email) {
+            $email = trim((string) $email);
+
+            if ($email !== '') {
+                $this->line("      {$role}: {$email} / {$password}");
+            }
+        }
+    }
+
+    /**
      * Tulis nama lembaga, alamat, dan domain lokasi ke tabel `settings`.
      *
      * Dijalankan di luar blok pembuatan admin, karena ada dua kondisi yang
@@ -262,11 +343,22 @@ class MakeTenant extends Command
      *   - Database dipakai ulang (`--force`), yang mungkin sudah punya
      *     identitas yang sudah dikoreksi manual. Menimpanya akan menghapus
      *     pekerjaan yang tidak terlihat dari baris perintah ini.
+     *   - Migration dilewati (`--skip-migrate`), jadi tabel `settings` belum
+     *     ada sama sekali. Menulisnya pasti gagal.
      *
-     * Karena itu hanya lokasi yang benar-benar baru yang ditulis.
+     * Karena itu hanya lokasi yang benar-benar baru DAN sudah berskema yang
+     * ditulis.
      */
-    private function writeTenantIdentity(Tenant $tenant, bool $sudahAda): void
+    private function writeTenantIdentity(Tenant $tenant, bool $sudahAda, bool $skipMigrate = false): void
     {
+        if ($skipMigrate) {
+            $this->line('      identitas settings TIDAK ditulis (database lokasi belum punya skema).');
+            $this->line('      Jalankan manual setelah migration:');
+            $this->line("        php artisan tenancy:reseed-master {$tenant->slug} --identity");
+
+            return;
+        }
+
         if ($sudahAda) {
             $this->line('      database dipakai ulang, tabel settings TIDAK ditimpa.');
             $this->line('      Jalankan manual kalau memang perlu:');

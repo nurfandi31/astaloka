@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Support\JenisMutasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -403,14 +404,42 @@ class TutupBukuController extends Controller
         }
     }
 
+    /**
+     * Riwayat tahun buku yang sudah ditutup.
+     *
+     * Tanda tutup buku pada tabel `amount` adalah BARISNYA ADA dengan
+     * `bulan = '13'` -- bukan kolom tanggal. Tabel `amount` sengaja tidak
+     * punya `created_at`/`updated_at`: nilainya diturunkan dari
+     * `tahun` + `bulan` saat baris dibuat (lihat trigger di
+     * `create_amount_table`), jadi timestamps tidak akan pernah akurat --
+     * keduanya hanya mencatat kapan baris itu ditulis ulang, bukan kapan
+     * buku ditutup.
+     *
+     * Karena itu `closed_at` disusun dari `tahun` di sini, memakai aturan
+     * yang SAMA dengan `check()` di atas. Meminta kolom yang tidak ada membuat
+     * seluruh halaman riwayat 500, dan halaman ini justru yang dipakai untuk
+     * melihat tahun mana yang sudah ditutup.
+     *
+     * `distinct()` wajib: satu tahun ditutup dengan menulis baris `bulan = 13`
+     * untuk SETIAP akun, jadi tanpa ini satu tahun muncul puluhan kali.
+     */
     public function history(Request $request)
     {
-        $rows = DB::table('amount')
+        $tahunDitutup = DB::table('amount')
             ->where('bulan', '13')
             ->whereNotNull('tahun')
-            ->select('tahun', 'created_at as closed_at')
+            ->distinct()
             ->orderByDesc('tahun')
-            ->get();
+            ->pluck('tahun')
+            ->all();
+
+        $rows = array_map(fn ($tahun) => [
+            'tahun' => (int) $tahun,
+            // Tahun buku ditutup pada 31 Desember tahun itu. Sama dengan
+            // yang dikembalikan `check()`, supaya angka di daftar riwayat
+            // dan di tombol detail tidak pernah berbeda.
+            'closed_at' => $tahun.'-12-31',
+        ], $tahunDitutup);
 
         return response()->json([
             'success' => true,
@@ -456,16 +485,16 @@ class TutupBukuController extends Controller
     /**
      * Cek apakah jenis mutasi akun bersifat kredit.
      *
-     * Kolom `jenis_mutasi` tidak konsisten kapitalisasinya di tabel
-     * `accounts`: sebagian baris 'kredit', sebagian 'Kredit' (kapital K).
-     * Perbandingan `=== 'kredit'` diam-dimerespons FALSE untuk yang
-     * kapital, sehingga akun kewajiban 2.1.02.02 (id 685, 'Kredit')
-     * diperlakukan sebagai akun debit -- saldo processor terbalik
-     * saat tutup buku.
+     * Cuma alias ke {@see JenisMutasi::isKredit()}. Versi sebelumnya
+     * menyalin logikanya ke sini, jadi ada dua salinan dari aturan yang
+     * sama di dua kelas berbeda -- dan hanya satu dari keduanya yang
+     * dipakai `PelaporanController`.
+     *
+     * @deprecated Pakai {@see JenisMutasi::isKredit()} langsung.
      */
     private static function isKredit(?string $jenisMutasi): bool
     {
-        return strtolower(trim((string) $jenisMutasi)) === 'kredit';
+        return JenisMutasi::isKredit($jenisMutasi);
     }
 
     private function getClosingConfig(): array

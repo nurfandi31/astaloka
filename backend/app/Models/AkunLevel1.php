@@ -7,6 +7,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AkunLevel1 extends Model
 {
+    /**
+     * Struktur akun level 1 ada di DATABASE PUSAT, bukan di database lokasi.
+     *
+     * Level 1-3 adalah kerangka chart of accounts yang sama untuk semua lokasi,
+     * jadi disimpan sekali di `astaloka` dan disetting dari panel pusat.
+     * Level 4 (`accounts`) tetap per lokasi -- tiap lokasi boleh beda.
+     *
+     * Koneksi dikunci di sini, TIDAK lewat tukar `database.default` seperti
+     * tabel lokasi. Konsekuensinya: relasi ke `accounts` (level 4) tidak lagi
+     * bisa dimuat lewat `with()`, karena Eloquent menjalankan setiap relasi
+     * pada koneksi model induknya. Relasi lintas database harus diambil
+     * terpisah -- lihat `PelaporanService::loadAkunTree()`.
+     */
+    protected $connection = 'central';
+
     protected $table = 'akun_level_1';
 
     protected $fillable = [

@@ -11,7 +11,7 @@
           @click.stop
         >
           <div
-            class="px-6! py-4! bg-gradient-to-r! from-cyan-600! to-cyan-800! text-white! flex! items-center! justify-between! shrink-0!"
+            class="px-6! py-4! bg-linear-brand! text-white! flex! items-center! justify-between! shrink-0!"
           >
             <div class="flex! items-center! gap-3!">
               <div
@@ -58,7 +58,7 @@
                   <div class="space-y-4!">
                     <div class="flex! items-center! gap-3.5! pb-4! border-b! border-slate-100!">
                       <div
-                        class="w-12! h-12! rounded-xl! bg-gradient-to-br! from-cyan-500! to-blue-600! text-white! flex! items-center! justify-center! text-base! font-bold! shadow-sm!"
+                        class="w-12! h-12! rounded-xl! bg-linear-brand! text-white! flex! items-center! justify-center! text-base! font-bold! shadow-sm!"
                       >
                         {{ getInitials }}
                       </div>

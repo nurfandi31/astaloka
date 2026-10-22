@@ -318,7 +318,7 @@
         :disabled="isConfirmDisabled"
         :class="isConfirmDisabled
           ? 'px-6! py-2.5! text-sm! font-bold! text-slate-500! bg-slate-200! cursor-not-allowed! rounded-xl! flex! items-center! gap-2!'
-          : 'px-6! py-2.5! text-sm! font-bold! text-white! bg-emerald-500! hover:bg-emerald-600! rounded-xl! shadow-lg! shadow-emerald-200/50! transition-all! flex! items-center! gap-2!'"
+          : 'px-6! py-2.5! text-sm! font-bold! text-white! bg-slate-500! hover:bg-slate-600! rounded-xl! shadow-lg! shadow-slate-200/50! transition-all! flex! items-center! gap-2!'"
         @click="handleSave"
         @click.stop
       >
@@ -637,7 +637,7 @@ const handleSave = () => {
       icon: 'warning',
       title: 'Bayar dari Tagihan Terlama',
       text: 'Masih ada tagihan lebih lama yang belum dibayar. Selesaikan tagihan paling lama dulu sebelum membayar tagihan ini.',
-      confirmButtonColor: '#0EA5E9',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
     return
   }
@@ -649,7 +649,7 @@ const handleSave = () => {
       icon: 'warning',
       title: 'Pilih Metode Pembayaran',
       text: 'Pilih Tunai atau Transfer Bank BRI terlebih dahulu.',
-      confirmButtonColor: '#0EA5E9',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
     return
   }
@@ -659,7 +659,7 @@ const handleSave = () => {
       icon: 'warning',
       title: 'Tanggal belum dipilih',
       text: 'Mohon pilih tanggal pembayaran terlebih dahulu.',
-      confirmButtonColor: '#0EA5E9',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
     return
   }
@@ -674,7 +674,7 @@ const handleSave = () => {
       icon: 'warning',
       title: 'Tanggal tidak valid',
       text: 'Tanggal pembayaran tidak boleh lebih dari hari ini.',
-      confirmButtonColor: '#0EA5E9',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
     return
   }

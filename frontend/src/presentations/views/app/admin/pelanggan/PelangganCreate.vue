@@ -346,12 +346,12 @@ const resetForm = () => {
 }
 
 .swal2-confirm.pelanggan-success-confirm {
-  background-color: #60a5fa !important;
+  background-color: var(--color-primary-400, #60a5fa) !important;
   color: #ffffff !important;
 }
 
 .swal2-confirm.pelanggan-success-confirm:hover {
-  background-color: #3b82f6 !important;
+  background-color: var(--color-primary, #3b82f6) !important;
 }
 
 .swal2-deny.pelanggan-success-deny {

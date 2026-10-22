@@ -105,4 +105,31 @@ body {
   right: 0;
   z-index: 9999;
 }
+
+/*
+| Lebar notifikasi (toast) dibatasi layar, bukan angka tetap.
+|
+| PrimeVue menempelkan `position: fixed; top: 20px; right: 20px` sebagai
+| GAYA INLINE pada elemennya, dan memberi lebar tetap 400px lewat
+| `--p-toast-width`. Gaya inline menang atas stylesheet biasa, jadi
+| `max-width` di sini tetap berlaku -- tetapi TIDAK bisa mengubah `right`
+| atau lebar 400px-nya.
+|
+| Akibatnya di layar yang lebih sempit dari 440px (400px + 20px + 20px),
+| notifikasi melimpah ke kiri. Diukur di 375px: kotaknya membentang dari
+| -45px sampai 355px, jadi 45px -- bagian paling kiri, tempat letak ikon --
+| terpotong. Dan ini bukan kasus pinggiran: setiap HP modern punya lebar
+| di bawah 440px, jadi setiap notifikasi di aplikasi ini terpotong.
+|
+| Yang perlu dijaga hanya lebarnya. Batasnya `calc(100vw - 2rem)` karena
+| PrimeVue memberi 20px sisipan di kanan; dengan begitu tepi kirinya
+| selalu mulai di >= 0 dan tidak ada satu pixel pun yang hilang.
+|
+| Sengaja TIDAK memakai media query: aturan ini benar pada lebar berapa
+| pun, termasuk 320px, dan menaruhnya di `@media (max-width: 26rem)` akan
+| menyisakan lebar 400px yang sama persis di 400px sampai 439px.
+*/
+.p-toast {
+  max-width: calc(100vw - 2rem);
+}
 </style>

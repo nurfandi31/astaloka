@@ -1,0 +1,212 @@
+/*
+|--------------------------------------------------------------------------
+| Kerangka Halaman Panel Pusat
+|--------------------------------------------------------------------------
+|
+| Satu tempat yang menentukan jarak tepi dan lebar maksimum konten untuk
+| SELURUH halaman `/central/*`.
+|
+| Tiap halaman sebelumnya memutuskan sendiri-sendiri, dan angkanya tidak
+| sama: dashboard 14px tanpa batas lebar, daftar tenant / tagihan /
+| struktur akun / user pusat 20px tanpa batas lebar, form dan detail
+| tenant 20px dengan `max-width: 74rem` dan `margin: 0 auto`.
+|
+| Efeknya bukan sekadar "kurang rapi": di layar lebar, lima halaman punya
+| kartu selebar ~1900px sementara form dan detail tenant berhenti di 1184px
+| dan berdiri di tengah. Berpindah dari Dashboard ke Tambah Tenant membuat
+| seluruh isi melompat ke dalam, lalu melompat keluar lagi saat kembali --
+| padahal yang dipindah cuma angka padding yang ditulis di enam file
+| berbeda. Form terlihat "menjorok ke dalam" bukan karena formnya salah,
+| tapi karena halaman lain tidak punya batas lebar yang sama.
+|
+| Jadi dipusatkan jadi dua angka:
+|
+|   --central-gutter        jarak tepi halaman (sama di atas, kanan, bawah, kiri)
+|   --central-content-max   lebar maksimum isi halaman
+|
+| Keduanya didefinisikan di `.central-layout` (`CentralLayout.vue`) supaya
+| halaman apa pun yang memakai `.central-page` ikut mendapatkannya tanpa
+| menulis angkanya sendiri. `.bd` di dashboard juga memakainya untuk
+| menghitung tingginya supaya persis mengisi sisa layar di bawah topnav.
+|
+| Import dari `main.js`, bukan dari komponen. Aturan `<style scoped>` hanya
+| berlaku untuk elemen di komponen itu sendiri, sedangkan kelas ini harus
+| menjangkau isi `<RouterView>` yang dirender komponen lain.
+|
+*/
+
+.central-page {
+  width: 100%;
+  max-width: var(--central-content-max, 1200px);
+  margin-inline: auto;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Token bayangan, dipindah ke `:root`.
+|--------------------------------------------------------------------------
+|
+| Sempat hanya di `.central-layout`. Itu bekerja untuk isi halaman, tapi
+| TIDAK untuk modal.
+|
+| Empat modal di panel pusat dirender lewat `<Teleport to="body">`:
+|   CentralLokasiDetail.vue:328  modal terbitkan tagihan
+|   CentralLokasiPopup.vue        panel detail lokasi
+|   BaseModal.vue:2               dipakai CentralCoaIndex.vue untuk form akun
+|
+| `Teleport` memindahkan elemen ke anak langsung `<body>`, di luar
+| `.central-layout`. Custom property diwariskan lewat pohon DOM, jadi
+| elemen yang dipindahkan keluar dari subtree itu TIDAK mewarisi apa pun --
+| bukan `--central-shadow-*`, bukan `--central-gutter`.
+|
+| Yang terjadi tanpa tanda: `var(--central-shadow-btn)` tanpa fallback itu
+| tidak salah parse, jadi tidak ada error di konsol -- property-nya menjadi
+| `unset`, dan `box-shadow` yang tidak punya nilai apa-apa menjadi `none`.
+| Jadi tombol "Simpan" di modal Struktur Akun dan tombol di kaki modal
+| terbitkan tagihan terlihat tanpa bayangan sama sekali -- padahal tombol
+| yang identik di halaman biasa (bukan di dalam modal) punya bayangan.
+| Tidak ada yang error, tidak ada yang melapor: tombol diam-diam kehilangan
+|
+| Pindah ke `:root` supaya berlaku di mana pun, termasuk di luar
+| `.central-layout`. `--central-gutter` dan `--central-content-max` tetap
+| tinggal di `.central-layout`: keduanya hanya dipakai oleh isi halaman,
+| dan `100dvh` di dashboard bergantung pada `--central-topnav-height` yang
+| memang hanya berlaku di dalam layout.
+|
+| `var()` yang memakai token di bawah TIDAK diberi fallback. Ini disengaja:
+| dengan token di `:root`, satu-satunya cara nilai ini hilang adalah
+| stylesheet ini gagal dimuat -- yang akan terlihat seketika, bukan
+| diam-diam. Fallback yang disalin ulang di 38 tempat justru membuat token
+| bisa menyimpang tanpa ada yang sadari.
+*/
+
+:root {
+  /* Kartu: elevasi diam. */
+  --central-shadow-card: 0 1px 2px -1px rgb(15 23 42 / 0.08), 0 8px 20px -8px rgb(15 23 42 / 0.18);
+  --central-shadow-card-hover:
+    0 2px 4px -2px rgb(15 23 42 / 0.1), 0 14px 30px -10px rgb(15 23 42 / 0.26);
+
+  /* Permukaan yang lebih kecil dari kartu: chip, pill, input, toolbar. */
+  --central-shadow-sm: 0 1px 2px -1px rgb(15 23 42 / 0.1);
+  --central-shadow-sm-hover: 0 2px 6px -2px rgb(15 23 42 / 0.18);
+
+  /* Tombol. */
+  --central-shadow-btn: 0 1px 2px rgb(15 23 42 / 0.12);
+  --central-shadow-btn-hover: 0 4px 10px -2px rgb(15 23 42 / 0.22);
+
+  /* Tombol aksi utama: bayangan ikut warna tombol, bukan abu tua. Warna abu
+     di atas tombol biru menghasilkan bayangan kelabu yang terlihat seperti
+     noda, bukan seperti cahaya dari tombol yang sama. */
+  --central-shadow-btn-primary: 0 2px 8px -1px rgb(2 132 199 / 0.45);
+  --central-shadow-btn-primary-hover: 0 6px 16px -4px rgb(2 132 199 / 0.5);
+
+  /* Tombol bahaya. */
+  --central-shadow-btn-danger: 0 2px 8px -1px rgb(220 38 38 / 0.35);
+  --central-shadow-btn-danger-hover: 0 6px 16px -4px rgb(220 38 38 / 0.4);
+
+  /* ---------------------------------------------------------------
+   * Tombol "Simpan" -- abu, seragam di seluruh aplikasi.
+   *
+   * Panel pusat punya CSS tombolnya sendiri (`.btn` di central-form.css,
+   * `.coa-btn`, `.ua-btn`, `.mg-btn`), tidak lewat `BaseButton`. Tanpa
+   * token di sini, tiap file akan menulis hex-nya sendiri -- dan itulah
+   * yang membuat tombol simpan di panel pusat beda warna dari tombol
+   * simpan di aplikasi lokasi: satu biru, satu abu.
+   *
+   * Abu dipakai karena warna brand sudah dipakai di tempat lain (sidebar,
+   * header). Kalau tombol simpan ikut warna brand, satu-satunya pembeda
+   * antara "tombol biasa" dan "tombol yang menyimpan data" hilang, dan
+   * tombol simpan ikut berubah warna setiap kali lokasi ganti identitas.
+   *
+   * Gris gelap + teks putih: kontras 4,8:1, lolos WCAG AA untuk teks
+   * normal. Abu muda (slate-400) dengan teks putih hanya 2,9:1 -- tidak
+   * lolos, dan tidak boleh dipakai di sini.
+   *
+   * Nilainya BUKAN hex sendiri. Token ini cuma alias ke `--btn-save-*`
+   * di `ui-base.css`, supaya warna tombol simpan di panel pusat dan di
+   * aplikasi lokasi benar-benar satu nilai -- bukan satu yang kebetulan
+   * sama sekarang. Kalau hex ditulis di dua tempat, satu edit di salah
+   * satu tempat akan membuat keduanya diam-diam berbeda lagi.
+   */
+  --central-btn-save: var(--btn-save-bg);
+  --central-btn-save-hover: var(--btn-save-bg-hover);
+  --central-shadow-btn-save: var(--btn-save-shadow);
+  --central-shadow-btn-save-hover: var(--btn-save-shadow-hover);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Anti-zoom otomatis iOS
+|--------------------------------------------------------------------------
+|
+| iOS memperbesar tampilan SELURUH halaman begitu sebuah field fokus
+| punya `font-size` di bawah 16px, dan tidak ada yang bisa membatalkannya --
+| zoom hanya berhenti saat field diklik lagi. Gejalanya tidak terbaca
+| sebagai bug: tidak ada error, tidak ada warning, form tetap bisa diisi.
+| Yang terjadi adalah setiap petugas yang mengisi form di HP mendapat
+| tampilan yang ter-zoom, harus menggulir dua arah untuk sampai ke tombol
+| Simpan, dan form di bawahnya terpotong tepi layarnya.
+|
+| Panel pusat dipakai sambil berdiri, dengan satu tangan, sering sambil
+| memegang meteran. Jadi ini bukan soal kenyamanan: ada banyak form yang
+| tidak bisa diselesaikan tanpa meletakkan alatnya dulu.
+|
+| Kenapa satu aturan global, bukan ditambal per komponen
+| ------------------------------------------------------
+|
+| Ada sebelas berkas yang menentukan `font-size` field: `BaseInput.vue`,
+| `BaseSelect.vue`, `MaksMoneyInput.vue`, `AppDatePicker.vue`,
+| `datepicker.css`, `central-form.css`, `central-login.css`, `main.css`,
+| `CentralCoaIndex.vue`, `CentralSuperadminIndex.vue`,
+| `CentralDashboardView.vue` -- masing-masing dengan ukuran sendiri antara
+| 0.72rem sampai 0.95rem. Menambal satu per satu berarti setiap komponen
+| baru yang lahir mengulang masalah yang sama, dan tidak ada yang akan
+| ingat.
+|
+| Yang ditegakkan di sini BUKAN "semua form jadi 16px" -- di desktop
+| 14px sudah cukup terbaca dan memakai ruang lebih sedikit di tabel yang
+| padat. Yang ditegakkan hanya batas bawah 16px, dan hanya di perangkat
+| yang benar-benar punya perilaku zoom ini.
+|
+| `:root` dan bukan `.central-layout`: aturan ini sengaja berlaku untuk
+| aplikasi lokasi juga, karena masalahnya bukan milik panel pusat --
+| panel pusat hanya tempat paling sering formamnya dibuka di HP.
+|
+| `@supports (-webkit-touch-callout: none)`, bukan `@media` biasa, karena
+| yang dideteksi adalah perilaku peramban, bukan ukuran layar. Layar sentuh
+| besar seperti iPad Pro juga punya perilaku ini.
+*/
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    /* `!important` memang perlu: beberapa aturan di atas juga memakai
+       `!important` dengan spesifisitas yang sama (PrimeVue dan
+       `datepicker.css`), jadi tanpa ini aturan ini kalah dan tidak punya
+       efek apa pun. */
+    font-size: max(1rem, 16px) !important;
+  }
+}
+
+/*
+| Target sentuh minimum untuk kontrol interaktif di layar sentuh.
+|
+| Standar yang dipakai iOS dan Android adalah 44px. Menetapkan satu angka
+| di sini membuat seluruh panel pusat punya luas ketukan yang sama --
+| sebelumnya tiap komponen menebak sendiri, dan tebakannya Anywhere dari
+| 27px (hamburger menu, satu-satunya jalan keluar dari halaman) sampai
+| 44px (sebagian besar tombol).
+|
+| Hanya di `(pointer: coarse)`, jadi di desktop tidak ada yang berubah.
+| Tidak ada mouse yang butuh target 44px, dan membesar-besarkan target di
+| desktop hanya membuat tabel terasa renggang.
+*/
+@media (pointer: coarse) {
+  button,
+  a[href],
+  input[type='checkbox'],
+  input[type='radio'],
+  select {
+    min-height: 2.5rem;
+  }
+}

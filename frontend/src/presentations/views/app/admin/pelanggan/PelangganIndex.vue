@@ -2,7 +2,16 @@
   <div class="pelanggan-root relative">
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4!">
       <div class="flex-1!">
-        <h1 class="text-2xl font-bold text-cyan-600! tracking-tight mb-1!">Data Pelanggan</h1>
+        <!--
+          Judul hitam, bukan `text-cyan-600`.
+
+          Hijau/teal untuk judul halaman bukan warna brand, dan di lokasi yang
+          warnanya oranye teks oranye di atas putih membuat judulnya
+          nyaris tidak terbaca. Warna teks utama aplikasi sudah benar-benar
+          hitam di semua halaman lain, jadi cyan di sini justru yang terlihat
+          tidak konsisten.
+        -->
+        <h1 class="text-2xl font-bold text-slate-900! tracking-tight mb-1!">Data Pelanggan</h1>
         <p class="text-sm text-slate-500! leading-relaxed">
           Daftar pelanggan ASTALOKA yang terdaftar.
         </p>

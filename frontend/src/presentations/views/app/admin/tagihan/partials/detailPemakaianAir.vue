@@ -125,7 +125,7 @@
           <div class="flex! items-start! justify-between! gap-3!">
             <div class="flex! items-center! gap-3! min-w-0!">
               <div
-                class="w-10! h-10! rounded-xl! bg-gradient-to-br! from-cyan-500! to-blue-600! flex! items-center! justify-center! text-white! font-bold! text-sm! shadow-sm! shrink-0!"
+                class="w-10! h-10! rounded-xl! bg-linear-brand! flex! items-center! justify-center! text-white! font-bold! text-sm! shadow-sm! shrink-0!"
               >
                 {{ row.nama.charAt(0) }}
               </div>

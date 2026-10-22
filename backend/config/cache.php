@@ -39,12 +39,39 @@ return [
             'serialize' => false,
         ],
 
+        /*
+         * `DB_CACHE_CONNECTION` TIDAK dibiarkan kosong.
+         *
+         * Kosong berarti `DatabaseStore` dibangun tanpa nama koneksi, jadi
+         * ia memakai koneksi DEFAULT saat store itu pertama kali di-resolve.
+         *
+         * Di aplikasi satu-lokasi itu tidak berbahaya. Di ASTALOKA tidak:
+         * `TenantManager::activate()` hanya memanggil `DB::purge('tenant')` --
+         * store cache tidak pernah dibangun ulang. Begitu request pertama yang
+         * menyentuh cache selesai, store itu terkunci ke database lokasi
+         * pertama di proses itu, dan SETIAP lokasi berikutnya diam-diam
+         * menulis serta membaca cache di database lokasi pertama.
+         *
+         * Akibatnya pada `CACHE_STORE=database`:
+         *   - satu proses FPM yang melayani lokasi A lalu lokasi B memakai
+         *     satu tabel `cache` milik A saja;
+         *   - lokasi B kehilangan cache-nya, sehingga statistik dihitung
+         *     ulang terus-menerus, atau -- lebih buruk -- membaca flag A.
+
+         * Karena itu store ini dipaksa memakai koneksi pusat. Tabel `cache`
+         * di database pusat itu yang jadi keyspace bersama, dan pemisahan
+         * antar lokasi sekarang jadi TANGGUNG JAWAB `TenantCache` lewat
+         * awalan kunci `t{tenantId}:v{n}:` -- bukan fallout urutan request.
+
+         * Nilai tetap bisa ditimpa lewat `DB_CACHE_CONNECTION` untuk
+         * kebutuhan khusus, tapi default-nya tidak lagi `null`.
+         */
         'database' => [
             'driver' => 'database',
-            'connection' => env('DB_CACHE_CONNECTION'),
+            'connection' => env('DB_CACHE_CONNECTION', env('TENANCY_CENTRAL_CONNECTION', 'central')),
             'table' => env('DB_CACHE_TABLE', 'cache'),
-            'lock_connection' => env('DB_CACHE_LOCK_CONNECTION'),
-            'lock_table' => env('DB_CACHE_LOCK_TABLE'),
+            'lock_connection' => env('DB_CACHE_LOCK_CONNECTION', env('TENANCY_CENTRAL_CONNECTION', 'central')),
+            'lock_table' => env('DB_CACHE_LOCK_TABLE', 'cache_locks'),
         ],
 
         'file' => [

@@ -15,7 +15,7 @@
           padding: sidebarOpen ? '0 0.75rem' : '0 0.5rem',
         }"
       >
-        <span class="topnav-brand">Mata Air</span>
+        <span class="topnav-brand">ASTALOKA</span>
       </div>
 
       <div class="topnav-links">

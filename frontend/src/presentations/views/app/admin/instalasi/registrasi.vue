@@ -42,7 +42,7 @@
               />
               <BaseButton
                 variant="primary"
-                class="h-[48px]! sm:h-[52px]! px-3! sm:px-5! rounded-l-none! rounded-r-xl! border-none! bg-linear-to-r! from-indigo-600! via-blue-600! to-cyan-500! shadow-lg! shadow-indigo-500/20! hover:shadow-indigo-500/40! text-white! ring-offset-0! focus:ring-0!"
+                class="h-[48px]! sm:h-[52px]! px-3! sm:px-5! rounded-l-none! rounded-r-xl! border-none! bg-linear-brand-deep! shadow-lg! shadow-indigo-500/20! hover:shadow-indigo-500/40! text-white! ring-offset-0! focus:ring-0!"
                 icon="user-plus"
                 @click.stop="handleNewCustomerRegistration"
               >
@@ -88,7 +88,7 @@
                 <div class="flex! items-center! gap-3! w-full!">
                   <div
                     class="w-8! h-8! rounded-full! shrink-0! flex! items-center! justify-center! text-white! text-xs! font-extrabold! shadow-sm!"
-                    :style="{ backgroundColor: '#3b82f6' }"
+                    :style="{ backgroundColor: 'var(--color-primary, #3b82f6)' }"
                   >
                     {{ customer.name ? customer.name.charAt(0).toUpperCase() : 'C' }}
                   </div>
@@ -162,7 +162,7 @@
       >
         <div
           v-if="selectedCustomer"
-          class="bg-linear-to-br! from-indigo-600! via-blue-600! to-cyan-500! p-3! sm:p-5! text-white! flex! flex-wrap! items-center! gap-3! sm:gap-5! border-b! border-white/10!"
+          class="bg-linear-brand-deep! p-3! sm:p-5! text-white! flex! flex-wrap! items-center! gap-3! sm:gap-5! border-b! border-white/10!"
         >
           <div
             class="w-10! h-10! sm:w-14! sm:h-14! rounded-full! bg-white/20! backdrop-blur-md! flex! items-center! justify-center! text-white! font-bold! text-base! sm:text-xl! border-2! border-white/40! shrink-0!"
@@ -646,7 +646,7 @@
 
       <div class="w-full! sm:w-auto! order-1! sm:order-2!">
         <BaseButton
-          variant="primary-gradient"
+          variant="secondary"
           class="w-full! sm:w-auto! px-6! sm:px-10! py-3! sm:py-3.5! rounded-xl! shadow-lg! text-sm! font-bold! uppercase! tracking-wide!"
           @click="handleSubmit"
           :disabled="!isFormValid"
@@ -1079,7 +1079,7 @@ const handleSubmit = async () => {
       text: 'Instalasi berhasil didaftarkan. Status berubah menjadi pending.',
       icon: 'success',
       showCancelButton: true,
-      confirmButtonColor: '#3b82f6',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
       cancelButtonColor: '#64748b',
       confirmButtonText: 'Lihat Detail',
       cancelButtonText: 'Tambah Registrasi Baru',

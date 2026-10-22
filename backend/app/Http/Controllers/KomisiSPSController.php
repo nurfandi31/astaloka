@@ -9,9 +9,11 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\BillPaymentService;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class KomisiSPSController extends Controller
 {
@@ -208,7 +210,18 @@ class KomisiSPSController extends Controller
             ], 422);
         }
 
-        $nominalKomisi = round($totalUnpaid * self::KOMISI_RATE, 2);
+        // Nominal komisi DIHITUNG PER TAGIHAN, bukan dari total.
+        //
+        // Jurnal di bawah membulatkan 10% tiap tagihan secara terpisah, jadi
+        // jumlah nominal di layar harus menjumlahkan pembulatan yang sama.
+        // Kalau total_tagihan dikalikan rate sekali, hasilnya bisa berbeda
+        // beberapa rupiah dari total jurnal -- dan angka itulah yang tampil
+        // di notifikasi sukses serta dipakai user untuk mencocokkan laporan.
+        $komisiPerBill = $bills->mapWithKeys(fn ($bill) => [
+            $bill->id => round((float) $bill->total_amount * self::KOMISI_RATE, 2),
+        ]);
+        $nominalKomisi = round($komisiPerBill->sum(), 2);
+
         if ($nominalKomisi <= 0) {
             return response()->json([
                 'success' => false,
@@ -231,63 +244,148 @@ class KomisiSPSController extends Controller
 
         $billPaymentIds = [];
         $komisiTransactionIds = [];
+        $payableBills = collect();
 
-        $result = DB::transaction(function () use ($request, $bills, $totalUnpaid, $nominalKomisi, $relasi, $penerimaName, $customerIds, &$billPaymentIds, &$komisiTransactionIds) {
-            $tgl = Carbon::parse($request->tgl_transaksi)->toDateString();
-            $keteranganBase = $request->keterangan ?: 'Komisi SPS - ' . $relasi . ' (Penerima: ' . $penerimaName . ')';
+        /*
+         * `total_unpaid` dan `nominal_komisi` dihitung ulang dari baris yang
+         * BENAR-BENAR dibayar request ini, bukan dari pembacaan di luar
+         * transaksi. Kalau request lain menang race-nya dan membayar sebagian
+         * tagihan lebih dulu, angka yang dikembalikan harus ikut yang
+         * tersisa -- kalau tidak, user melihat nominal komisi untuk tagihan
+         * yang gagal tertulis.
+         */
+        try {
+            $result = DB::transaction(function () use ($request, $bills, $komisiPerBill, $relasi, $penerimaName, $customerIds, &$billPaymentIds, &$komisiTransactionIds, &$payableBills) {
+                $tgl = Carbon::parse($request->tgl_transaksi)->toDateString();
+                $keteranganBase = $request->keterangan ?: 'Komisi SPS - ' . $relasi . ' (Penerima: ' . $penerimaName . ')';
 
-            $billIds = $bills->pluck('id')->all();
-            MonthlyBill::whereIn('id', $billIds)->update(['status' => 'paid']);
+                /*
+                 * Kunci baris tagihan (SELECT ... FOR UPDATE), lalu menandai lunas
+                 * HANYA baris yang masih unpaid -- semuanya di dalam satu transaksi.
+                 *
+                 * Tanpa kunci, dua request yang menagih pelanggan sama bisa
+                 * sama-sama membaca status `unpaid` di luar transaksi, lalu
+                 * dua-duanya membuat jurnal kas dan jurnal komisi untuk tagihan
+                 * yang sama: tagihan tercatat lunas dua kali dan utang komisi ikut
+                 * dobel. Form ini menerima banyak pelanggan sekaligus, jadi
+                 * jendelanya jauh lebih lebar daripada pembayaran satu tagihan.
+                 *
+                 * Pola ini mengikuti `MonthlyBillController::pay()`.
+                 *
+                 * Baris yang ternyata sudah dibayar request lain TIDAK diproses di
+                 * sini -- jurnal untuk tagihan itu sudah dibuat oleh request yang
+                 * menang. Membuatnya lagi hanya menggandakan pembukuan.
+                 */
+                $lockedBills = MonthlyBill::with('customer.user', 'customer.ticket')
+                    ->whereIn('id', $bills->pluck('id')->all())
+                    ->lockForUpdate()
+                    ->get();
 
-            foreach ($bills as $bill) {
-                $komisiPerBill = round($bill->total_amount * self::KOMISI_RATE, 2);
+                $payableBills = $lockedBills
+                    ->where('status', 'unpaid')
+                    ->values();
 
-                $billRelasi = optional($bill->customer?->user)->name ?? $bill->customer?->ticket?->applicant_name ?? 'Pelanggan';
-                $billKeterangan = $keteranganBase . ' | Bill #' . $bill->id . ' (' . number_format($bill->total_amount, 0, ',', '.') . ')';
+                if ($payableBills->isEmpty()) {
+                    throw new RuntimeException('TAGIHAN_SUDAH_DIBAYAR');
+                }
 
-                $bp = $this->billPaymentService->recordPayment(
-                    $bill,
-                    $request->account_kas,
-                    $tgl,
-                    $billKeterangan,
-                    (int) $request->penerima_komisi_id
+                $payableBills->each(fn ($bill) => $bill->update(['status' => 'paid']));
+
+                $totalUnpaidJurnal = round((float) $payableBills->sum('total_amount'), 2);
+                $nominalKomisiJurnal = round(
+                    $payableBills->sum(fn ($bill) => $komisiPerBill[$bill->id] ?? 0.0),
+                    2
                 );
-                $billPaymentIds[] = $bp->id;
 
-                $komisiKeterangan = 'Beban Komisi SPS - ' . $billRelasi . ' (10% × ' . number_format($bill->total_amount, 0, ',', '.') . ' = ' . number_format($komisiPerBill, 0, ',', '.') . ') - Penerima: ' . $penerimaName;
+                foreach ($payableBills as $bill) {
+                    // Ambil dari peta hasil perhitungan di luar transaksi supaya
+                    // nominal yang dijurnal identik dengan yang dilaporkan ke user.
+                    $komisi = $komisiPerBill[$bill->id] ?? 0.0;
 
-                $komisiTrans = Transaction::create([
-                    'tgl_transaksi'        => $tgl,
-                    'account_debet'        => self::BEBAN_KODE_AKUN,
-                    'account_kredit'       => self::UTANG_KODE_AKUN,
-                    'transaction_group'    => self::TRANSACTION_GROUP,
-                    'reverence_type'       => 'bill_payment',
-                    'reverence_id'         => $bp->id,
-                    'penerima_komisi_id'   => $request->penerima_komisi_id,
-                    'keterangan_transaksi' => $komisiKeterangan,
-                    'relasi'               => $billRelasi,
-                    'saldo'                => $komisiPerBill,
-                    'urutan'               => 1,
-                    'id_user'              => Auth::id(),
-                ]);
-                $komisiTrans->update(['urutan' => $komisiTrans->id]);
-                $komisiTransactionIds[] = $komisiTrans->id;
+                    $billRelasi = optional($bill->customer?->user)->name ?? $bill->customer?->ticket?->applicant_name ?? 'Pelanggan';
+                    $billKeterangan = $keteranganBase . ' | Bill #' . $bill->id . ' (' . number_format($bill->total_amount, 0, ',', '.') . ')';
+
+                    $bp = $this->billPaymentService->recordPayment(
+                        $bill,
+                        $request->account_kas,
+                        $tgl,
+                        $billKeterangan,
+                        (int) $request->penerima_komisi_id
+                    );
+                    $billPaymentIds[] = $bp->id;
+
+                    $komisiKeterangan = 'Beban Komisi SPS - ' . $billRelasi . ' (10% × ' . number_format($bill->total_amount, 0, ',', '.') . ' = ' . number_format($komisi, 0, ',', '.') . ') - Penerima: ' . $penerimaName;
+
+                    $komisiTrans = Transaction::create([
+                        'tgl_transaksi'        => $tgl,
+                        'account_debet'        => self::BEBAN_KODE_AKUN,
+                        'account_kredit'       => self::UTANG_KODE_AKUN,
+                        'transaction_group'    => self::TRANSACTION_GROUP,
+                        'reverence_type'       => 'bill_payment',
+                        'reverence_id'         => $bp->id,
+                        'penerima_komisi_id'   => $request->penerima_komisi_id,
+                        'keterangan_transaksi' => $komisiKeterangan,
+                        'relasi'               => $billRelasi,
+                        'saldo'                => $komisi,
+                        'urutan'               => 1,
+                        'id_user'              => Auth::id(),
+                    ]);
+                    $komisiTransactionIds[] = $komisiTrans->id;
+                }
+
+                /*
+                 * Isi `urutan` dengan id masing-masing baris lewat `DB::table()`.
+                 *
+                 * `->update()` lewat Eloquent akan memicu observer
+                 * `TransactionObserver::updated()`, yang pada kolom `urutan` tidak
+                 * memengaruhi saldo tapi tetap menjalankan agregasi SUM() penuh
+                 * (~1 detik per baris) plus trigger MySQL. Form ini bisa menulis
+                 * ratusan baris sekaligus karena menerima banyak pelanggan, jadi
+                 * selisihnya bukan "~1 detik per baris" tapi menit, dan cukup
+                 * sering berakhir sebagai "Lock wait timeout".
+                 */
+                foreach ($komisiTransactionIds as $trxId) {
+                    DB::table('transactions')->where('id', $trxId)->update(['urutan' => $trxId]);
+                }
+
+                return [
+                    'nominal_komisi' => $nominalKomisiJurnal,
+                    'total_unpaid'   => $totalUnpaidJurnal,
+                    'bill_count'     => $payableBills->count(),
+                ];
+            });
+        } catch (RuntimeException $e) {
+            // Double-pay: request lain baru saja membayar tagihan yang sama.
+            if ($e->getMessage() === 'TAGIHAN_SUDAH_DIBAYAR') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tagihan sudah dibayar. Muat ulang halaman lalu coba lagi.',
+                ], 400);
             }
 
-            return [
-                'nominal_komisi' => $nominalKomisi,
-            ];
-        });
+            throw $e;
+        } catch (QueryException $e) {
+            // Deadlock / lock wait timeout / koneksi putus di tengah jalan.
+            // Balas 503 (retryable) dengan pesan yang bisa dibaca frontend,
+            // jangan 500 kosong supaya user bisa menekan ulang dengan aman
+            // -- DB::transaction sudah rollback, jadi tidak ada data setengah
+            // jadi.
+            if (in_array($e->getCode(), ['40001', '40P01', 'HY000'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Server sedang sibuk, transaksi gagal diproses. Silakan coba lagi.',
+                ], 503);
+            }
 
-        $billDetails = $bills->map(function ($bill) {
-            $komisiPerBill = round($bill->total_amount * self::KOMISI_RATE, 2);
-            return [
-                'bill_id'         => $bill->id,
-                'customer_id'     => $bill->customer_id,
-                'amount'          => (float) $bill->total_amount,
-                'komisi_per_bill' => $komisiPerBill,
-            ];
-        });
+            throw $e;
+        }
+
+        $billDetails = $payableBills->map(fn ($bill) => [
+            'bill_id'         => $bill->id,
+            'customer_id'     => $bill->customer_id,
+            'amount'          => (float) $bill->total_amount,
+            'komisi_per_bill' => $komisiPerBill[$bill->id] ?? 0.0,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -297,10 +395,10 @@ class KomisiSPSController extends Controller
                 'penerima_komisi_id'     => (int) $request->penerima_komisi_id,
                 'penerima_komisi_name'   => $penerimaName,
                 'customer_ids'           => $customerIds,
-                'total_unpaid'           => $totalUnpaid,
+                'total_unpaid'           => $result['total_unpaid'],
                 'nominal_komisi'         => $result['nominal_komisi'],
                 'rate'                   => self::KOMISI_RATE,
-                'bill_count'             => $bills->count(),
+                'bill_count'             => $result['bill_count'],
                 'bill_details'           => $billDetails,
                 'account_kas'            => $request->account_kas,
                 'account_utang'          => self::UTANG_KODE_AKUN,

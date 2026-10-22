@@ -29,19 +29,110 @@
 }
 
 .base-button--info-gradient {
-  background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
-  @apply text-white border-0 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 focus:ring-blue-500;
+  /* Warna lokasi, bukan biru tetap. Nilai `--color-primary-400/600` ditulis
+     `utils/applyTheme.js` dari skala warna lokasi, jadi gradien ini ikut
+     berubah tanpa file ini disentuh lagi. */
+  background: linear-gradient(135deg, var(--color-primary-400, #38bdf8) 0%, var(--color-primary-600, #2563eb) 100%);
+  @apply text-white border-0 shadow-lg focus:ring-blue-500;
 }
 
 .base-button--primary-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  @apply text-white border-0 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 focus:ring-indigo-500;
+  /* Sama: indigo tetap di sini membuat tombol "primary" terlihat ungu
+     di lokasi yang warnanya hijau atau oranye. */
+  background: linear-gradient(135deg, var(--color-primary, #6366f1) 0%, var(--color-primary-dark, #4f46e5) 100%);
+  @apply text-white border-0 shadow-lg focus:ring-blue-500;
 }
 
+/*
+ * WARNA TOMBOL SIMPAN -- satu-satunya sumber kebenaran.
+ *
+ * Ada tiga sistem tombol di aplikasi ini yang tidak saling tahu:
+ * `BaseButton` (`.base-button--secondary`), CSS panel pusat
+ * (`--central-btn-save` di `central-page.css`), dan kaki modal paket
+ * (`.btn-save-modal` di `ui-modals.css`). Semuanya harus berwarna sama.
+ *
+ * Dulu ketiganya menulis hex-nya sendiri di file masing-masing. Hasilnya
+ * tidak terlihat langsung: `slate-500` di Tailwind v4 adalah
+ * `oklch(55.4% .046 257.417)`, yang jadi `#62748e` -- sementara hex yang
+ * ditulis manual di dua file lain adalah `#64748b`. Selisih 3 poin di
+ * tiap kanal RGB: tidak kasat mata, tapi cukup untuk membuat tombol
+ * simpan di panel pusat terlihat sedikit lebih terang daripada di
+ * aplikasi lokasi, dan "seragam" jadi kata yang tidak sepenuhnya benar.
+ *
+ * Jadi semua sistem membaca dari sini. Warna abu disimpan sebagai hex,
+ * bukan `@apply bg-slate-500`, justru supaya hasilnya bisa dictate
+ * satu nilai yang bisa dibandingkan langsung oleh test.
+ *
+ * Kontras teks putih di atas `#64748b` = 4,8:1 (lolos WCAG AA untuk teks
+ * normal). Abu muda `#94a3b8` hanya 2,9:1 -- tidak lolos, dan tidak boleh
+ * dipakai sebagai warna tombol simpan.
+ */
+:root {
+  --btn-save-bg: #64748b;
+  --btn-save-bg-hover: #475569;
+  --btn-save-border: #64748b;
+  --btn-save-ring: #94a3b8;
+  --btn-save-shadow: 0 2px 8px -1px rgb(100 116 139 / 0.4);
+  --btn-save-shadow-hover: 0 6px 16px -4px rgb(100 116 139 / 0.45);
+  --btn-save-text: #ffffff;
+}
+
+/*
+ * Tombol "Simpan" -- satu-satunya gaya yang dipakai SELURUH aplikasi.
+ *
+ * Gris (abu), bukan warna brand. Alasannya: warna brand dipakai di tempat
+ * lain (sidebar, header, aksen) dan kalau tombol simpan ikut warna itu,
+ * satu-satunya pembeda antara "tombol biasa" dan "tombol yang menyimpan
+ * data" hilang. Gris tidak pernah dipakai untuk hal lain, jadi tombol
+ * simpan selalu dikenali -- dan tetap dikenali saat lokasi mengganti
+ * warna brand-nya.
+ *
+ * Semua tombol simpan di aplikasi WAJIB memakai varian ini. Warna lain
+ * (biru, hijau, oranye, merah) berarti ada halaman yang belum ikut
+ * aturan, dan itulah yang membuat tombol simpan terlihat tidak seragam
+ * dari satu modul ke modul lain.
+ *
+ * Warnanya bukan `bg-slate-500` Tailwind, tapi token `--btn-save-*` di
+ * atas -- supaya warna ini sama persis dengan panel pusat dan kaki modal
+ * paket, yang tidak bisa memakai `BaseButton`.
+ */
 .base-button--secondary {
-  @apply bg-slate-500 hover:bg-slate-600 text-white focus:ring-slate-400 border border-slate-500;
+  background-color: var(--btn-save-bg);
+  border-color: var(--btn-save-border);
+  color: var(--btn-save-text);
 }
 
+.base-button--secondary:not(:disabled):hover {
+  background-color: var(--btn-save-bg-hover);
+}
+
+/*
+ * Cincin fokus ditulis langsung, bukan lewat `@apply focus:ring-2`.
+ *
+ * `@apply` di sini menghasilkan selector
+ * `.base-button--secondary:focus-visible:focus` -- dua pseudo-kelas dalam
+ * satu selector, padahal `:focus-visible` sudah menyiratkan `:focus`.
+ * Selector itu tidak akan pernah cocok, Tailwind lalu diam-diam memakai
+ * jalan `:focus` biasa, dan cincin fokus ikut hilang tepat ketika
+ * tombol baru saja diklik.
+ *
+ * Warnanya tetap abu yang sama dengan warna tombolnya, supaya cincin
+ * fokus tidak membuat tombol simpan ini terlihat seperti milik sistem
+ * tombol lain yang warnanya beda.
+ */
+.base-button--secondary:focus-visible {
+  outline: 2px solid var(--btn-save-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * Varian abu BERGRADASI.
+ *
+ * Ini bukan tombol "Simpan" -- tombol simpan selalu memakai
+ * `.base-button--secondary` (abu pekat, teks putih). Varian ini dipakai
+ * untuk tombol lain yang tetap harus terlihat netral, misalnya "Batal"
+ * di dialog kamera. Jangan dipakai untuk tombol yang menyimpan data.
+ */
 .base-button--secondary-gradient {
   background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
   @apply text-slate-800 border-0 shadow-lg shadow-slate-200/50 hover:shadow-slate-300/80 focus:ring-slate-300;

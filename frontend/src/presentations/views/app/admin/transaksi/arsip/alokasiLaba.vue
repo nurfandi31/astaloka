@@ -98,12 +98,12 @@
           Kembali
         </BaseButton>
         <BaseButton
-          variant="primary-gradient"
+          variant="secondary"
           size="lg"
           @click="handleSimpan"
           :disabled="isSaving || isLoading || !canSave"
           :loading="isSaving"
-          class="w-full sm:w-auto px-10! rounded-xl shadow-lg shadow-blue-200/50 font-bold"
+          class="w-full sm:w-auto px-10! rounded-xl shadow-lg shadow-slate-200/50 font-bold"
         >
           Simpan Alokasi Laba
         </BaseButton>

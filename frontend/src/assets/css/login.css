@@ -1,25 +1,57 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
+/*
+ * Warna halaman login.
+ *
+ * -----------------------------
+ *
+ * Semua warna biru yang tadinya ditulis langsung sebagai hex di file ini
+ * sekarang diambil dari variabel. Alasannya warna lokasi: `--primary` di bawah
+ * bukan lagi hex tetap, tapi nilai yang dipasang `utils/applyTheme.js` ke
+ * `document.documentElement` setelah branding selesai dimuat. Kalau ada satu
+ * saja hex biru yang tertinggal di sini, bagian halaman yang memakainya tidak
+ * ikut berubah warna saat admin mengganti warna lokasi -- dan justru bagian
+ * yang paling terlihat (tombol "Masuk Sekarang", headline) yang paling cepat
+ * menarik perhatian.
+ *
+ * Yang tetap ditulis sebagai hex: abu-abu/slate (`#0f172a`, `#475569`,
+ * `#e2e8f0`, ...) dan hijau chip. Abu-abu adalah skala teks, dan hijau adalah
+ * penanda "berupa berhasil"; keduanya bukan bagian dari identitas lokasi.
+ * Mengikutinya pada warna lokasi justru membuat warna utama dan warna
+ * "berhasil" sulit dibedakan -- informasi yang hilang.
+ */
+
 :root {
-  --primary: #2563eb;
-  --primary-glow: rgba(37, 99, 235, 0.4);
-  --secondary: #6366f1;
-  --accent: #0ea5e9;
+  /* Ditimpa `terapkanTema()`. Nilai di bawah hanya berlaku selama request
+     branding belum selesai -- jadi harus sama persis dengan warna bawaan
+     (`Branding::DEFAULT_WARNA` / `WARNA_BAWAAN`), kalau tidak halaman
+     berkedip ganti warna. */
+  --primary: #0ea5e9;
+  --primary-glow: color-mix(in srgb, var(--primary) 40%, transparent);
+  --secondary: color-mix(in srgb, var(--primary) 45%, #6366f1);
+  --accent: var(--primary);
   --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(255, 255, 255, 0.5);
   --text-main: #0f172a;
   --text-muted: #64748b;
 
+  /* Latar terang/buram dari warna lokasi, dipakai `.badge`. */
+  --primary-50: color-mix(in srgb, var(--primary) 8%, #ffffff);
+  --primary-100: color-mix(in srgb, var(--primary) 16%, #ffffff);
+  --primary-700: color-mix(in srgb, var(--primary) 80%, #000000);
+
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-premium: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.15);
+  --shadow-glow: 0 0 20px color-mix(in srgb, var(--primary) 15%, transparent);
 
   --shadow-chip: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-input: 0 2px 6px rgba(0, 0, 0, 0.02), inset 0 1px 1px rgba(255, 255, 255, 1);
-  --shadow-button: 0 10px 20px -5px rgba(37, 99, 235, 0.4), 0 4px 6px -2px rgba(37, 99, 235, 0.1);
+  --shadow-button:
+    0 10px 20px -5px color-mix(in srgb, var(--primary) 40%, transparent),
+    0 4px 6px -2px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 *,
@@ -110,13 +142,13 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(37, 99, 235, 0.1);
+  border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
   border-radius: 99px;
   padding: 0.5rem 1.2rem;
   width: fit-content;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 .badge span {
@@ -146,8 +178,9 @@
 }
 
 .headline h1.blue {
-  background: linear-gradient(135deg, #2563eb, #6366f1);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -217,8 +250,8 @@
   border-radius: 2rem;
   padding: 2.5rem;
   box-shadow:
-    0 30px 60px rgba(14, 165, 233, 0.15),
-    0 15px 30px rgba(37, 99, 235, 0.1),
+    0 30px 60px color-mix(in srgb, var(--primary) 15%, transparent),
+    0 15px 30px color-mix(in srgb, var(--primary-700) 10%, transparent),
     0 0 0 1px rgba(255, 255, 255, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   position: relative;
@@ -288,17 +321,58 @@ label {
   width: 100%;
 }
 
-.forgot {
+/* Ganti tautan mati "Lupa sandi?" menjadi teks biasa.
+
+   Warna dan ukurannya sama seperti tautannya supaya hierarki visual
+   di baris label tidak berubah; yang hilang hanya sifatnya sebagai
+   link. Rata kanan karena mengimbangi label "Kata Sandi" di kiri. */
+.forgot-note {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--primary);
-  text-decoration: none;
-  transition: all 0.2s;
+  text-align: right;
+  line-height: 1.4;
 }
 
-.forgot:hover {
-  text-decoration: underline;
-  opacity: 0.8;
+@media (max-width: 480px) {
+  .forgot-note {
+    /* Di layar sempit teks ini jadi dua baris, dan rata kanan membuat
+       baris kedua menggantung. Kiri lebih terbaca. */
+    text-align: left;
+  }
+}
+
+/* Hormati preferensi pengguna yang Sensitive Animation-nya dimatikan.
+
+   Tiga animasi di halaman ini berjalan tanpa henti: `.left` dan
+   `.right` masuk sekali saat halaman dimuat, tapi `.card-title::before`
+   (emoji melambai) berulang terus selama halaman terbuka. Yang looping
+   itu yang perlu dihentikan duluan -- animasi sekali jalan selesai
+   sendiri dan tidak membakar apa pun. */
+@media (prefers-reduced-motion: reduce) {
+  .left,
+  .right,
+  .card-title::before {
+    animation: none;
+  }
+
+  /* `.chip` naik saat hover dan tombol ikut terangkat. Transisinya
+     dimatikan supaya tidak ada gerakan sama sekali. `.quick-btn`
+     ikutikutan: tombol AKSES CEPAT punya hover raise yang sama. */
+  .chip,
+  .btn-submit,
+  .quick-btn,
+  .chip:hover,
+  .quick-btn:hover,
+  .btn-submit:hover:not(:disabled) {
+    transition: none;
+  }
+
+  .chip:hover,
+  .quick-btn:hover,
+  .btn-submit:hover:not(:disabled) {
+    transform: none;
+  }
 }
 
 .input-wrap {
@@ -316,7 +390,11 @@ label {
 
 .input-wrap input {
   width: 100%;
-  padding: 0.9rem 1rem 0.9rem 2.8rem;
+  /* Padding kanan 3.2rem: ruang untuk tombol lihat-sandi yang sekarang
+     2.4rem lebar (ikon 14px + padding 0.7rem kiri-kanan) dan menempel
+     di `right: 0.7rem` -- totalnya ~3.1rem. Padding 1rem dari semula
+     membuat teks yang diketik bisa tertutup tombol itu. */
+  padding: 0.9rem 3.2rem 0.9rem 2.8rem;
   background: #ffffff;
   border: 1.5px solid #e2e8f0;
   border-radius: 1rem;
@@ -335,8 +413,8 @@ label {
   outline: none;
   border-color: var(--primary);
   box-shadow:
-    0 10px 15px -3px rgba(37, 99, 235, 0.1),
-    0 0 0 4px rgba(37, 99, 235, 0.08);
+    0 10px 15px -3px color-mix(in srgb, var(--primary) 10%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--primary) 8%, transparent);
   background: #fff;
 }
 
@@ -344,15 +422,87 @@ label {
   color: var(--primary);
 }
 
+/*
+ * Status salah pada kolom login.
+ *
+ * Warna merah TIDAK mengikuti `--primary`, dan itu disengaja: warna lokasi
+ * dipakai untuk fokus dan untuk tombol, dan keduanya selalu "berhasil".
+ * Kalau warna yang sama dipakai untuk "salah" juga, warna primer jadi tidak
+ * membawa arti apa pun -- dan merah tetap merah di setiap lokasi, persis
+ * seperti abu-abu teks di halaman ini.
+ *
+ * Prefix ikon ikut merah lewat `:has()` pada `.input-wrap`, bukan
+ * `input.is-invalid + .icon-left`: ikon ada SEBELUM input di DOM, jadi `+`
+ * tidak pernah mencocokkannya.
+ */
+.input-wrap input.is-invalid {
+  border-color: #ef4444;
+  background: #fff5f5;
+}
+
+/* Fokus harus tetap menang dari status salah. Tanpa ini, mengoreksi kolom
+   yang salah tidak mengubah apa pun yang terlihat -- dan tidak ada tanda
+   bahwa kursor sudah kembali ke kolom yang tadi salah. */
+.input-wrap input.is-invalid:focus {
+  border-color: #ef4444;
+  box-shadow:
+    0 10px 15px -3px rgb(239 68 68 / 0.1),
+    0 0 0 4px rgb(239 68 68 / 0.12);
+  background: #fff;
+}
+
+.input-wrap:has(input.is-invalid) .icon-left {
+  color: #ef4444;
+}
+
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #b91c1c;
+}
+
+.field-error svg {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+}
+
+/* Target sentuh tombol lihat-sandi.
+
+   `padding: 0.5rem` sebelumnya memberi kotak sekitar 30px (ikon ~14px),
+   yang terlalu kecil untuk jari: di layar sentuh tombol ini sering
+   tidak mengenai atau meleset ke tepi input.
+
+   Padding dinaikkan ke 0.7rem supaya kotaknya jadi ~38px, dan
+   `display: flex` + perataan tengah memastikan ikon tetap berada di
+   tengah kotak ketika ukurannya berubah -- tanpa itu, ikon bergeser
+   ke kiri atas kontrol yang sekarang lebih besar.
+
+   `right` dikecilkan ke 0.7rem supaya jarak tombol ke tepi kanan input
+   tetap terasa sama seperti sebelumnya. */
 .eye-btn {
   position: absolute;
-  right: 1rem;
+  right: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  padding: 0.5rem;
+  padding: 0.7rem;
   color: #94a3b8;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.eye-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 6px;
 }
 
 .eye-btn:hover {
@@ -363,7 +513,7 @@ label {
   width: 100%;
   margin-top: 0.5rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   color: white;
   border: none;
   border-radius: 9999px;
@@ -377,7 +527,7 @@ label {
 
 .btn-submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.5);
+  box-shadow: 0 12px 24px -6px color-mix(in srgb, var(--primary) 50%, transparent);
   filter: brightness(1.05);
 }
 
@@ -389,6 +539,21 @@ label {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/*
+ * Blok gaya untuk "AKSES CEPAT" (.quick, .quick-label, .quick-btns,
+ * .quick-btn, .q-icon) dipakai lagi.
+ *
+ * Markup-nya dikembalikan sebagai placeholder -- lihat catatan di
+ * `LoginView.vue`.
+ *
+ * Warna latar dan bordernya tetap hex biru (`#f8faff`, `#eef6ff`,
+ * `rgba(59,130,246,.2)`, `#eff6ff`), tidak mengikuti `--primary`.
+ * Ini disengaja selama tombolnya masih jadi placeholder: tombol ini
+ * bukan aksi utama, dan mengikuti warna lokasi akan membuatnya bersaing
+ * dengan "Masuk Sekarang" yang memang memakai warna itu. Kalau nanti
+ * jadi alur sungguhan, ganti ke variabel warna lokasi saat itu juga.
+ */
 
 .quick {
   margin-top: 1rem;
@@ -636,12 +801,12 @@ label {
     background: var(--primary);
     color: white;
     transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 8px 15px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 8px 15px color-mix(in srgb, var(--primary) 30%, transparent);
     border-color: var(--primary);
   }
   .quick-btn:active {
     transform: translateY(0) scale(0.95);
-    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--primary) 20%, transparent);
   }
   .quick-btn:hover .q-icon svg {
     color: white;

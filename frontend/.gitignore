@@ -38,6 +38,11 @@ __screenshots__/
 # Vite
 *.timestamp-*-*.mjs
 
+# Modul tiruan untuk harness test
+# Ditulis ulang oleh `daftarkanPagarVirtual()` setiap kali test berjalan,
+# jadi isinya mengikuti test -- bukan sesuatu yang boleh ikut ter-commit.
+test/__mock__/
+
 .env
 .env.local
 .env.*.local
