@@ -27,7 +27,7 @@
             class="relative! w-full! h-full! md:w-[95%]! md:h-[92%]! md:max-w-5xl! bg-white! rounded-t-3xl! md:rounded-[2.5rem]! shadow-2xl! flex! flex-col! overflow-hidden!"
           >
             <div
-              class="h-1.5! w-full! bg-linear-to-r! from-cyan-500! via-blue-600! to-indigo-600!"
+              class="h-1.5! w-full! bg-linear-brand!"
             ></div>
 
             <div
@@ -72,7 +72,7 @@
                     Informasi Pelanggan
                   </div>
                   <div
-                    class="flex! flex-col! md:flex-row! items-center! gap-0! bg-linear-to-br! from-blue-600! via-blue-700! to-indigo-800! border-0! rounded-2xl! overflow-hidden! shadow-lg! shadow-blue-500/20!"
+                    class="flex! flex-col! md:flex-row! items-center! gap-0! bg-linear-brand! border-0! rounded-2xl! overflow-hidden! shadow-lg! shadow-blue-500/20!"
                   >
                     <div
                       class="flex-1! w-full! flex! items-center! justify-between! gap-4! px-5! md:px-6! py-3! md:py-4! border-b! md:border-b-0! md:border-r! border-white/10!"
@@ -152,8 +152,8 @@
               </p>
               <div class="flex! gap-3! w-full! md:w-auto!">
                 <BaseButton
-                  variant="secondary-gradient"
-                  class="flex-1! px-8! md:px-10! py-3! rounded-xl! font-black! text-slate-800! shadow-lg! shadow-slate-200/50! text-sm! md:text-base!"
+                  variant="secondary"
+                  class="flex-1! px-8! md:px-10! py-3! rounded-xl! font-black! shadow-lg! shadow-slate-200/50! text-sm! md:text-base!"
                   @click="handleSave"
                 >
                   Simpan Perubahan

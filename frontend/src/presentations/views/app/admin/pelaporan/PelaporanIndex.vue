@@ -3,7 +3,7 @@
     <ContentCard variant="elevated" padding="large">
       <div class="relative!">
         <div
-          class="relative! -m-6! mb-8! p-6! rounded-2xl! bg-linear-to-r! from-blue-500! via-blue-600! to-cyan-500! shadow-lg! shadow-blue-500/10! overflow-hidden!"
+          class="relative! -m-6! mb-8! p-6! rounded-2xl! bg-linear-brand! shadow-lg! overflow-hidden!"
         >
           <div
             class="absolute! top-0! right-0! w-44! h-44! bg-white/10! rounded-full! -mr-20! -mt-20! blur-2xl!"
@@ -16,7 +16,15 @@
           >
             <div>
               <h2 class="text-2xl! font-bold! text-white! mb-1!">Laporan ASTALOKA</h2>
-              <p class="text-blue-100/80! text-sm!">
+              <!--
+                Teks putih 80%, bukan `text-blue-100`.
+
+                `blue-100` adalah utility Tailwind yang terkunci ke palet,
+                jadi di banner yang warnanya sudah oranye teks sub-judulnya
+                masih kebiruan. Putih transparan bersifat netral di atas
+                gradasi warna apa pun, jadi tidak perlu ikut berubah.
+              -->
+              <p class="text-white/80! text-sm!">
                 Pilih parameter laporan yang ingin ditampilkan
               </p>
             </div>
@@ -61,10 +69,10 @@
 
           <div class="flex! flex-col! sm:flex-row! gap-4! sm:justify-end! pt-4!">
             <BaseButton
-              variant="danger"
+              variant="secondary"
               size="md"
               @click="handleSimpanSaldo"
-              class="px-5! rounded-xl! shadow-lg! shadow-amber-500/20! font-bold! tracking-wide!"
+              class="px-5! rounded-xl! shadow-lg! shadow-slate-200! font-bold! tracking-wide!"
             >
               Simpan Saldo
             </BaseButton>
@@ -104,7 +112,7 @@
         >
           <div class="flex! items-center! gap-4!">
             <div
-              class="w-12! h-12! bg-linear-to-br! from-blue-500! to-blue-600! rounded-2xl! flex! items-center! justify-center! shrink-0! shadow-lg! shadow-blue-500/20! group-hover:scale-110! transition-transform! duration-300!"
+              class="w-12! h-12! bg-linear-brand! rounded-2xl! flex! items-center! justify-center! shrink-0! shadow-lg! shadow-blue-500/20! group-hover:scale-110! transition-transform! duration-300!"
             >
               <font-awesome-icon icon="eye" class="text-white! text-lg!" />
             </div>
@@ -222,7 +230,9 @@ const fetchMasterFilterPelaporan = async () => {
       tahunOptions.value = listTahun
       selectedTahun.value = String(thnSekarang)
     }
-  } catch (error) {
+  } catch {
+    // Daftar tahun gagal diambil. Select tahun memakai nilai default
+    // sehingga laporan tetap bisa dibuka.
   }
 }
 
@@ -247,7 +257,9 @@ const fetchSubLaporanDinamis = async (fileJenisLaporan) => {
         selectedNamaSubLaporan.value = ''
       }
     }
-  } catch (error) {
+  } catch {
+    // Daftar sub-laporan gagal diambil. Select sub-laporan dikosongkan
+    // supaya pengguna tidak memilih nilai dari daftar yang sudah basi.
   }
 }
 
@@ -313,18 +325,19 @@ const handleExcel = async () => {
     document.body.appendChild(link)
     link.click()
     link.remove()
-  } catch (error) {
+  } catch {
+    // Unduh Excel gagal. Tidak ada file yang perlu dibersihkan karena
+    // object URL baru dibuat setelah request berhasil.
   }
 }
 
 const handleSimpanSaldo = async () => {
   try {
     const payload = getFilterPayload()
-    const res = await pelaporanService.simpanSaldo(payload)
-
-    if (res.success) {
-    }
-  } catch (error) {
+    await pelaporanService.simpanSaldo(payload)
+  } catch {
+    // Simpan saldo gagal. Dibiarkan kosong supaya halaman tetap bisa
+    // dipakai; kegagalan dilaporkan lewat pesan di layar.
   }
 }
 </script>

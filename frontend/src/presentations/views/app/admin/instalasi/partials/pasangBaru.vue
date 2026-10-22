@@ -239,7 +239,7 @@
             <button
               @click="handleAdvance"
               :disabled="!customer.ticketId || isAdvancing"
-              class="w-full! flex! items-center! justify-center! gap-2! bg-gradient-to-r! from-sky-500! to-blue-600! hover:from-sky-600! hover:to-blue-700! text-white! font-bold! py-2.5! rounded-xl! shadow-lg! shadow-sky-200/50! transition-all! active:scale-95! disabled:opacity-50! disabled:cursor-not-allowed!"
+              class="w-full! flex! items-center! justify-center! gap-2! bg-slate-500! hover:bg-slate-600! text-white! font-bold! py-2.5! rounded-xl! shadow-lg! shadow-slate-200/50! transition-all! active:scale-95! disabled:opacity-50! disabled:cursor-not-allowed!"
             >
               <font-awesome-icon
                 :icon="isAdvancing ? 'spinner' : 'arrow-right'"
@@ -434,7 +434,7 @@
               :disabled="
                 !installForm.initial_meter_reading || !installForm.photoFile || isSubmittingInstall
               "
-              class="w-full! flex! items-center! justify-center! gap-2! bg-gradient-to-r! from-sky-500! to-blue-600! hover:from-sky-600! hover:to-blue-700! text-white! font-bold! py-2.5! rounded-xl! shadow-lg! shadow-sky-200/50! transition-all! active:scale-95! disabled:opacity-50! disabled:cursor-not-allowed!"
+              class="w-full! flex! items-center! justify-center! gap-2! bg-slate-500! hover:bg-slate-600! text-white! font-bold! py-2.5! rounded-xl! shadow-lg! shadow-slate-200/50! transition-all! active:scale-95! disabled:opacity-50! disabled:cursor-not-allowed!"
             >
               <font-awesome-icon
                 :icon="isSubmittingInstall ? 'spinner' : 'save'"
@@ -545,7 +545,7 @@ const handleCameraCapture = async (file) => {
     installForm.photoPreview = URL.createObjectURL(compressed)
     installForm.photoSource = 'camera'
     uiStore.success('Foto berhasil ditangkap.')
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal memproses foto.')
   } finally {
     uiStore.setLoading(false)
@@ -562,7 +562,7 @@ const onInstallFileChange = async (e) => {
     installForm.photoPreview = URL.createObjectURL(compressedBlob)
     installForm.photoSource = 'gallery'
     uiStore.success('Foto berhasil dipilih.')
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal memproses gambar.')
   } finally {
     uiStore.setLoading(false)
@@ -601,7 +601,7 @@ const submitInstallationResult = async () => {
         icon: 'success',
         title: 'Pemasangan Aktif!',
         html: `Hasil pemasangan tersimpan & status tiket kini <strong>Selesai</strong>.<br/>Kode Pelanggan: <strong style="color:#0284c7;">${customerCode || '-'}</strong>`,
-        confirmButtonColor: '#0284c7',
+        confirmButtonColor: 'var(--color-primary, #3b82f6)',
         confirmButtonText: 'Lihat Detail Aktif',
       })
       if (customerCode) {

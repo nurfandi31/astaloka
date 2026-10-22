@@ -1,0 +1,1409 @@
+/*
+| Styling `/central/login` -- login superadmin Panel Pusat ASTALOKA.
+|
+| Sengaja dipisah ke file sendiri, bukan `<style scoped>` di dalam komponen,
+| karena polanya sama dengan login lokasi: `login.css` untuk `/login`,
+| file ini untuk `/central/login`. Dua halaman login tidak boleh berbagi
+| nama kelas (`.field`, `.card`, `.btn-submit`) -- keduanya kebetulan hidup
+| di router berbeda, tapi gaya-gaya itu global dan bentrok hanya muncul
+| kalau suatu saat salah satu ikut ke-build ke halaman yang lain.
+|
+| Token warna diambil dari `main.css`, bukan hex baru di sini, supaya panel
+| pusat dan aplikasi lokasi dibaca sebagai satu produk -- lihat catatan yang
+| sama di `CentralLayout.vue`.
+|
+| Bentuk halaman
+| ---------------
+| Versi lama menaruh KARTU KACA di tengah latar foto, dan kolom kiri berisi
+| daftar fitur. Akibatnya ada dua permukaan yang saling bersaing: kaca yang
+| transparan di atas foto, dan panel putih solid yang jadi isinya. Mata
+| tidak pernah tahu harus berhenti di mana.
+|
+| Sekarang tidak ada "kartu" sama sekali. Satu cangkang, dua kolom: panel
+| gelap penuh di kiri, panel putih penuh di kanan, dipisah satu garis
+| rambut. Permukaan yang pekat adalah tempat informasi; yang gelap
+| adalah panggung, bukan wadah. Prinsip yang sama sudah dipakai panel pusat
+| setelah masuk (sidebar putih, konten putih) -- halaman login sekarang
+| terlihat seperti entering ke produk yang sama, bukan seperti halaman lain
+| yang kebetulan punya form.
+|
+| Menghilangkan scrollbar
+| -----------------------
+| Halaman ini sengaja dibuat tidak pernah menghasilkan scrollbar di dua kolom.
+| Layar login yang bisa di-scroll ke bawah terbaca seperti halaman yang
+| belum selesai dimuat, dan di halaman login kemunculan scrollbar adalah
+| tanda ada yang tidak bothering untuk dirapikan.
+|
+| Scrollbar tidak bisa hilang hanya dengan `overflow: hidden`: itu cuma memotong
+| konten yang tidak terjangkau. Isinya harus benar-benar muat. Karena tinggi
+| yang tersedia berbeda jauh antar perangkat (laptop 768px, monitor 1440px, HP
+| landscape), kompresinya lewat media query TINGGI (`max-height`), bukan lebar.
+| Padding, jarak, dan ukuran huruf dikecilkan bertahap; teks yang paling boleh
+| hilang (deskripsi dan keterangan fitur) disembunyikan paling akhir.
+|
+| Pengecualian: susunan satu kolom di bawah 62rem tetap boleh scroll. Di sana
+| kolom kiri menumpuk di atas kolom kanan sehingga tinggi kontennya pasti
+| melebihi layar, dan tidak ada kompresi yang bisa dilakukan tanpa membuat
+| huruf jadi tidak terbaca.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+.central-login {
+  --cl-accent: var(--color-primary, #0ea5e9);
+  --cl-accent-dark: var(--color-primary-dark, #0284c7);
+  --cl-surface: var(--color-card-bg, #ffffff);
+  --cl-text: var(--color-text-main, #1e293b);
+  --cl-muted: var(--color-text-sub, #64748b);
+
+  position: relative;
+  isolation: isolate;
+
+  /* `dvh` ditulis setelah `vh` supaya browser lama tetap pakai nilai valid.
+     `vh` di mobile menghitung address bar sebagai bagian viewport, hasilnya
+     selalu lebih tinggi dari layar yang benar-benar terlihat.
+
+     `height` (bukan `min-height`) + `overflow: hidden` adalah bagian yang
+     membuat halaman ini tidak bisa di-scroll. Konsekuensinya: isinya wajib
+     muat, dan itu yang dijawab media query tinggi di bagian bawah file ini.
+
+     CATATAN: empat query tinggi di bawah file ini semua dijaga
+     `@media (min-width: 62rem)`. Jadi cabang dua kolom ini TIDAK punya
+     pengaman tinggi sama sekali -- di layar 1200x1000 (atau laptop 1440x900
+     dengan zoom browser 110%), tidak ada satu pun query yang aktif, dan
+     `overflow: hidden` + tinggi tetap berarti isi yang tidak muat hilang
+     begitu saja tanpa scrollbar. Tombol "Masuk" adalah yang pertama
+     terpotong. Kalau nanti ada yang menambah tinggi isinya, cabang ini yang
+     harus dicek lebih dulu. */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 2.4vw, 2rem);
+
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  color: var(--cl-text);
+
+  /* Latar halaman memakai warna yang sama dengan panel kiri. Efeknya kolom
+     gelap terlihat menyatu dengan surroundings dan halaman ini terbaca
+     sebagai satu benda, bukan panel putih yang ditempel di atas foto. */
+  background: var(--cl-stage, #070d1c);
+}
+
+/* ===== BACKDROP =====
+   Mesh gradien besar-besar, bukan ilustrasi. Latar lama penuh titik dan
+   garis (node) yang pada skala kolom jadi lebih ramai dari teks di
+   depannya; mesh ini cuma beberapa warna yang saling larut, jadi Panel
+   Pusat masih terbaca sebagai panel, dan isinya tidak hilang karena
+   bersaing dengan gambar. */
+.central-login__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 60% 55% at 12% 8%, rgb(14 165 233 / 0.3), transparent 62%),
+    radial-gradient(ellipse 55% 50% at 88% 92%, rgb(99 102 241 / 0.26), transparent 64%),
+    radial-gradient(ellipse 70% 60% at 50% 120%, rgb(8 47 73 / 0.9), transparent 70%),
+    linear-gradient(165deg, #060b18 0%, #081426 45%, #0a1c33 100%);
+}
+
+/* Pola garis tipis 96px, sangat redup, hanya di seperempat atas kiri. Efeknya
+   mata dapat "permukaan" tanpa teksur yang membuat form terasa ramai. */
+.central-login__mesh {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(186 230 253 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(186 230 253 / 0.035) 1px, transparent 1px);
+  background-size: 96px 96px;
+  mask-image: radial-gradient(ellipse 70% 60% at 18% 12%, #000 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 18% 12%, #000 0%, transparent 72%);
+}
+
+/* Sinar diagonal tipis yang membelah sudut kiri bawah ke kanan atas. Memberi
+   arah cahaya pada bidang gelap yang tanpa bentuk -- perbedaan antara
+   "hitam" yang datar dan "hitam" yang terasa berDs Depth. */
+.central-login__beam {
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  width: 140%;
+  height: 180%;
+  transform: translateX(-50%) rotate(-18deg);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(125 211 252 / 0.05) 45%,
+    rgb(125 211 252 / 0.09) 50%,
+    rgb(125 211 252 / 0.05) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* ===== SHELL ===== */
+.central-login__shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  width: 100%;
+  max-width: 64rem;
+
+  /* `min-height: 0` wajib ada di grid item supaya isinya boleh menyusut
+     di bawah tinggi kontennya sendiri. Tanpa itu, grid track memakai tinggi
+     minimum isi dan halaman akan meluap keluar viewport yang `overflow:hidden`
+     sudah potong. */
+  min-height: 0;
+  max-height: 100%;
+
+  /* Radius BESAR di kiri-atas dan kanan-bawah, kecil di dua sudut yang
+     menyentuh kolom tengah: columnas terlihat berimpit dan membulat ke
+     arah dalam halaman, bukan seperti kartu yang diletakkan di atas foto. */
+  border-radius: 1.75rem;
+  overflow: hidden;
+
+  box-shadow:
+    0 50px 100px -40px rgb(2 6 23 / 0.9),
+    0 0 0 1px rgb(255 255 255 / 0.06);
+
+  animation: cl-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cl-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ===== KOLOM KIRI: PANGGUNG IDENTITAS ===== */
+.central-login__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding: clamp(1.75rem, 3vw, 2.75rem);
+  min-height: 0;
+  overflow: hidden;
+
+  /* Pemisah antar kolom harus >= 1px solid, karena dua kolom ini berbeda
+     terang (gelap vs putih) -- garis transparan hilang di antara dua
+     permukaan yang kontrasnya tinggi. */
+  border-right: 1px solid rgb(255 255 255 / 0.08);
+
+  background:
+    radial-gradient(ellipse 75% 55% at 0% 0%, rgb(14 165 233 / 0.2), transparent 62%),
+    linear-gradient(155deg, #0b1424 0%, #0a1626 50%, #071120 100%);
+}
+
+/* Cincin orbit -- satu-satunya "grafis" di kolom ini, dan sengaja di tempat
+   yang biasanya kosong (kanan bawah, di belakang whitespace headline).
+   Dipakai div terpisah, bukan pseudo-element di `.stage`, supaya tidak
+   ikut terpotong bersama teks saat tinggi layar dipatatkan. */
+.central-login__orbit {
+  position: absolute;
+  right: -6rem;
+  bottom: -8rem;
+  width: 26rem;
+  height: 26rem;
+  pointer-events: none;
+  /* Trophy; the rings must not compete with the text in front of it. */
+  opacity: 0.55;
+}
+
+.central-login__orbit-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgb(125 211 252 / 0.16);
+}
+
+.central-login__orbit-ring:nth-child(2) {
+  inset: 22%;
+  border-color: rgb(125 211 252 / 0.22);
+}
+
+.central-login__orbit-ring:nth-child(3) {
+  inset: 42%;
+  border-color: rgb(165 180 252 / 0.3);
+}
+
+/* Titik di pusat cincin -- menjadi "node" yang dipantau, sejalan dengan
+   nama ASTALOKA yang berarti "batu". */
+.central-login__orbit-core {
+  position: absolute;
+  inset: 49%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f0f9ff 0%, #38bdf8 55%, rgb(56 189 248 / 0) 100%);
+  box-shadow: 0 0 24px rgb(56 189 248 / 0.6);
+}
+
+/* Brand di atas, konten di tengah, pengesan di bawah. Ketiganya memakai
+   wrapper sendiri supaya perataannya tidak tersebar di beberapa elemen
+   terpisah yang saling menabrak.
+
+   Baris ini juga jadi tempat "Kembali ke halaman depan" (lihat
+   `.central-login__switch`): brand di kiri, link di kanan. */
+.central-login__brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-shrink: 0;
+}
+
+.central-login__mark {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex-shrink: 0;
+  border-radius: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+
+  /* Gradien yang sama dengan tombol submit: brand dan aksi utama dibaca
+     sebagai satu bahasa warna. */
+  background: linear-gradient(135deg, var(--cl-accent-dark), var(--cl-accent));
+  box-shadow: 0 10px 24px -8px rgb(14 165 233 / 0.7);
+}
+
+.central-login__brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Nama brand adalah elemen paling penting di halaman ini, jadi ukurannya
+   sengaja paling besar dari semua teks Latin -- termasuk judul form di
+   seberang. Itulah yang membuatnya terbaca sebagai "produk", bukan sekadar
+   "halaman login". */
+.central-login__brand-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  color: #f8fafc;
+}
+
+.central-login__brand-role {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cl-accent);
+  line-height: 1.5;
+}
+
+.central-login__stage-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+/* Eyebrow: label kecil di atas judul. Bentuknya pill dengan titik menyala
+   di kiri -- titik itu yang menarik mata lebih dulu tanpa perlu ikon. */
+.central-login__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+  border-radius: var(--border-radius-full, 9999px);
+
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+
+  background: rgb(56 189 248 / 0.1);
+  border: 1px solid rgb(56 189 248 / 0.24);
+}
+
+/* Berdenyut pelan -- satu-satunya animasi yang berulang terus di halaman ini,
+   dan itu pun sangat lambat supaya tidak mengganggu. Dimatikan penuh di
+   blok `prefers-reduced-motion` paling bawah. */
+.central-login__eyebrow-dot {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 0 0 rgb(56 189 248 / 0.7);
+  animation: cl-pulse 2.6s ease-out infinite;
+}
+
+@keyframes cl-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(56 189 248 / 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 0.45rem rgb(56 189 248 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(56 189 248 / 0);
+  }
+}
+
+.central-login__headline {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.9rem, 2.7vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+  color: #f8fafc;
+  text-wrap: balance;
+  max-width: 15ch;
+}
+
+/* `em` dipakai untuk satu kata kunci saja. Gradien teksnya harus punya
+   `-webkit-text-fill-color: transparent`, kalau tidak warna gradiennya
+   ditimpa dan hasilnya teks biasa. */
+.central-login__headline em {
+  font-style: normal;
+  background: linear-gradient(120deg, #7dd3fc, #38bdf8 45%, #a5b4fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.central-login__lead {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: rgb(226 232 240 / 0.68);
+  max-width: 34rem;
+}
+
+/* Daftar kemampuan sebagai alur kerja: `<ol>` dengan rel garis di kiri
+   yang menyambung antar nomor. Penanda urutannya jadi terlihat tanpa perlu
+   kata "langkah", dan tiap item tidak lagi memakai kartu berbingkai yang
+   membuat kolom ini terasa penuh. */
+.central-login__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.central-login__step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+/* Rel vertikal di kiri kolom nomor. Height-nya dihitung dari posisi tengah
+   nomor ke titik tengah item berikutnya, jadi rel selalu menyambung ke
+   nomor di bawahnya -- dan otomatis ikut memendek kalau tinggi item
+   berubah (mis. teks membungkus di layar sempit). */
+.central-login__step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 0.65rem;
+  top: 1.6rem;
+  bottom: -0.9rem;
+  width: 1px;
+  background: linear-gradient(180deg, rgb(56 189 248 / 0.35), rgb(56 189 248 / 0.05));
+}
+
+.central-login__step-no {
+  position: relative;
+  flex-shrink: 0;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #7dd3fc;
+
+  background: rgb(14 165 233 / 0.14);
+  border: 1px solid rgb(56 189 248 / 0.3);
+}
+
+.central-login__step-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+.central-login__step-body strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.4;
+}
+
+.central-login__step-body small {
+  font-size: 0.71rem;
+  color: rgb(203 213 225 / 0.55);
+  line-height: 1.5;
+}
+
+.central-login__stage-foot {
+  position: relative;
+  flex-shrink: 0;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.central-login__stage-owner {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(226 232 240 / 0.55);
+}
+
+.central-login__stage-note {
+  margin: 0.2rem 0 0;
+  font-size: 0.68rem;
+  color: rgb(203 213 225 / 0.4);
+}
+
+/* ===== KOLOM KANAN: FORM =====
+   Permukaan putih SOLID -- tanpa blur, tanpa alpha. Ini yang membedakannya
+   dari versi lama: kolom ini adalah kertas, bukan kaca, jadi teks form punya
+   kontras penuh dan bisa dibaca tanpa usaha. */
+.central-login__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  padding: clamp(1.75rem, 3vw, 2.75rem);
+  padding-bottom: 1.5rem;
+  min-height: 0;
+  background: var(--cl-surface);
+}
+
+/* Judul form sengaja dibuat lebih kecil dari nama brand di seberang: yang
+   harus mendominasi halaman ini adalah "ASTALOKA", bukan "Masuk". */
+.central-login__panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+/* Chip "Superadmin" menggantikan kotak ikon terkunci + judul/subjudul yang
+   membuat judul form punya tiga tingkat hierarki dalam satu blok. Sekarang
+   ikon hilang dan status orang yang sedang masuk naik ke chip kecil, sementara
+   judul form turun ke satu tingkat teks biasa yang jelas. */
+.central-login__panel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  padding: 0.25rem 0.6rem 0.25rem 0.5rem;
+  border-radius: var(--border-radius-full, 9999px);
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cl-accent-dark);
+  background: var(--color-primary-light, #e0f2fe);
+}
+
+.central-login__panel-chip svg {
+  font-size: 0.68rem;
+}
+
+.central-login__panel-head h2 {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cl-text);
+  line-height: 1.25;
+}
+
+.central-login__panel-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--cl-muted);
+  line-height: 1.45;
+}
+
+/* Peringatan dipisah dari isian form karena maknanya berbeda: ini bukan
+   field yang gagal, tapi aturan main halaman ini. */
+.central-login__alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.7rem;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: #075985;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+
+.central-login__alert svg {
+  margin-top: 0.18rem;
+  flex-shrink: 0;
+  color: var(--cl-accent-dark);
+}
+
+.central-login__alert p {
+  margin: 0;
+}
+
+.central-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.central-login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.central-login__field label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-gray-700, #374151);
+}
+
+.central-login__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.central-login__control-icon {
+  position: absolute;
+  left: 0.95rem;
+  font-size: 0.85rem;
+  color: var(--color-gray-400, #94a3b8);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.central-login__control input {
+  width: 100%;
+  /* 16px, bukan 0.9rem: iOS Safari auto-membesarkan tampilan halaman saat
+     field difokuskan kalau font-size-nya di bawah 16px, dan tidak otomatis
+     kembali saat pindah ke field berikutnya. */
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--cl-text);
+  /* Padding kanan 3.3rem: ruang untuk tombol lihat-sandi (2.75rem) yang
+     menempel di `right: 0.45rem`. Totalnya ~3.2rem, jadi 3.3rem memberi
+     jarak aman agar teks -- terutama placeholder yang panjang --
+     tidak pernah tertutup tombol. */
+  padding: 0.8rem 3.3rem 0.8rem 2.7rem;
+  background: var(--color-gray-100, #f1f5f9);
+  border: 1.5px solid transparent;
+  border-radius: 0.85rem;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.central-login__control input::placeholder {
+  color: var(--color-gray-400, #94a3b8);
+}
+
+.central-login__control input:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--cl-accent);
+  box-shadow: 0 0 0 4px rgb(14 165 233 / 0.14);
+}
+
+/* Ikon ikut berubah warna saat field difokuskan, lewat `:focus-within` pada
+   induknya. Bukan `input:focus ~ .ikon`, karena ikon ada SEBELUM input di
+   DOM, dan `~` hanya mencocokkan saudara yang datang sesudahnya.
+   `.is-invalid` sengaja tidak ikut: status invalid punya warna sendiri dan
+   tidak boleh meniru warna fokus. */
+.central-login__control:focus-within .central-login__control-icon {
+  color: var(--cl-accent-dark);
+}
+
+.central-login__control:has(.is-invalid) .central-login__control-icon {
+  color: var(--color-danger, #ef4444);
+}
+
+.central-login__control input.is-invalid {
+  background: var(--color-red-50, #fee2e2);
+  border-color: var(--color-danger, #ef4444);
+}
+
+.central-login__control input.is-invalid:focus {
+  border-color: var(--color-danger, #ef4444);
+  box-shadow: 0 0 0 4px rgb(239 68 68 / 0.16);
+}
+
+.central-login__toggle {
+  position: absolute;
+  right: 0.45rem;
+
+  /* 44px, bukan 2rem (32px).
+
+     Area sentuhnya dibuat sebesar target minimum yang lazim dipakai
+     untuk jari, sementara ikon di dalamnya tetap kecil lewat
+     `font-size` pada elemennya. Menaikkan ukuran kotaknya saja TIDAK
+     menambah tinggi field, karena tinggi baris ditentukan oleh input;
+     tombolnya diposisikan `absolute` di dalam `.control`, yang
+     ukurannya sudah pasti oleh input itu.
+
+     2rem sebelumnya menghasilkan kotak 32px, yang di layar sentuh
+     sering tertangkap elemen di sebelahnya -- bukan tombolnya. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  border-radius: 0.65rem;
+  cursor: pointer;
+  color: var(--color-gray-400, #94a3b8);
+  background: transparent;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+/* Ikonnya dikecilkan sedikit supaya tetap proporsional terhadap
+   kotak yang sekarang jauh lebih besar dari ikon itu sendiri. */
+.central-login__toggle svg {
+  font-size: 0.8rem;
+}
+
+.central-login__toggle:hover {
+  color: var(--color-gray-700, #374151);
+  background: rgb(148 163 184 / 0.15);
+}
+
+.central-login__toggle:focus-visible {
+  outline: 2px solid var(--cl-accent);
+  outline-offset: -2px;
+}
+
+.central-login__error {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-red-800, #991b1b);
+}
+
+/* "Ingat saya" -> label penuh, bukan checkbox telanjang di sebelah label.
+   Label yang bisa diklik seluruhnya menambah area sentuh, dan baris
+   "Ingat saya / Jangan minta kata sandi lagi di perangkat ini" jadi
+   satu blok yang jelas terpisah dari kedua field. */
+.central-login__remember {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 0.1rem;
+}
+
+.central-login__remember input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Kotak centang digambar sendiri (bukan `appearance: none` di input asli)
+   supaya bisa diberi style yang sama persis di semua browser, dan supaya
+   input aslinya -- yang tetap bisa difokus dan dibaca screen reader --
+   tidak pernah jadi elemen yang tak terlihat total. */
+.central-login__remember-box {
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.05rem;
+  border-radius: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  background: #fff;
+  border: 1.5px solid var(--color-gray-300, #cbd5e1);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.central-login__remember-box svg {
+  font-size: 0.6rem;
+}
+
+/* `:checked + .box` harus menyasar-will check Sesudah input Asli. Karena
+   input-nya `position: absolute` tapi tetap di dalam label, urutan DOM-nya
+   tidak berubah: `~` masih aman dipakai. */
+.central-login__remember input:checked + .central-login__remember-box {
+  color: #fff;
+  background: var(--cl-accent);
+  border-color: var(--cl-accent);
+}
+
+/* Fokus keyboard pada input asli dipindahkan ke kotak centang yang terlihat.
+   Input-nya sendiri disembunyikan, jadi tanpa ini tidak ada apa pun yang
+   menunjukkan posisi fokus saat user menekan Tab. */
+.central-login__remember input:focus-visible + .central-login__remember-box {
+  outline: 2px solid var(--cl-accent);
+  outline-offset: 2px;
+}
+
+.central-login__remember:hover .central-login__remember-box {
+  border-color: var(--cl-accent);
+}
+
+.central-login__remember-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.central-login__remember-text strong {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--cl-text);
+  line-height: 1.35;
+}
+
+.central-login__remember-text small {
+  font-size: 0.68rem;
+  color: var(--color-gray-400, #94a3b8);
+  line-height: 1.45;
+}
+
+.central-login__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+  padding: 0.9rem 1.25rem;
+
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff;
+
+  border: none;
+  border-radius: 0.85rem;
+  cursor: pointer;
+
+  background: linear-gradient(135deg, var(--cl-accent-dark), var(--cl-accent));
+  box-shadow: 0 14px 28px -12px rgb(14 165 233 / 0.85);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.central-login__submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 18px 34px -12px rgb(14 165 233 / 0.95);
+}
+
+.central-login__submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.central-login__submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.central-login__spinner {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.35);
+  border-top-color: #fff;
+  animation: cl-spin 0.65s linear infinite;
+}
+
+@keyframes cl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.central-login__hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: -0.2rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.55;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+.central-login__hint svg {
+  margin-top: 0.18rem;
+  flex-shrink: 0;
+}
+
+/* `margin-top: auto` -> footer menempel ke bawah panel, jadi kolom kanan
+   tetap setinggi kolom kirinya tanpa perlu `align-items: stretch` manual.
+
+   Isinya cuma baris copyright sekarang, tapi aturan ini tetap dipakai. */
+.central-login__footer {
+  margin-top: auto;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--color-gray-200, #e5e7eb);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+/* "Kembali ke halaman depan" -- sekarang jadi CHIP BERWARNA di baris brand,
+   kolom gelap, sebelah kanan "ASTALOKA / Panel Pusat".
+
+   |-- Kenapa pindah ke kolom gelap
+
+   Dua posisi sebelumnya sama-sama salah, dan bukan karena kalimatnya. Di bawah
+   tombol "Masuk" jaraknya cuma beberapa piksel, jadi keduanya terbaca sebagai
+   dua tombol dalam satu grup -- dan yang bawah terlihat seperti tombol kedua
+   dari form, padahal isinya justru jalan MEMBALIK. Dipindah ke atas form,
+   teksnya jadi terlalu dekat dengan judul "Masuk ke Panel Pusat": satu baris
+   di atas yang lain, dua-duanya perintah, dan arahnya berlawanan.
+
+   Di sebelah brand, penandanya bukan jarak melainkan PERMUKAAN: panel putih
+   berisi kredensial ada di sebelah kanan, jadi menghadap ke kotak gelap
+   sudah jelas berarti keluar dari halaman ini.
+
+   |-- Kenapa berwarna
+
+   Permintaan eksplisit: link ini diberi warna dan dibuat modern. Yang menjaga
+   hierarki tetap aman justru PERMUKAAN di belakang tombolnya, bukan warnanya
+   sendiri: tombol "Masuk" duduk di atas putih dan berwarna biru pekat,
+   sedangkan chip ini duduk di atas gelap dan memakai warna yang menyatu ke
+   dalam gelap itu. Kontrasnya jelas lebih rendah, jadi mata tetap berhenti di
+   tombol masuk -- tapi chip ini tidak lagi terbaca seperti teks yang tidak
+   sengaja tertinggal di sana.
+
+   |-- Kenapa gradasinya di pseudo-element
+
+   Border gradien butuh dua lapis: `background` untuk warna gradasi, lalu
+   `mask` untuk memotongnya jadi hanya sisi tepi. Kalau `border` sungguhan
+   dipakai, warna background dan warna border tidak bisa sama-sama bergradien.
+   Karena itu gradasi ditaruh di `::before` (lihat blok di bawah) dengan
+   `padding` 1px pada elemennya: area gradasi yang lebih besar dari teks,
+   dikurangi tepat di pinggirannya sampai tersisa cincin setebal 1px. */
+.central-login__switch {
+  /* `margin-left: auto` yang mengalahkannya ke kanan, bukan `align-self`:
+     `.brand` adalah flex ROW, jadi `align-self` hanya bergerak di sumbu
+     vertikal. Dan bukan `gap`: `.brand` sudah punya gap sendiri, menambah
+     anak ketiga tanpa margin akan membagi jarak sama rata dan mendorong brand
+     menjauh dari tepi kiri. */
+  margin-left: auto;
+  flex-shrink: 0;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--border-radius-full, 9999px);
+
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #e0f2fe;
+  text-decoration: none;
+  isolation: isolate;
+
+  /* Lapisan dalam: biru transparan di atas gradasi tepi. */
+  background: rgb(14 165 233 / 0.12);
+
+  transition:
+    color 0.25s ease,
+    background 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gradasi tepi. `inset: 0` + `z-index: -1` + `isolation: isolate` di induknya
+   menaruhnya tepat di belakang teks -- tanpa `-1` gradasinya akan menutupi teks
+   itu sendiri. */
+.central-login__switch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+
+  background: linear-gradient(
+    120deg,
+    rgb(125 211 252 / 0.85),
+    rgb(56 189 248 / 0.25) 55%,
+    rgb(165 180 252 / 0.6)
+  );
+
+  /* Potong gradasi ini jadi hanya cincin 1px di sekeliling pinggiran. */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+
+  transition: background 0.25s ease;
+}
+
+/* Kilau tipis yang melintas saat hover. Sengaja tipis dan hanya sekali jalan,
+   bukan berulang: halaman ini sudah punya titik eyebrow yang berdenyut tanpa
+   henti, jadi animasi yang terus-menerus di sini hanya menambah satu sumber
+   gangguan tanpa menambah informasi. */
+.central-login__switch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.18) 48%,
+    transparent 66%
+  );
+  transform: translateX(-60%);
+  transition:
+    opacity 0.25s ease,
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.central-login__switch svg {
+  font-size: 0.7rem;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.central-login__switch:hover {
+  color: #fff;
+  background: rgb(14 165 233 / 0.26);
+  transform: translateY(-2px);
+}
+
+.central-login__switch:hover::before {
+  background: linear-gradient(120deg, #7dd3fc, rgb(56 189 248 / 0.55) 55%, #a5b4fc);
+}
+
+.central-login__switch:hover::after {
+  opacity: 1;
+  transform: translateX(60%);
+}
+
+/* Ikon panah ikut mundur saat hover -- gerakan kecil itu menegaskan arah
+   "kembali", dan arahnya berlawanan dengan tombol submit yang panahnya maju. */
+.central-login__switch:hover svg {
+  transform: translateX(-4px);
+}
+
+/* Keyboard user harus tetap bisa melihat fokus pada link kembali ke halaman
+   depan. Chrome/Firefox memang memberi outline default pada <a>, tapi
+   `transition` warna di atas tidak menimpanya -- ditegaskan ulang di sini
+   supaya tidak pernah hilang. */
+.central-login__switch:focus-visible {
+  outline: 2px solid var(--cl-accent);
+  outline-offset: 3px;
+}
+
+.central-login__legal {
+  margin: 0;
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+/* ===== RESPONSIF: LEBAR ===== */
+
+/* Di bawah breakpoint ini dua kolom tidak mungkin muat: headline jadi sempit
+   + form ikut sempit. Menumpuk lebih baik daripada menyusut.
+
+   Di sinilah halaman DILETAKAN untuk boleh scroll. Konten menumpuk dua kolom
+   dengan tinggi pasti melebihi layar, jadi `overflow: hidden` harus dilepas --
+   kalau tidak, bagian bawah form (tombol & footer) akan terpotong dan tidak
+   bisa dijangkau sama sekali.
+
+   Tapi arti "menumpuk" berubah total di satu kolom. Di layar sempit, panel
+   gelap dan panel putih tidak lagi berdampingan -- keduanya jadi blok
+   berurutan di atas form, dan yang penting dari hitungan itu adalah FORM-nya.
+   Karena itu panggung gelap dipangkas drastis: hanya brand, headline, dan
+   satu kalimat -- daftar langkah, catatan kaki panggung, dan cincin orbit
+   semuanya hilang. Kalau tidak, user harus menggulir melewati 400px halaman
+   sebelum sempat menyentuh field pertama.
+
+   `height: auto` + `min-height: 100dvh` + `overflow-y: auto` di bawah ini
+   adalah jaring pengaman yang CABANG INI TIDAK PUNYA. Cabang dua kolom tetap
+   `height` tetap + `overflow: hidden`, jadi andalkan yang di bawah. */
+@media (max-width: 62rem) {
+  .central-login {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    align-items: flex-start;
+
+    /* `overflow-y: auto` + `overflow-x: hidden`, bukan `overflow: auto`.
+
+       Mesh dan sinar diagonal sengaja meluber keluar tepi halaman, dan
+       `scrollWidth` ikut menghitung mereka. Dengan `overflow: auto` di
+       kedua sumbu, area itu jadi area yang bisa digeser sideways: yang
+       sedang membaca bisa tanpa sengaja menggeser halaman dan sampai
+       ke ruang gelap di luar halaman -- layar kosong yang tidak ada
+       isinya, dan tidak ada tombol apa pun untuk kembali ke form.
+
+       `overflow-x: hidden` menutup sumbu itu, sementara sumbu vertikal
+       tetap bisa di-scroll seperti sebelumnya. */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .central-login__shell {
+    grid-template-columns: 1fr;
+    max-width: 32rem;
+    max-height: none;
+    margin: 0 auto;
+  }
+
+  .central-login__stage {
+    border-right: none;
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+    gap: 1.1rem;
+    padding: 1.9rem 1.75rem;
+  }
+
+  /* Panggung jadi blok pembuka, bukan kolom informasi: isinya dipusatkan
+     dan kompres ke essentials supaya form tetap bisa dijangkau tanpa
+     menggulir jauh. */
+  .central-login__stage-body {
+    flex: none;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+
+  .central-login__orbit,
+  .central-login__steps,
+  .central-login__stage-foot {
+    display: none;
+  }
+
+  .central-login__lead {
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  /* Di satu kolom, brand dan link "Kembali" berebut satu baris yang
+     pendeknya. Teksnya disembunyikan, tapi label yang benar-BENAR hilang
+     tidak: `title` di elemennya tetap ada, jadi hover/tahan lama di HP
+     masih menjelaskan apa isi link itu.
+
+     Ikon panah sendirian memang ambigu -- panah yang sama dipakai "back"
+     maupun "tutup", dan ini halaman yang isinya form kredensial, jadi
+     tidak boleh ada tombol yang maknanya nebak. Square 44px tetap, jauh
+     di atas target minimum 24px untuk jari. */
+  .central-login__switch {
+    padding: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    justify-content: center;
+    font-size: 0.7rem;
+  }
+
+  .central-login__switch span {
+    display: none;
+  }
+
+  .central-login__panel {
+    padding: 1.9rem 1.75rem 1.5rem;
+    gap: 1.15rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .central-login {
+    padding: 0.6rem;
+  }
+
+  .central-login__shell {
+    border-radius: 1.15rem;
+  }
+
+  .central-login__stage {
+    padding: 1.5rem 1.15rem;
+  }
+
+  .central-login__panel {
+    padding: 1.5rem 1.15rem 1.15rem;
+  }
+
+  .central-login__headline {
+    font-size: 1.7rem;
+  }
+
+  .central-login__panel-head h2 {
+    font-size: 1.3rem;
+  }
+}
+
+/* ===== RESPONSIF: TINGGI (yang benar-benar mencegah scroll) =====
+|
+| Syaratnya dua: susunan masih dua kolom (lebar >= 62rem), DAN tinggi layar
+| masih cukup untuk memuat semua isi. Media query di bawah ini sengaja hanya
+| berisi `max-height` -- bukan `width` -- supaya tidak menimpa aturan lebar
+| di atas. Kalau keduanya aktif bersamaan (laptop kecil), aturan lebar yang
+| menumpuk kolomnya tetap menang, dan halaman pun tetap boleh scroll.
+|
+| Empat tahap, dari yang paling tidak merusak:
+|   1. 56.25rem (900px) -- rapatkan jarak & padding, perkecil judul.
+|   2. 50rem   (800px) -- hilangkan keterangan langkah, rapatkan form.
+|   3. 43.75rem (700px) -- hilangkan deskripsi & pengesan panggung.
+|   4. 37.5rem  (600px) -- ringkas langkah jadi baris nomor saja.
+*/
+
+@media (min-width: 62rem) and (max-height: 56.25rem) {
+  .central-login {
+    padding: 1.25rem;
+  }
+
+  .central-login__stage,
+  .central-login__panel {
+    gap: 1.15rem;
+    padding: 2rem 2.25rem;
+  }
+
+  .central-login__headline {
+    font-size: 2rem;
+  }
+
+  .central-login__lead {
+    font-size: 0.83rem;
+    line-height: 1.6;
+  }
+
+  .central-login__steps {
+    gap: 0.75rem;
+  }
+
+  .central-login__mark {
+    width: 2.3rem;
+    height: 2.3rem;
+  }
+
+  .central-login__panel-head h2 {
+    font-size: 1.3rem;
+  }
+
+  .central-login__panel-sub {
+    font-size: 0.78rem;
+  }
+}
+
+@media (min-width: 62rem) and (max-height: 50rem) {
+  .central-login {
+    padding: 1rem;
+  }
+
+  .central-login__stage,
+  .central-login__panel {
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+  }
+
+  .central-login__headline {
+    font-size: 1.7rem;
+  }
+
+  /* Paragraf penjelasan dihilangkan supaya muat, dan daftar langkah naik ke
+     bawah headline -- jaraknya ikut dikecilkan karena sekarang keduanya
+     berdekatan. */
+  .central-login__lead {
+    display: none;
+  }
+
+  .central-login__stage-body {
+    gap: 1.1rem;
+  }
+
+  /* Keterangan tiap langkah disembunyikan; nomor + judul sudah cukup untuk
+     menunjukkan urutan, dan baris paling panjang di kolom ini justru
+     keterangan itu. */
+  .central-login__step-body small {
+    display: none;
+  }
+
+  .central-login__steps {
+    gap: 0.6rem;
+  }
+
+  .central-login__form {
+    gap: 0.85rem;
+  }
+
+  .central-login__control input {
+    padding: 0.7rem 3.3rem 0.7rem 2.7rem;
+  }
+
+  .central-login__submit {
+    padding: 0.8rem 1.25rem;
+  }
+
+  .central-login__alert {
+    padding: 0.6rem 0.75rem;
+    line-height: 1.5;
+  }
+
+  .central-login__remember-text small {
+    display: none;
+  }
+
+  .central-login__hint {
+    display: none;
+  }
+}
+
+@media (min-width: 62rem) and (max-height: 43.75rem) {
+  .central-login__stage,
+  .central-login__panel {
+    gap: 0.8rem;
+    padding: 1.15rem 1.75rem;
+  }
+
+  .central-login__headline {
+    font-size: 1.5rem;
+  }
+
+  /* Pengesan panggung (nama perusahaan + catatan audit) hilang: kredensial
+     yang ada di form sudah secara jelas menyatakan bahwa ini halaman pusat, jadi
+     baris audit cukup hidup sebagai catatan di bawah tombol. */
+  .central-login__stage-foot {
+    display: none;
+  }
+
+  /* Footer disembunyikan utUH, bukan cuma isinya.
+
+     Dulu footer masih menyisakan tombol "Kembali" saat copyright disembunyikan,
+     jadi yang tersisa di dalamnya masih bermakna. Sekarang satu-satunya isi
+     footer adalah copyright itu sendiri -- menyembunyikan hanya `.legal`
+     akan menyisakan garis `border-top` dan padding tanpa isi, yaitu garis
+     yang menggantung tanpa menjelaskan apa pun. */
+  .central-login__footer {
+    display: none;
+  }
+}
+
+@media (min-width: 62rem) and (max-height: 37.5rem) {
+  .central-login__stage,
+  .central-login__panel {
+    padding: 0.95rem 1.6rem;
+  }
+
+  /* Ketiga langkah diringkas jadi nomor saja dalam satu baris. Semuanya
+     cuma pengingat alur kerja, bukan informasi yang harus dibaca ulang
+     tiap kali login. */
+  .central-login__steps {
+    flex-direction: row;
+    gap: 0.35rem;
+  }
+
+  .central-login__step {
+    flex: 1;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .central-login__step::before {
+    display: none;
+  }
+
+  .central-login__step-body {
+    display: none;
+  }
+
+  .central-login__brand-name {
+    font-size: 1.15rem;
+  }
+}
+
+/* Hormati preferensi pengguna yang Sensitive Animation-nya dimatikan --
+   di halaman ini ada blur, mesh, tombol yang terangkat, dan titik eyebrow
+   yang berdenyut tanpa henti. Yang looping harus berhenti duluan; animasi
+   sekali jalan selesai sendiri dan tidak membakar apa pun. */
+@media (prefers-reduced-motion: reduce) {
+  .central-login__shell,
+  .central-login__spinner,
+  .central-login__eyebrow-dot {
+    animation: none;
+  }
+
+  .central-login__submit:hover:not(:disabled),
+  .central-login__switch,
+  .central-login__switch::before,
+  .central-login__switch::after,
+  .central-login__switch svg,
+  .central-login__remember-box,
+  .central-login__control input {
+    transition: none;
+  }
+
+  .central-login__submit:hover:not(:disabled) {
+    transform: none;
+  }
+
+  /* Kilau melintas di chip "Kembali" ikut dimatikan, dan chip-nya sendiri
+     tidak lagi terangkat. Tanpa ini, `transition: none` membuat kilau
+     yang tadinya halus tiba-tiba melompat ke posisi akhir dalam satu
+     frame -- lebih bothersome daripada animasinya sendiri. */
+  .central-login__switch:hover {
+    transform: none;
+  }
+
+  .central-login__switch:hover svg {
+    transform: none;
+  }
+
+  .central-login__switch:hover::after {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+}

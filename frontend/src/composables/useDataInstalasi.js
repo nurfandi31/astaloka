@@ -102,7 +102,7 @@ export function useDataInstalasi() {
       } else {
         tableData.value = []
       }
-    } catch (err) {
+    } catch {
       Swal.fire({
         title: 'Gagal!',
         text: 'Tidak dapat mengambil data instalasi.',
@@ -242,7 +242,7 @@ export function useDataInstalasi() {
         monthly_abodemen: Number(p.monthly_abodemen ?? 0),
         late_penalty: Number(p.late_penalty ?? 0),
       }))
-    } catch (err) {
+    } catch {
       Swal.fire({
         title: 'Gagal!',
         text: 'Tidak dapat memuat daftar paket.',
@@ -420,7 +420,7 @@ export function useDataInstalasi() {
       showCancelButton: true,
       confirmButtonText: '<i class="swal-btn-icon"></i> Ya, Ubah Paket',
       cancelButtonText: 'Batal',
-      confirmButtonColor: '#0891b2',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
       buttonsStyling: true,
       customClass: {
         popup: 'swal-popup-modern',

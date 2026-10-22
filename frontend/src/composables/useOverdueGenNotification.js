@@ -7,38 +7,60 @@ import { useUiStore } from '@/stores/uiStore'
 /**
  * Composable untuk menampilkan pop up Generate Piutang Tunggakan.
  *
- * PEMICUNYA HANYA SATU: `LoginView.vue`, tepat setelah `router.push()`.
+ * GENERATE JALAN DI BACKEND, BUKAN DI SINI
+ * -----------------------------------------
  *
- * Dulu ada pemicu kedua di `DashboardHome.vue` (`onMounted`). Itu dihapus
- * karena `onMounted` berjalan SETIAP KALI komponen di-mount, sehingga
- * memetik menu Dashboard — atau kembali ke dashboard dari halaman lain —
- * ikut menjalankan generate. Yang diminta adalah generate jalan setiap kali
- * login BERHASIL, bukan setiap kali dashboard dibuka.
+ * `POST /api/login` memanggil `ReceivableGenerator::runIfDue()` dan
+ * mengembalikan hasilnya di `data.piutang_tunggakan`. Composable ini tidak
+ * lagi mengirim request generate; tugasnya hanya menampilkan hasil itu.
  *
- * Efek samping yang sama berlaku untuk me-refresh halaman: dashboard yang
- * di-refresh tidak lagi memicu apa pun, karena tidak ada login yang terjadi.
+ * Kenapa pemicunya pindah ke backend:
  *
- * Yang tersisa: lock `inFlight` di level modul, sebagai jaring pengaman
- * kalau `LoginView` somehow terpanggil dua kali berdekatan.
+ *   1. Dulu generate dipicu di sini, setelah login sukses. Kalau user menutup
+ *      tab sebelum request terkirim, atau network putus setelah login
+ *      berhasil, tagihan menunggak tidak pernah dijurnalkan sama sekali --
+ *      tanpa error dan tanpa log.
+ *
+ *   2. Gate-nya `hari ini == tanggal generate`. Kalau tidak ada staff yang
+ *      login pada TANGGAL TEPAT itu, generate tidak pernah jalan untuk bulan
+ *      itu. Tidak ada yang gagal, tidak ada yang menyadarinya. `monthly_bills`
+ *      tetap `unpaid`, tapi akun Piutang Usaha `1.1.03.01` tidak pernah ditambah,
+ *      sehingga Neraca dan daftar tagihan jadi dua sumber kebenaran yang
+ *      berbeda.
+ *
+ *   3. Gate `===` membuat tanggal 29, 30, dan 31 tidak pernah bisa menjadi
+ *      tanggal generate.
+ *
+ * Pemicunya sekarang `day >= tanggal generate`, di backend. Tanggal yang
+ * terlewat tetap tertangani: begitu tanggalnya lewat, generate tetap boleh
+ * jalan, dan hasilnya sama apakah dijalankan pagi atau malam.
+ *
+ * Yang tersisa di sini:
+ *   - Normalisasi bentuk ringkasan (`jurnal_*` dari backend vs
+ *     `tagihan_dengan_*_tungakan` dari endpoint dashboard).
+ *   - Render popup SweetAlert2.
+ *   - Lock `inFlight` di level modul, sebagai jaring pengaman kalau
+ *     `LoginView` terpanggil dua kali berdekatan.
  *
  * Aturan pemicu (sesuai SOP Personalisasi / Toleransi Menunggak):
  *   - Field `toleransiTunggakan` di settings SOP adalah TANGGAL (1-28).
- *   - Jika hari ini == tanggal tersebut, backend menjalankan ulang command
- *     `billing:generate-overdue-transactions` (membuat jurnal piutang,
- *     abodemen, dan denda untuk tagihan menunggak).
+ *   - Bila tanggal hari ini sudah lewat atau sama dengan tanggal itu,
+ *     backend menjalankan `billing:generate-overdue-transactions` saat login
+ *     (membuat jurnal piutang abodemen, pemakaian, dan denda).
+ *   - Pada tanggal tersebut, proses hanya boleh jalan sekali: mutex per tanggal
+ *     generate. Duplikasi dicegah berlapis di dalam command lewat pasangan
+ *     `reverence_id|account_kredit`.
  *   - Selama proses berjalan, modal loading tampil tanpa tombol apa pun.
  *   - Setelah selesai, hasil ditampilkan via SweetAlert2 lengkap dengan
  *     tombol "Tutup" / "Lihat Arsip Tunggakan".
- *   - Tidak ada lagi gate "sudah pernah jalan hari ini" di frontend maupun
- *     backend: setiap login pada tanggal tersebut menghitung ulang.
- *     Duplikasi dicegah di level transaksi oleh command backend.
  *
  * Cara pakai di komponen:
  *   const { checkOverdueGenOnMount } = useOverdueGenNotification()
  *   // panggil dari handleLogin(), BUKAN dari onMounted dashboard
+ *   checkOverdueGenOnMount(res.data.piutang_tunggakan)
  *
  * Nama fungsi masih `...OnMounted` walau dipanggil di dalam `handleLogin()`
- * — mengubah nama hanya menambah diff tanpa manfaat.
+ * - mengubah nama hanya menambah diff tanpa manfaat.
  */
 
 // ── State bersama antar instance composable ──────────────────
@@ -142,12 +164,49 @@ export function useOverdueGenNotification() {
    * yang sama tetap ditampilkan supaya semua admin tahu hasilnya).
    */
   const showOverdueGenResult = (data) => {
-    const summary = data?.summary || {}
+    /*
+     * Dua bentuk input, satu bentuk output.
+     *
+     * Bentuk A -- hasil dari `POST /api/login` (`data.piutang_tunggakan`):
+     *   { ran, reason, summary: { processed, skipped, jurnal_abodemen,
+     *                             jurnal_pemakaian, jurnal_denda,
+     *                             total_unpaid, total_overdue, ... } }
+     *
+     * Bentuk B -- hasil dari `POST /dashboard/auto-generate-overdue`:
+     *   { success, ran, scheduled_day, today_day, date, duration_ms, exit_code,
+     *     summary: { tagihan_dengan_abodemen_tungakan, ... } }
+     *
+     * Keduanya dinormalkan di sini supaya seluruh baris render di bawah
+     * hanya boleh membaca SATU bentuk. Tanpa ini, setiap angka di popup harus
+     * tahu dari request mana dia berasal, dan penambahan angka baru hanya
+     * bekerja di salah satu jalur.
+     */
+    const raw = data?.summary || {}
+    const dariLogin = data?.summary !== undefined && data?.exit_code === undefined
+
+    const summary = dariLogin
+      ? {
+          // `jurnal_*` adalah jumlah BARIS JURNAL yang ditulis loop di backend,
+          // jadi angkanya nyata -- bukan hasil query ulang yang bisa nol
+          // palsu saat proses dijalankan dua kali.
+          tagihan_dengan_abodemen_tungakan: Number(raw.jurnal_abodemen) || 0,
+          tagihan_dengan_pemakaian_tungakan: Number(raw.jurnal_pemakaian) || 0,
+          tagihan_dengan_denda_tungakan: Number(raw.jurnal_denda) || 0,
+          total_unpaid: Number(raw.total_unpaid) || 0,
+          total_overdue: Number(raw.total_overdue) || 0,
+          tagihan_diproses: Number(raw.processed) || 0,
+          tagihan_dilewati: Number(raw.skipped) || 0,
+        }
+      : raw
+
     const abodemenCount = Number(summary.tagihan_dengan_abodemen_tungakan) || 0
     const pemakaianCount = Number(summary.tagihan_dengan_pemakaian_tungakan) || 0
+    const dendaCount = Number(summary.tagihan_dengan_denda_tungakan) || 0
     const totalOverdue = Number(summary.total_overdue) || 0
     const totalUnpaid = Number(summary.total_unpaid) || 0
     const alreadyRan = data?.already_ran === true
+    const scheduledDay = data?.scheduled_day ?? data?.summary?.scheduled_day ?? '-'
+    const tanggalProses = data?.date ?? data?.summary?.date ?? '-'
 
     // Angka ini dikirim backend langsung dari loop pemrosesan
     // (`processed`), jadi tidak pernah nol palsu seperti hasil query
@@ -159,15 +218,15 @@ export function useOverdueGenNotification() {
         : Math.max(abodemenCount, pemakaianCount)
     const dilewati = Number(summary.tagihan_dilewati) || 0
     const tagihanDiproses = diproses
-    const isSuccess = data?.exit_code === 0
+    const isSuccess = data?.exit_code === 0 || data?.ran === true
 
     const html = `
         <div class="text-left! text-sm! leading-relaxed!">
           <p class="mb-3! text-slate-600!">
                 Sesuai pengaturan <strong class="text-slate-800!">Toleransi Menunggak</strong>
-                (tanggal <strong>${data?.scheduled_day ?? '-'}</strong>), sistem
+                (tanggal <strong>${scheduledDay}</strong>), sistem
                 ${alreadyRan ? 'sudah' : 'telah'} menjalankan generate piutang untuk
-                tagihan menunggak hari ini (<strong>${data?.date ?? '-'}</strong>).
+                tagihan menunggak hari ini (<strong>${tanggalProses}</strong>).
             </p>
 
             <div class="overdue-stat-grid">
@@ -193,6 +252,14 @@ export function useOverdueGenNotification() {
                 <span class="font-bold!">${pemakaianCount}</span>
               </div>
               ${
+                dendaCount > 0
+                  ? `<div class="flex! items-center! justify-between! overdue-legend-row">
+                <span><span class="font-mono! font-bold! text-rose-600!">1.1.03.01</span> → <span class="font-mono! font-bold! text-emerald-600!">4.1.01.04</span> (Denda)</span>
+                <span class="font-bold!">${dendaCount}</span>
+              </div>`
+                  : ''
+              }
+              ${
                 dilewati > 0
                   ? `<div class="flex! items-center! justify-between! overdue-legend-row">
                 <span class="text-slate-500!">Dilewati (sudah ada jurnal)</span>
@@ -200,10 +267,14 @@ export function useOverdueGenNotification() {
               </div>`
                   : ''
               }
-              <div class="flex! items-center! justify-between! overdue-legend-row pt-1! border-t! border-slate-200/60! mt-1!">
+              ${
+                data?.duration_ms !== undefined
+                  ? `<div class="flex! items-center! justify-between! overdue-legend-row pt-1! border-t! border-slate-200/60! mt-1!">
                 <span class="text-slate-500!">Durasi proses</span>
-                <span class="font-bold!">${data?.duration_ms ?? 0} ms</span>
-              </div>
+                <span class="font-bold!">${data.duration_ms} ms</span>
+              </div>`
+                  : ''
+              }
             </div>
 
             ${
@@ -217,8 +288,10 @@ export function useOverdueGenNotification() {
                     }.
                   </p>`
                 : `<p class="mt-3! text-xs! italic! text-slate-500!">
-                    Jurnal piutang telah otomatis masuk ke transaksi <strong>abodemen</strong>
-                    dan <strong>denda</strong>.
+                    Jurnal piutang telah otomatis masuk ke transaksi
+                    <strong>abodemen</strong>, <strong>pemakaian</strong>${
+                      dendaCount > 0 ? ', dan <strong>denda</strong>' : ''
+                    }.
                   </p>`
             }
         </div>
@@ -232,7 +305,7 @@ export function useOverdueGenNotification() {
       html,
       width: 560,
       confirmButtonText: 'Tutup',
-      confirmButtonColor: '#0EA5E9',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
       // Hanya admin yang boleh membuka halaman /app/arsip/tunggakan
       // (lihat router/index.js role-specific routes). Tombol ini
       // ditampilkan hanya untuk admin supaya teknisi tidak dialihkan
@@ -347,7 +420,7 @@ export function useOverdueGenNotification() {
    * berbeda. Tidak ada data ganda karena command melewati tagihan yang sudah
    * punya jurnal `overdue_bill`.
    */
-  const checkOverdueGenOnMount = async () => {
+  const checkOverdueGenOnMount = async (ringkasanDariLogin = null) => {
     // Hanya ADMIN yang menjalankan generate piutang (lihat
     // `DashboardController::autoGenerateOverdue`, yang membalas 403 untuk
     // selain admin).
@@ -360,6 +433,34 @@ export function useOverdueGenNotification() {
     // Dihentikan SEBELUM request apa pun dikirim, jadi teknisi benar-benar
     // melihat tidak ada popup dan tidak membuang satu request sia-sia.
     if (uiStore.userRole !== 'admin') return
+
+    /*
+     * Backend sudah menjalankan generate saat login.
+     *
+     * `POST /api/login` memanggil `ReceivableGenerator::runIfDue()` di
+     * backend dan mengembalikan hasilnya di `data.piutang_tunggakan`. Jadi
+     * kalau frontend ALSO memanggil endpoint generate, itu menjalankan
+     * pekerjaan yang sama dua kali -- bukan hanya satu request sia-sia,
+     * tapi agregasi ulang tabel `amount` di atas puluhan ribu baris
+     * `transactions` yang baru saja ditulis.
+     *
+     * Yang ditampilkan di sini adalah hasil yang benar-benar berasal dari
+     * loop yang membuat jurnal, bukan hitungan ulang dari query jurnal
+     * bertanggal hari ini (yang selalu nol saat proses diulang).
+     *
+     * `ran === false` di sini TIDAK berarti gagal. Artinya "belum waktunya"
+     * atau "sudah dijalankan hari ini" -- keduanya kondisi normal yang
+     * tidak perlu popup apa pun.
+     */
+    if (ringkasanDariLogin) {
+      lastResult.value = ringkasanDariLogin
+
+      if (ringkasanDariLogin.ran === true) {
+        showOverdueGenResult(ringkasanDariLogin)
+      }
+
+      return
+    }
 
     // Kalau proses di tab ini masih jalan, jangan jalankan dua kali. Ini
     // HANYA mencegah double-trigger di tab yang sama (mis. `router.push`

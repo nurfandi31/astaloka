@@ -179,7 +179,7 @@ export const useBillingStore = defineStore('billing', () => {
           }
         })
       }
-    } catch (err) {
+    } catch {
       error.value = 'Gagal memuat data billing'
     } finally {
       loading.value = false
@@ -370,7 +370,7 @@ export const useBillingStore = defineStore('billing', () => {
       } else {
         searchResults.value = []
       }
-    } catch (err) {
+    } catch {
       searchResults.value = []
     }
   }

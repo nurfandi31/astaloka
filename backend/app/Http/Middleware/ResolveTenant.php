@@ -50,6 +50,29 @@ class ResolveTenant
     private const CENTRAL_PREFIX = 'api/central';
 
     /**
+     * Prefix path yang SELALU dilayani database pusat, bukan database lokasi.
+     *
+     * SENGAJA KOSONG.
+     *
+     * Dulu `api/login-user` ada di sini, dengan alasan halaman pintasan
+     * menampilkan user dari SELURUH lokasi sehingga harusnya membaca registry
+     * pusat. Alasannya sudah tidak berlaku: `ShortcutLoginController` sekarang
+     * hanya membaca lokasi yang sedang melayani request
+     * (`TenantManager::current()`), jadi jawabannya justru data milik lokasi
+     * itu sendiri -- bukan data lokasi lain.
+     *
+     * Kalau path ini tetap dipaksa ke database pusat, daftar user yang tampil
+     * akan dibaca dari database yang salah, dan endpoint itu kembali berbohong
+     * soal lokasi mana yang sedang dilayani.
+     *
+     * Daftar ini dibiarkan ada (meski kosong) supaya penambahan path pusat
+     * berikutnya tetap punya tempat, dan supaya `isCentralPath()` tidak
+     * harus ditulis ulang.
+     */
+    private const CENTRAL_PATHS = [
+    ];
+
+    /**
      * Endpoint tagihan milik USER LOKASI, bukan pusat.
      *
      * Harus dikecualikan dari CENTRAL_PREFIX. Tanpa ini, user lokasi yang
@@ -69,23 +92,75 @@ class ResolveTenant
     {
         $path = $request->path();
 
-        if ($this->isCentralPath($path)) {
-            Config::set('database.default', (string) config('tenancy.central_connection', 'central'));
+        $defaultSebelum = (string) Config::get('database.default');
+
+        try {
+            if ($this->isCentralPath($path)) {
+                Config::set('database.default', (string) config('tenancy.central_connection', 'central'));
+
+                return $next($request);
+            }
+
+            $tenant = $this->resolver->resolve($request);
+
+            if ($tenant instanceof Tenant) {
+                $this->manager->activate($tenant);
+
+                // Dibagikan ke view/controller supaya UI bisa menampilkan nama
+                // lokasi tanpa query ulang ke database pusat.
+                $request->attributes->set('tenant', $tenant);
+
+                return $next($request);
+            }
+
+            /*
+             * Tidak ada lokasi untuk request ini.
+             *
+             * `database.default` dibiarkan apa adanya -- yaitu nilai `.env`.
+             * Ini disengaja, bukan kelalaian.
+             *
+             * Alternatifnya adalah mengarahkan ke database pusat ketika
+             * lokasi tidak ditemukan. Itu terlihat lebih aman, tapi
+             *ritepatkan install mode SATU lokasi: di sana `DB_DATABASE`
+             * menunjuk database lokasi yang benar, dan itulah yang
+             * membuat login, dashboard, dan seluruh aplikasi bekerja tanpa
+             * subdomain sama sekali. Mengarahkan ke pusat membuat
+             * `User::where('email', ...)` mencari user di database yang
+             * salah, dan setiap login gagal dengan "Email tidak terdaftar
+             * di lokasi ini".
+             *
+             * Yang berbahaya bukan fallback-nya, tapi fallback yang tidak
+             * terlihat. Lokasi yang salah hanya terjadi bila domain tidak
+             * terdaftar, dan gejalanya jelas: user tidak ditemukan,
+             * branding tidak cocok.
+             *
+             * Pengaman yang dipakai sebagai gantinya: `api/branding`
+             * menjawab dari `TenantManager::current()`, yang null saat tidak
+             * ada lokasi, jadi tidak ada data lokasi lain yang ikut terbaca.
+             */
+            $request->attributes->set('tenant', null);
 
             return $next($request);
+        } finally {
+            /*
+             * Kembalikan `database.default` ke nilai sebelum request.
+             *
+             * Tanpa baris ini, request ke `api/central/*` meninggalkan
+             * `database.default = central` untuk sisa proses. Pada server
+             * HTTP (PHP-FPM) itu tidak terlihat karena tiap request punya
+             * proses sendiri -- tapi pada `php artisan test` semua test
+             * berbagi satu proses, dan test berikutnya yang memakai
+             * `RefreshDatabase` akan membungkus transaksinya di koneksi
+             * pusat sementara migrasi men-drop tabel koneksi lokasi.
+             * Keduanya saling tunggu lock, dan suite menggantung tanpa batas
+             * tanpa satu pun pesan error.
+             *
+             * `finally`, bukan sesudah `$next` sukses: kalau controller melempar
+             * exception, default tetap harus kembali atau render halaman error
+             * berikutnya membaca database yang salah.
+             */
+            Config::set('database.default', $defaultSebelum);
         }
-
-        $tenant = $this->resolver->resolve($request);
-
-        if ($tenant instanceof Tenant) {
-            $this->manager->activate($tenant);
-
-            // Dibagikan ke view/controller supaya UI bisa menampilkan nama
-            // lokasi tanpa query ulang ke database pusat.
-            $request->attributes->set('tenant', $tenant);
-        }
-
-        return $next($request);
     }
 
     private function isCentralPath(string $path): bool
@@ -93,6 +168,12 @@ class ResolveTenant
         foreach (self::LOCATION_PATHS as $loc) {
             if ($path === $loc || str_starts_with($path, $loc.'/')) {
                 return false;
+            }
+        }
+
+        foreach (self::CENTRAL_PATHS as $central) {
+            if ($path === $central || str_starts_with($path, $central.'/')) {
+                return true;
             }
         }
 

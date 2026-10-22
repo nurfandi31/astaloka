@@ -2,7 +2,7 @@
   <div class="data-instalasi-root">
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4!">
       <div class="flex-1!">
-        <h1 class="text-2xl font-bold text-cyan-600! tracking-tight mb-1!">Data Instalasi</h1>
+        <h1 class="text-2xl font-bold text-slate-900! tracking-tight mb-1!">Data Instalasi</h1>
         <p class="text-sm text-slate-500! leading-relaxed">
           Daftar seluruh instalasi pelanggan beserta statusnya. Klik baris untuk melihat
           riwayat &amp; memperbarui paket pelanggan.

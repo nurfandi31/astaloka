@@ -49,29 +49,6 @@ class Transaction extends Model
         return $this->belongsTo(Account::class, 'account_kredit', 'kode_akun');
     }
 
-    public function reverence()
-    {
-        if (! $this->reverence_type || ! $this->reverence_id) {
-            return null;
-        }
-
-        $known = [
-            'payment'       => \App\Models\Payment::class,
-            'monthly_bill'  => \App\Models\MonthlyBill::class,
-            'customer'      => \App\Models\Customer::class,
-            'bill_payment'  => \App\Models\BillPayment::class,
-            'overdue_bill'  => \App\Models\MonthlyBill::class,
-        ];
-
-        $type  = $this->reverence_type;
-        $class = \Illuminate\Database\Eloquent\Relations\Relation::getMorphedModel($type) ?? ($known[$type] ?? null);
-
-        if (! $class || ! class_exists($class)) {
-            return null;
-        }
-
-        return $class::find($this->reverence_id);
-    }
     public function bill() {
         return $this->belongsTo(MonthlyBill::class, 'reverence_id', 'id');
     }

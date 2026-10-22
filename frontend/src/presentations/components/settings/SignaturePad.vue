@@ -60,7 +60,7 @@
         </BaseButton>
         <BaseButton
           type="button"
-          variant="primary"
+          variant="secondary"
           size="sm"
           icon="check"
           :disabled="!hasDrawn"

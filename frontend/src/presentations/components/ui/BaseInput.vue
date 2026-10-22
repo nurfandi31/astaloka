@@ -223,10 +223,24 @@ const handleInput = (event) => {
   transition: all 0.2s ease;
 }
 
+/*
+ * Focus ring memakai warna lokasi, bukan biru tetap.
+ *
+ * Ini input yang dipakai di SETIAP form aplikasi, jadi warna fokusnya adalah
+ * hal yang paling sering dilihat orang setelah warna tombol. Kalau border
+ * fokusnya tetap biru sementara tombolnya oranye, form-nya terlihat seperti
+ * dua aplikasi berbeda yang ditempel jadi satu.
+ *
+ * `rgb(var(--color-primary-rgb) / 0.1)` bukan `rgba(<hex>, 0.1)`:
+ * `utils/applyTheme.js` menulis `--color-primary-rgb` sebagai triplet angka
+ * (mis. `14 165 233`) justru supaya bentuk ini bisa dipakai -- warna heksa
+ * yang disisipkan ke `rgba()` tidak valid dan TIDAK menghasilkan error, hanya
+ * bayangan yang hilang begitu saja.
+ */
 .base-input__field:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgb(var(--color-primary-rgb, 59 130 246) / 0.1);
 }
 
 .base-input__field--has-prefix {

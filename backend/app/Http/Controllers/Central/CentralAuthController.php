@@ -47,28 +47,67 @@ class CentralAuthController
             ->where('email', $request->email)
             ->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            // Percobaan gagal juga dicatat. Untuk panel sekelas ini, daftar
-            // percobaan login yang gagal adalah bahan deteksi awal --
-            // email yang ada di sini BUKAN konfirmasi bahwa email itu
-            // terdaftar, tapi IP dan user-agent-nya tetap berguna saat
-            // menelusuri percobaan menebak.
-            $this->audit->record(
-                'central.login_failed',
-                description: 'Percobaan login panel pusat gagal untuk email `'
-                    .$request->email.'`.',
-                properties: ['email' => $request->email],
-            );
+        /*
+         * Email dan password dicek TERPISAH, masing-masing dengan pesan yang
+         * ditunjuk ke kolomnya.
+         *
+         * Dulu keduanya dilemparkan sebagai satu kondisi dengan satu pesan
+         * ("Email atau password salah"), yang muncul sebagai popup di atas
+         * form. Dua-duanya tidak bagus: popup menutupi kolom yang salah, dan
+         * kalimat "atau" menyuruh orang menebak dua-duanya alih-alih
+         * memberitahu mana yang perlu diperbaiki.
+         *
+         * Yang tetap menutup jalan pemetaan daftar akun pusat adalah
+         * `throttle:login` dan `throttle:login-ip` di `routes/central.php`.
+         * Perbedaan pesannya di sini tidak menambah kecepatan pemetaan: email
+         * harus benar agar bisa mencapai cek password, jadi penyerang sudah
+         * harus menebak email dengan benar sebelum bisa memakai perbedaan ini
+         * untuk memastikan tebakannya.
+         */
+        if (! $user) {
+            $this->catatLoginGagal($request, 'Email tidak terdaftar di panel pusat.');
 
             throw ValidationException::withMessages([
-                'email' => ['Email atau password salah.'],
+                'email' => ['Email tidak terdaftar di panel pusat.'],
             ]);
         }
 
-        if ($user->role !== 'superadmin') {
-            // Akun ini ada di database pusat tapi bukan superadmin. Balasan
-            // disamakan dengan "kredensial salah" supaya presence database
-            // pusat tidak bisa dipakai memetakan email yang valid.
+        if (! Hash::check($request->password, $user->password)) {
+            $this->catatLoginGagal($request, 'Kata sandi salah.');
+
+            throw ValidationException::withMessages([
+                'password' => ['Kata sandi salah.'],
+            ]);
+        }
+
+        /*
+         * Akun yang ada tapi TIDAK boleh masuk. Ini soal status akun, bukan
+         * soal kredensial.
+         *
+         * Dua kondisi di bawah -- bukan superadmin, dan akun dinonaktifkan --
+         * sengaja memakai satu kalimat yang sama dan tetap diletakkan di kolom
+         * EMAIL, sama seperti sebelumnya. Bedanya dari "kata sandi salah" itu
+         * nyata dan tidak boleh dihapus: "akun Anda bukan superadmin" atau
+         * "akun dinonaktifkan" hanya bisa muncul kalau kredensialnya sudah
+         * benar, jadi keduanya membocorkan apa yang sebenarnya terjadi pada
+         * akun itu.
+         *
+         * Pemeriksaan akun nonaktif diletakkan di sini, bukan cuma di
+         * `EnsureSuperadmin`: middleware itu baru berjalan pada request yang
+         * sudah punya token, sedangkan keputusan "akun ini mati" harus berlaku
+         * sedini mungkin. Kalau hanya di middleware, akun yang sudah
+         * dinonaktifkan masih bisa menukar password-nya menjadi token baru.
+         */
+        if ($user->role !== 'superadmin' || ! $user->is_active) {
+            $this->catatLoginGagal($request, 'Akun tidak bisa masuk ke panel pusat.');
+
+            // Kalimatnya sama persis dengan yang dipakai sebelum perubahan ini,
+            // dan `CentralSuperadminTest` menjaganya. Jangan diubah menjadi
+            // "bukan superadmin" atau "akun dinonaktifkan": dua kalimat itu
+            // hanya muncul kalau kredensialnya sudah benar, jadi keduanya
+            // memberi tahu penyerang bahwa sebuah email terdaftar sekaligus
+            // masih hidup -- informasi yang tidak ada hubsungannya dengan
+            // pekerjaan yang sedang dilakukan.
             throw ValidationException::withMessages([
                 'email' => ['Email atau password salah.'],
             ]);
@@ -118,6 +157,29 @@ class CentralAuthController
                 'token' => $token,
             ],
         ]);
+    }
+
+    /**
+     * Catat percobaan login panel pusat yang gagal, lengkap dengan alasannya.
+     *
+     * Percobaan gagal juga dicatat. Untuk panel sekelas ini, daftar percobaan
+     * login yang gagal adalah bahan deteksi awal -- email yang ada di sini
+     * BUKAN konfirmasi bahwa email itu terdaftar, tapi IP dan user-agent-nya
+     * tetap berguna saat menelusuri percobaan menebak.
+     *
+     * Alasan ikut ditulis supaya "gagal" tidak menjadi satu baris yang sama
+     * untuk tiga hal berbeda: email salah ketik, password salah, dan akun
+     * yang memang tidak boleh masuk. Tanpa itu, satu-satunya cara membedakan
+     * ketiganya adalah membandingkan jumlah baris dengan pesan di layar user.
+     */
+    private function catatLoginGagal(Request $request, string $alasan): void
+    {
+        $this->audit->record(
+            'central.login_failed',
+            description: 'Percobaan login panel pusat gagal untuk email `'
+                .$request->email.'`: '.$alasan,
+            properties: ['email' => $request->email, 'alasan' => $alasan],
+        );
     }
 
     public function logout(Request $request): JsonResponse

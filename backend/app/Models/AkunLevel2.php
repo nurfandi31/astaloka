@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AkunLevel2 extends Model
 {
+    /** Struktur akun disimpan di database pusat -- lihat {@see AkunLevel1}. */
+    protected $connection = 'central';
+
     protected $table = 'akun_level_2';
 
     protected $fillable = [

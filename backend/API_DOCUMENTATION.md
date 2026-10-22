@@ -379,7 +379,7 @@ Response:
   - Insert 1 baris jurnal ke `transactions` (`account_debet='1.1.03.01'` Piutang, `account_kredit='4.1.01.02'` Abodemen, `saldo = bill.abodemen`) jika `bill.abodemen > 0`.
   - Insert 1 baris jurnal (`account_kredit='4.1.01.03'` Pemakaian, `saldo = bill.usage_charge`) jika `bill.usage_charge > 0`.
   - `reverence_type='overdue_bill'`, `reverence_id=bill.id`, `id_user=admin pertama`, `keterangan_transaksi` prefix `Tunggakan Abodemen -` / `Tunggakan Pemakaian -`.
-- Trigger DB MySQL auto-update `amount` per insert (lihat `database/migrations/2026_06_23_034006_create_amount_table.php`), jadi **tidak ada recalc manual** di endpoint ini.
+- Trigger DB MySQL auto-update `amount` per insert (lihat `database/migrations_tenant/2026_06_23_034006_create_amount_table.php`), jadi **tidak ada recalc manual** di endpoint ini.
 - Notifikasi dashboard disimpan ke `Cache::put('overdue_gen_notification', ..., 7 hari)`.
 
 **Response sukses (200):**

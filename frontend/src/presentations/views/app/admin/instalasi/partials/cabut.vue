@@ -232,7 +232,7 @@ const handleDelete = async () => {
         </div>
       `,
       icon: 'warning',
-      confirmButtonColor: '#3b82f6',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
       confirmButtonText: 'Mengerti',
     })
     return

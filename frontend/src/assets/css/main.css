@@ -6,6 +6,103 @@
 components,
 utilities;
 
+/*
+ * Preflight Tailwind memaksa `padding: 0` pada semua elemen, dan aturan itu
+ * berada di `@layer base`. Urutan layer sudah benar: `@layer utilities` menang
+ * atas `@layer base`, jadi utilitas padding harusnya menang.
+ *
+ * Gejala kalau ini rusak: seluruh utilitas padding non-`!important` mati
+ * diam-diam di seluruh aplikasi -- `py-3`, `p-3`, `pt-3` semuanya
+ * menghasilkan 0px, sementara `px-4!` tetap jalan. Elemen jadi hanya punya
+ * padding horizontal dan isinya nempel ke card atas-bawahnya.
+ */
+
+/*
+ * ============================================================================
+ * UTILITAS BRAND
+ * ============================================================================
+ *
+ * Kenapa ini ada
+ * ==============
+ *
+ * Aplikasi ini punya ~40 tempat yang memakai gradien Tailwind seperti
+ * `from-blue-500 via-blue-600 to-cyan-500`, dan judul halaman seperti
+ * `text-cyan-600`. Semuanya TERLIHAT bagus untuk warna bawaan.
+ *
+ * Tapi utility class Tailwind terkunci ke palet Tailwind -- hasilnya hex
+ * statis yang sudah dikompilasi ke CSS. Custom property kita sama sekali
+ * tidak menyentuhnya. Manifestasinya persis seperti pada tangkapan layar:
+ * lokasi memilih oranye, judul halaman tetap `text-cyan-600` dan banner
+ * tetap biru-ke-teal.
+ *
+ * Sisi yang lebih buruk dari "warna tidak ikut":`from-blue-500 to-cyan-500`
+ * adalah gradasi DUA hue. Begitu salah satu ujungnya tidak lagi biru, yang
+ * tersisa adalah dua warna yang tidak pernah dipilih siapa pun -- kuning
+ * ke teal, seperti pada tangkapan layar. Warna yang tidak pernah dipilih
+ * orang adalah define paling jelas bahwa ada yang salah.
+ *
+ * Kenapa utility, bukan ganti satu per satu
+ * ==========================================
+ *
+ * Alternatifnya mengedit ~40 file. Itu bukan hanya lambat: setiap editor
+ * yang menambah header baru akan menulis ulang `from-blue-500` lagi,
+ * karena itu kelihatan normal. Utilitas di bawah membuat `from-brand`
+ * menjadi cara ALASAN yang benar, jadi perbaikan ini tidak bisa dibatalkan
+ * oleh perubahan berikutnya.
+ *
+ * `!` di akhir (penting) tetap dipakai di pemanggil. `@utility` Tailwind
+ * berada di cascade utilities, dan sebagian besar kelas di file ini memakai `!important`
+ * untuk menang dari komponen. Tanpa `!`, hasilnya kalah dan utility ini
+ * diam-diam tidak berefek.
+ */
+
+/* Warna brand sebagai utility warna, mengikuti penamaan bawaan Tailwind
+   supaya `text-brand`, `bg-brand`, `border-brand` langsung tersedia. */
+@utility text-brand {
+  color: var(--color-primary);
+}
+
+@utility bg-brand {
+  background-color: var(--color-primary);
+}
+
+@utility border-brand {
+  border-color: var(--color-primary);
+}
+
+/*
+ * Gradien brand untuk utility.
+ *
+ * Ketiganya memanggil `var(--brand-gradient*)` yang ditulis
+ * `utils/applyTheme.js`, jadi gradasinya dijamin dari satu skala warna --
+ * tidak mungkin jadi kuning-ke-teal kecuali ada yang menulis ulang tokennya.
+ *
+ * `to-brand-deep` sengaja JAUH lebih pekat, bukan gradasi lembut: header
+ * halaman butuh teks putih di atasnya, dan gradasi yang terlalu lembut
+ * terang membuat teks putihnya hilang tepat di bagian paling atas.
+ */
+@utility bg-linear-brand {
+  background-image: var(--brand-gradient);
+}
+
+@utility bg-linear-brand-deep {
+  background-image: var(--brand-gradient-deep);
+}
+
+@utility bg-linear-brand-soft {
+  background-image: var(--brand-gradient-soft);
+}
+
+/* Versi `-r` untuk gradient berarah (135deg), menggantikan `bg-gradient-to-br`
+   dan `bg-linear-to-r` yang keduanya arahnya sama: kiri-atas ke kanan-bawah. */
+@utility bg-gradient-brand {
+  background-image: var(--brand-gradient);
+}
+
+@utility bg-gradient-brand-deep {
+  background-image: var(--brand-gradient-deep);
+}
+
 /* Paksa light color-scheme untuk seluruh aplikasi sehingga Quill editor
    (yang tidak set background eksplisit) tidak menampilkan body yang hitam
    ketika OS user dalam dark mode. */
@@ -17,6 +114,16 @@ utilities;
   --color-primary: #0ea5e9;
   --color-primary-dark: #0284c7;
   --color-primary-light: #e0f2fe;
+  --color-primary-400: #38bdf8;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+
+  /* Lihat catatan panjang di blok `@layer base` -- ringkas: kedua ujung
+     gradien brand harus dari satu skala warna, kalau tidak gradasinya jadi
+     campur dua hue (kuning ke biru) dan tidak terlihat sebagai satu warna. */
+  --brand-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+  --brand-gradient-deep: linear-gradient(135deg, #0ea5e9 0%, #1e3a8a 100%);
+  --brand-gradient-soft: linear-gradient(135deg, #bae6fd 0%, #f0f9ff 100%);
 
   --color-text-main: #1e293b;
   --color-text-sub: #64748b;
@@ -119,6 +226,34 @@ utilities;
     --color-primary: #0ea5e9;
     --color-primary-dark: #0284c7;
     --color-primary-light: #e0f2fe;
+    --color-primary-400: #38bdf8;
+    --color-primary-600: #2563eb;
+    --color-primary-700: #1d4ed8;
+
+    /* ===== Gradien brand =====
+     *
+     * Kenapa gradien punya token sendiri, bukan ditulis langsung per file:
+     *
+     * Gradien yang "warnanya kelihatan benar" hampir selalu bermasalah kalau
+     * kedua ujungnya ditulis dari dua sumber berbeda. Contoh yang paling
+     * sering: `linear-gradient(--color-primary, --color-blue-400)`. Kalau
+     * lokasi pilih oranye, `--color-primary` jadi oranye tapi `--color-blue-400`
+     * masih biru -- hasilnya gradasi oranye-ke-biru, yang tidak ada di
+     * di dunia nyata karena bukan warna apa pun, dan yang paling buruk: kelihatan
+     * seperti ada dua aplikasi yang ditempel.
+     *
+     * Jadi kedua ujung gradien WAJIB berasal dari skala yang sama. Token ini
+     * ditulis `applyTheme.js` dari hue lokasi, jadi mengunci gradasinya
+     * tanpa harus menyentuh satu pun file CSS lagi.
+     *
+     * Tiga token, bukan satu, karena ada tiga kegunaan yang beda:
+     * - `--brand-gradient`     : tombol besar / aksen (400 -> 600)
+     * - `--brand-gradient-deep`: sisi lebih pekat (500 -> 800)
+     * - `--brand-gradient-soft`: latar aksen (200 -> 50), untuk panel/card
+     */
+    --brand-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+    --brand-gradient-deep: linear-gradient(135deg, #0ea5e9 0%, #1e3a8a 100%);
+    --brand-gradient-soft: linear-gradient(135deg, #bae6fd 0%, #f0f9ff 100%);
     --color-text-main: #1e293b;
     --color-text-sub: #64748b;
     --color-border: #e2e8f0;
@@ -219,6 +354,17 @@ utilities;
       0 10px 25px -5px rgba(239, 68, 68, 0.15), 0 8px 10px -6px rgba(239, 68, 68, 0.1);
   }
 
+  /*
+   * Reset ini HARUS tetap di dalam `@layer base`.
+   *
+   * Aturan universal yang ditulis di luar layer beating mengalah terhadap
+   * `@layer utilities` Tailwind: CSS tanpa layer selalu menang atas CSS
+   * berlapis, terlepas dari urutan maupun specificity. Akibatnya `padding: 0`
+   * di sini mematikan seluruh utilitas padding vertikal non-important
+   * (`py-3`, `py-4`, dst) di seluruh aplikasi -- bukan cuma halaman ini.
+   * Gejalanya: elemen tetap dapat padding horizontal dari `px-4!`, tetapi
+   * tinggi atas-bawahnya 0 dan isinya nempel ke card.
+   */
   * {
     box-sizing: border-box;
   }
@@ -325,8 +471,8 @@ utilities;
   height: 30px;
   background: linear-gradient(
     to bottom,
-    rgba(59, 130, 246, 0.15),
-    rgba(59, 130, 246, 0.05),
+    rgb(var(--color-primary-rgb, 59 130 246) / 0.15),
+    rgb(var(--color-primary-rgb, 59 130 246) / 0.05),
     transparent
   );
 }
@@ -506,14 +652,14 @@ utilities;
 }
 
 .topnav-right .topnav-search-modern svg {
-  color: #23bbff !important;
+  color: var(--color-blue-500) !important;
   flex-shrink: 0 !important;
   transition: color var(--transition-fast) var(--ease-out) !important;
   margin-left: var(--space-1);
 }
 
 .topnav-right .topnav-search-modern:focus-within svg {
-  color: #0ea5e9 !important;
+  color: var(--color-primary) !important;
 }
 
 .topnav-right .topnav-search-modern input {
@@ -552,7 +698,7 @@ utilities;
   background: rgba(35, 187, 255, 0.1);
   border: none;
   cursor: pointer;
-  color: #23bbff;
+  color: var(--color-blue-500);
   box-shadow:
     0 4px 12px rgba(35, 187, 255, 0.15),
     0 2px 4px rgba(0, 0, 0, 0.1);
@@ -564,7 +710,7 @@ utilities;
 
 .topnav-icon-btn:hover {
   background: rgba(35, 187, 255, 0.2);
-  color: #0ea5e9;
+  color: var(--color-primary);
   transform: scale(1.05);
   box-shadow:
     0 6px 20px rgba(35, 187, 255, 0.25),
@@ -579,7 +725,7 @@ utilities;
   width: 2rem;
   height: 2rem;
   border-radius: var(--border-radius-full);
-  background: #23bbff;
+  background: var(--color-blue-500);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -820,7 +966,7 @@ utilities;
 .sidebar-header-title {
   font-size: var(--text-lg);
   font-weight: 800;
-  background: linear-gradient(to right, #1e293b, #0ea5e9);
+  background: linear-gradient(to right, #1e293b, var(--color-primary, #0ea5e9));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1;
@@ -949,21 +1095,21 @@ utilities;
 }
 
 .sidebar-nav-item:hover {
-  background: rgba(14, 165, 233, 0.06);
+  background: rgb(var(--color-primary-rgb, 14 165 233) / 0.06);
   color: var(--color-blue-800);
   transform: translateX(4px);
 }
 
 .sidebar-nav-item:hover .sidebar-nav-icon {
-  filter: blur(0) drop-shadow(0 0 3px rgba(14, 165, 233, 0.3));
+  filter: blur(0) drop-shadow(0 0 3px rgb(var(--color-primary-rgb, 14 165 233) / 0.3));
 }
 
 .sidebar-nav-item.active {
   background: linear-gradient(
     to right,
-    rgba(14, 165, 233, 0.9) 0%,
-    rgba(14, 165, 233, 0.2) 60%,
-    rgba(14, 165, 233, 0.05) 100%
+    rgb(var(--color-primary-rgb, 14 165 233) / 0.9) 0%,
+    rgb(var(--color-primary-rgb, 14 165 233) / 0.2) 60%,
+    rgb(var(--color-primary-rgb, 14 165 233) / 0.05) 100%
   );
   color: #1e293b !important;
   font-weight: var(--font-weight-bold);
@@ -986,7 +1132,10 @@ utilities;
   bottom: 0;
   width: 100%;
   border-radius: 0 40px 40px 0;
-  border-right: 6px solid #00a3ff;
+  /* Penanda aktif menu. `#00a3ff` keras di sini berarti lokasi yang
+     warnanya oranye masih punya sidebar dengan garis biru -- dan garis ini
+     adalah penanda utama menu aktif, jadi yang paling sering dilihat. */
+  border-right: 6px solid var(--color-primary, #00a3ff);
   pointer-events: none;
   z-index: 2;
 }
@@ -1138,65 +1287,172 @@ utilities;
   min-height: 36px;
 }
 
-.sidebar-submenu-item:hover {
-  background: rgba(14, 165, 233, 0.06);
-  color: var(--color-blue-600);
-  transform: translateX(4px);
+/*
+ * Jarak antar baris di dalam sub-menu.
+ *
+ * `.sidebar-submenu` pakai `gap: 0`, jadi tanpa aturan ini semua baris
+ * benar-benar menempel. Itu bukan salahnya -- sub-menu memang harus rapat
+ * dan terbaca sebagai satu blok di bawah menu induknya. Yang menentukan
+ * jarak antar menunya sendiri adalah `min-height` tiap baris (36px level
+ * 1, 32px level 2), bukan gap.
+ *
+ * Karena itu yang diatur di sini HANYA jarak pemisah antar kelompok:
+ * 2px antar baris, 1px di dalam `.nested`, dan 0 untuk anak terakhir.
+ * Bedanya sengaja kecil supaya blok anak tetap terbaca sebagai milik
+ * group-nya tanpa mengurangi jarak antar tekanya.
+ */
+.sidebar-submenu > * {
+  margin-bottom: 2px;
 }
 
+.sidebar-submenu > *:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-submenu.nested > * {
+  margin-bottom: 1px;
+}
+
+/*
+ * Item sub-menu tidak digeser saat hover. `translateX` di sini akan ikut
+ * menggeser titiknya, sementara titik itu dipatok di tepi kolom marker.
+ */
+.sidebar-submenu-item:hover {
+  background: rgb(var(--color-primary-rgb, 14 165 233) / 0.06);
+  color: var(--color-blue-600);
+}
+
+/*
+ * Baris yang sedang aktif.
+ *
+ * Tidak ada `border-radius` sendiri di sini, dan itu disengaja:
+ * `.sidebar-submenu-item` sudah punya `border-radius: 0 40px 40px 0`.
+ * Latar ikut mengikuti radius itu otomatis, jadi tepi kanannya ikut
+ * membulat rapi. Kalau baris ini diberi radius sendiri yang beda, atau
+ * diberi radius 0, tepinya jadi Kotak dan terlihat menempel ke tepi
+ * sidebar -- persis bentuk "terpotong" di tepi kiri.
+ */
 .sidebar-submenu-item.active {
-  background: rgba(14, 165, 233, 0.12);
+  background: rgb(var(--color-primary-rgb, 14 165 233) / 0.12);
   color: var(--color-primary-dark);
   font-weight: var(--font-weight-semibold);
 }
 
-.sidebar-submenu-icon {
-  width: 0.9375rem;
-  height: 0.9375rem;
+/*
+ * Kolom marker sub-menu.
+ *
+ * Di dalam kolom ini ada DUA hal sekaligus, dan justru di situlah jarak
+ * yang kalau salah kelihatan aneh:
+ *   1. tempat titiknya
+ *   2. jarak titik ke teks
+ *
+ * Lebar kolom inilah yang jadi indentasi. Level 1 kolomnya 12px, level 2
+ * (turunan) 24px -- teks turunan jadi menjorok 12px ke kanan. Yang penting:
+ * titik dipatok di TENGAH kolom, bukan di tepi kirinya. Kalau titik ditempel
+ * di tepi dan kolomnya lebar, seluruh lebar kolom berubah jadi ruang kosong
+ * di sebelah kanan titik -- persis keluhan "titiknya jauh dari teks".
+ */
+.sidebar-submenu-marker {
+  position: relative;
   flex-shrink: 0;
-  opacity: 0.65;
-  transition: opacity var(--transition-fast) var(--ease-out);
+  align-self: stretch;
+  width: var(--space-3);
 }
 
-.sidebar-submenu-item:hover .sidebar-submenu-icon,
-.sidebar-submenu-item.active .sidebar-submenu-icon {
+/*
+ * Titiknya 8px (var(--space-2)), dipatok di tengah kolom dengan
+ * `translate(-50%, -50%)`.
+ *
+ * `translate` dipakai, bukan cuma `top: 50%`, supaya titik selalu tepat di
+ * tengah barisnya -- berapa pun tinggi baris berubah karena font, padding,
+ * atau min-height.
+ */
+.sidebar-submenu-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--border-radius-full);
+  background: var(--color-text-sub);
+  opacity: 0.7;
+  transform: translate(-50%, -50%);
+  transition:
+    background var(--transition-fast) var(--ease-out),
+    opacity var(--transition-fast) var(--ease-out),
+    box-shadow var(--transition-fast) var(--ease-out);
+}
+
+.sidebar-submenu-item:hover > .sidebar-submenu-marker::after {
+  background: var(--color-primary);
   opacity: 1;
 }
 
-.sidebar-panel.collapsed .sidebar-nav-chevron,
-.sidebar-panel.collapsed .sidebar-submenu {
-  display: none;
-}
-
-.sidebar-submenu-bullet {
-  width: 0.375rem;
-  height: 0.375rem;
-  background: #6b7280;
-  border-radius: var(--border-radius-full);
-  flex-shrink: 0;
-  transition: all var(--transition-fast) var(--ease-out);
-}
-
-.sidebar-submenu-item:hover .sidebar-submenu-bullet,
-.sidebar-submenu-item.active .sidebar-submenu-bullet {
+.sidebar-submenu-item.active > .sidebar-submenu-marker::after {
   background: var(--color-primary);
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgb(var(--color-primary-rgb, 14 165 233) / 0.18);
 }
 
+/*
+ * Turunan (level 2).
+ *
+ * Tiga hal yang boleh berubah, dan tiga hal lain yang HARUS tetap:
+ *
+ * berubah:
+ *   - kolom marker 12px -> 24px, itu indentasinya
+ *   - `gap` 8px -> 4px, supaya kolom yang lebar tidak ikut mendorong teks
+ *     makin jauh dari titik
+ *   - tinggi baris 36px -> 32px
+ *
+ * tetap:
+ *   - `padding-left` harus SAMA dengan level 1 (var(--space-4))
+ *   - container `.nested` `padding-left: 0`, supaya kolom marker turunan
+ *     berimpit dengan kolom marker level 1
+ *
+ * Kalau `padding-left` turunan ikut dikecilkan, kolom marker-nya bergeser
+ * ke kiri: titik anak muncul di sebelah KIRI titik induknya dan teksnya
+ * jadi sejajar dengan induknya. Jenjang tingkatannya hilang, dan turunan
+ * terlihat lebih tinggi dari induknya -- bukan lebih rendah.
+ */
 .sidebar-submenu.nested {
-  padding-left: var(--space-5);
+  padding-left: 0;
   margin-top: 0;
 }
 
 .sidebar-submenu-item.nested-item {
-  padding: var(--space-1) var(--space-3);
+  /* Padding kiri SAMA dengan level 1 -- lihat catatan di blok ini. */
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-4);
+  /* `gap` setengah dari level 1: kolom marker turunan lebih lebar, dan gap
+     ikut memposisikan teks setelah kolom itu. Kalau gap-nya dibiarkan sama,
+     teks turunan terdorong jauh dari titiknya. */
+  gap: var(--space-1);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-normal);
   min-height: 32px;
 }
 
-.sidebar-submenu-item.nested-item .sidebar-submenu-bullet {
-  width: var(--space-1);
-  height: var(--space-1);
+.sidebar-submenu-item.nested-item > .sidebar-submenu-marker {
+  width: var(--space-6);
+}
+
+/*
+ * Titik turunan sedikit lebih kecil dari titik level 1 (7px vs 8px).
+ *
+ * Bedanya sengaja dibuat kecil. Kalau jauh lebih kecil, titik kecilnya
+ * hilang di layar dan baris anak terlihat sama saja dengan induknya --
+ * penanda tingkatnya jadi tidak terbaca. Yang jadi penanda utama adalah
+ * indentasi teks; ukuran titik cuma penguat, bukan pembeda.
+ */
+.sidebar-submenu-item.nested-item > .sidebar-submenu-marker::after {
+  width: 0.4375rem;
+  height: 0.4375rem;
+}
+
+.sidebar-panel.collapsed .sidebar-nav-chevron,
+.sidebar-panel.collapsed .sidebar-submenu {
+  display: none;
 }
 
 .new-entry-btn {
@@ -1206,7 +1462,7 @@ utilities;
   gap: var(--space-2);
   width: 100%;
   padding: 0.8rem 1.5rem !important;
-  background: #0ea5e9 !important;
+  background: var(--color-primary) !important;
   color: white !important;
   border: none !important;
   border-radius: 9999px !important;
@@ -1222,7 +1478,7 @@ utilities;
 }
 
 .new-entry-btn:hover {
-  background: #0284c7 !important;
+  background: var(--color-primary-dark) !important;
   transform: translateY(-3px) scale(1.02);
   box-shadow: 0 15px 30px -8px rgba(14, 165, 233, 0.5);
 }
@@ -1264,7 +1520,7 @@ utilities;
   }
 
   .stat-card:nth-child(1) {
-    background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #dbeafe 100%);
+    background: var(--brand-gradient-soft);
   }
 
   .stat-card:nth-child(2) {
@@ -1399,7 +1655,7 @@ utilities;
   }
 
   .aquifer-card {
-    background: linear-gradient(135deg, #ffffff 0%, #dbeafe 40%, #93c5fd 100%);
+    background: var(--brand-gradient-soft);
     border-radius: var(--card-radius);
     padding: 1.25rem 1.5rem;
     position: relative;
@@ -1439,7 +1695,7 @@ utilities;
   .aquifer-progress-bar {
     height: 100%;
     width: 70%;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-blue-400));
+    background: var(--brand-gradient-deep);
     border-radius: var(--border-radius-full);
     position: relative;
     overflow: hidden;
@@ -1683,7 +1939,7 @@ utilities;
   }
 
   .aquifer-card {
-    background: #23bbff !important;
+    background: var(--color-blue-500) !important;
     border-radius: var(--card-radius);
     padding: 1.25rem 1.5rem;
     position: relative;
@@ -1695,7 +1951,7 @@ utilities;
 
   .aquifer-card:hover {
     transform: translateY(-3px);
-    background: #0284c7 !important;
+    background: var(--color-primary-dark) !important;
     box-shadow: var(--card-shadow-blue);
   }
 
@@ -1840,8 +2096,8 @@ utilities;
   }
   
   .swal2-toast .swal2-icon.swal2-info {
-    border-color: #3b82f6 !important;
-    color: #3b82f6 !important;
+    border-color: var(--color-primary) !important;
+    color: var(--color-primary) !important;
   }
   
   .swal2-toast .swal2-icon.swal2-warning .swal2-icon-content,
@@ -1877,7 +2133,7 @@ utilities;
   /* Grid ringkasan pada popup "Generate Piutang Tunggakan". HTML-nya
      dikirim lewat opsi `html:` di dalam file JS, jadi kelas ini ditulis di
      CSS (bukan utilities Tailwind) supaya pasti ikut ter-generate.
-     Dulu `grid grid-cols-2!` — utility itu bisa hilang kalau pemindaian
+     Dulu `grid grid-cols-2!` â€” utility itu bisa hilang kalau pemindaian
      Tailwind tidak menemukan file sumbernya. */
   .swal2-popup .overdue-stat-grid {
     display: grid !important;
@@ -1892,6 +2148,49 @@ utilities;
     align-items: center !important;
     justify-content: space-between !important;
     gap: 0.75rem !important;
+  }
+
+  /* Popup tagihan langganan yang mengunci aplikasi lokasi.
+     Ditulis di CSS (bukan utilities Tailwind) karena seluruh markup-nya
+     dibangun sebagai string di `composables/useInvoiceLock.js` -- Tailwind
+     tidak punya file sumber untuk dipindai, jadi utility yang dipakai di
+     dalam string itu bisa hilang dari hasil build tanpa ada error.
+
+     Tombol "Salin Rincian" disisipkan lewat JS ke dalam `.swal2-footer`,
+     karena `showCancelButton` bawaan SweetAlert2 selalu menutup popup --
+     persis hal yang tidak boleh terjadi di sini. */
+  .swal2-popup.invoice-lock-popup .swal2-footer {
+    margin-top: 0.75rem !important;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 0.5rem !important;
+  }
+
+  .swal2-popup.invoice-lock-popup .invoice-lock-copy {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .swal2-popup.invoice-lock-popup .invoice-lock-copy:hover:not(:disabled) {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+  }
+
+  .swal2-popup.invoice-lock-popup .invoice-lock-copy:disabled {
+    cursor: default;
+    color: #15803d;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
   }
 
   .swal2-container.swal2-top-end {
@@ -1954,7 +2253,12 @@ utilities;
      style `display: none` (lihat `toggle()` di sweetalert2). Kalau di sini
      ada `display: inline-flex !important`, aturan itu MENANG dan membuat
      tombol tetap terlihat walau `showConfirmButton: false`. Karena itu
-     `display` TIDAK ikut dipaksa — styling tetap sama saat tombol aktif. */
+     `display` TIDAK ikut dipaksa â€” styling tetap sama saat tombol aktif. */
+  /* Merah di sini BUKAN kelalaian: tombol konfirmasi dialog selalu berarti
+     "mempermanen mengubah sesuatu" (hapus, batalkan, tutup akun), jadi
+     warnanya merah apa pun warna lokasi. Warna lokasi tidak boleh ikut
+     menentukan warna ini -- kalau ikut, tombol "Ya, hapus 3.200 pelanggan"
+     akan tampil biru di lokasi yang warnanya biru, dan maknanya hilang. */
   .swal2-confirm {
     background-color: #ef4444 !important;
     color: white !important;
@@ -2000,7 +2304,7 @@ utilities;
   }
 
   /* Style tombol sudah diletakkan pada masing-masing tombol di atas
-     (`.swal2-confirm`, `.swal2-cancel`) — bukan pada wrapper-nya.
+     (`.swal2-confirm`, `.swal2-cancel`) â€” bukan pada wrapper-nya.
      `display` sengaja TIDAK dipaksa di sini: SweetAlert2 menyembunyikan
      wrapper lewat inline style `display: none` saat semua tombol
      dimatikan, dan aturan `display: ... !important` pada selector yang
@@ -2090,7 +2394,7 @@ utilities;
       grid-template-columns: 1fr !important;
     }
 
-    /* Baris "kode akun → kode akun" punya label panjang; izinkan wrap
+    /* Baris "kode akun â†’ kode akun" punya label panjang; izinkan wrap
        supaya tidak keluar dari popup. */
     .swal2-popup .overdue-legend-row {
       flex-wrap: wrap !important;

@@ -81,7 +81,10 @@
           </div>
         <div class="w-full! lg:w-auto!">
           <div class="relative!">
-            <span class="absolute! left-3! top-1/2! -translate-y-1/2! text-sm!">”</span>
+            <font-awesome-icon
+              icon="search"
+              class="absolute! left-3! top-1/2! -translate-y-1/2! text-slate-400! text-sm!"
+            />
             <input
               v-model="searchQuery"
               type="text"
@@ -195,7 +198,7 @@
     </ContentCard>
 
     <BaseButton
-      variant="success-gradient"
+      variant="secondary"
       size="lg"
       class="fixed! bottom-6! right-6! z-50! rounded-full! shadow-2xl! scale-110! sm:scale-100!"
       @click="simpanPerubahanSaldo"
@@ -294,7 +297,7 @@ const checkBookStatus = async (year) => {
       return !!res.data.closed
     }
     return false
-  } catch (e) {
+  } catch {
     return false
   }
 }
@@ -350,7 +353,7 @@ const handleTutupBuku = async () => {
       uiStore.info(`Silakan periksa dan simpan saldo akun tahun ${yearToClose}.`)
     }
     await loadAkunList(yearToClose)
-  } catch (e) {
+  } catch {
     uiStore.error('Terjadi kesalahan saat memproses tutup buku.')
   } finally {
     isProcessing.value = false

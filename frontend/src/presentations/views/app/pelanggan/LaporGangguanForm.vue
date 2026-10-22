@@ -137,10 +137,10 @@
 
           <div class="pt-6! border-t! border-slate-100!">
             <BaseButton
-              variant="primary-gradient"
+              variant="secondary"
               block
               size="lg"
-              class="rounded-3xl! h-14! font-black! text-base! shadow-xl! shadow-indigo-200!"
+              class="rounded-3xl! h-14! font-black! text-base! shadow-xl! shadow-slate-200!"
               @click="submitReport"
               :loading="isSubmitting"
               :disabled="!isFormValid"
@@ -308,7 +308,7 @@ const submitReport = async () => {
       icon: 'success',
       title: 'Laporan Terkirim!',
       text: 'Tim teknisi kami akan segera menindaklanjuti laporan Anda.',
-      confirmButtonColor: '#6366f1',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
 
     router.push('/app')
@@ -334,7 +334,7 @@ const openWhatsApp = () => {
       icon: 'info',
       title: 'Nomor WhatsApp Belum Tersedia',
       text: 'Silakan isi nomor telepon pada menu Profil Lembaga terlebih dahulu.',
-      confirmButtonColor: '#6366f1',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
     return
   }

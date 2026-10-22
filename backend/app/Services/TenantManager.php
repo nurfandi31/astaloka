@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Central\Tenant;
+use Database\Seeders\DemoUserSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -36,11 +38,6 @@ class TenantManager
         return $this->current;
     }
 
-    public function isResolved(): bool
-    {
-        return $this->current !== null;
-    }
-
     /**
      * Arahkan koneksi default ke database milik lokasi.
      *
@@ -64,7 +61,7 @@ class TenantManager
         ));
 
         // Koneksi yang sudah dibuka dengan nama database lama harus dibuang,
-        // kalau tidak PDO akan tetap memakai database sebelumnya despite
+        // kalau tidak PDO akan tetap memakai database sebelumnya meski
         // config yang sudah diganti.
         DB::purge(self::CONNECTION);
 
@@ -87,15 +84,34 @@ class TenantManager
      */
     public function deactivate(): void
     {
-        // Buang koneksi tenant YANG SUDAH DIBUKA supaya PDO tidak tetap
-        // memegang database lokasi lama. Tanpa purge, `DB::connection(...)`
-        // berikutnya masih memakai handle lama -- gejalanya query "sumber
-        // daya" seperti information_schema.TRIGGERS mengembalikan hasil
-        // dari database yang sudah ditinggalkan.
-        DB::purge(self::CONNECTION);
-        DB::purge(config('tenancy.central_connection', 'central'));
+        $centralName = (string) config('tenancy.central_connection', 'central');
 
-        Config::set('database.default', config('tenancy.central_connection', 'central'));
+        /*
+         * Buang koneksi tenant YANG SUDAH DIBUKA supaya PDO tidak tetap
+         * memegang database lokasi lama. Tanpa purge, `DB::connection(...)`
+         * berikutnya masih memakai handle lama -- gejalanya query "sumber
+         * daya" seperti information_schema.TRIGGERS mengembalikan hasil
+         * dari database yang sudah ditinggalkan.
+         *
+         * `purge()` menutup PDO. Kalau koneksi itu sedang dipakai transaksi
+         * -- `RefreshDatabase` membungkus tiap test dalam transaksi, dan
+         * middleware ini ikut jalan di dalamnya -- transaksi itu TIDAK ikut
+         * rollback. MySQL menahannya sebagai transaksi terlantar yang
+         * masih memegang metadata lock, dan test berikutnya yang menjalankan
+         * `drop table` lalu menggantung tanpa batas.
+         *
+         * Karena itu purge hanya dilakukan kalau memang ada database yang
+         * perlu ditinggalkan. Kalau default sudah menunjuk database pusat,
+         * tidak ada yang perlu di-putus dan transaksi harus dibiarkan utuh.
+         */
+        $default = (string) Config::get('database.default');
+
+        if ($default !== $centralName) {
+            DB::purge(self::CONNECTION);
+            DB::purge($centralName);
+        }
+
+        Config::set('database.default', $centralName);
 
         $this->current = null;
     }
@@ -131,24 +147,98 @@ class TenantManager
     }
 
     /**
-     * Buat database MySQL baru untuk sebuah lokasi.
+     * Jalankan callback untuk setiap lokasi aktif, satu per satu.
      *
-     * Nama database memakai pola <prefix><slug>. Dua penyesuaian terjadi di
-     * sini, keduanya wajib:
+     * Dipakai oleh scheduler. Tanpa ini, perintah terjadwal hanya berjalan
+     * untuk SATU lokasi -- yaitu lokasi yang kebetulan menjadi
+     * `database.default` pada proses itu. Lokasi lainnya tidak pernah
+     * menjalankan generate piutang sama sekali, dan tidak ada error apa pun
+     * yang menandakan itu.
      *
-     *  - slug `tirto-mulo` diubah jadi `tirto_mulo`. Slug dipakai di URL
-     *    dan boleh mengandung hyphen, tapi nama database tidak boleh: MySQL
-     *    menerima `-` hanya di dalam backtick, dan nama database disisipkan
-     *    apa adanya ke CREATE DATABASE karena tidak bisa diparameterisasi.
-     *    Kolom `slug` di registry tetap menyimpan bentuk aslinya.
+     * Dua detail yang membuat ini aman untuk dipakai scheduler:
      *
-     *  - nama dipotong ke 64 karakter, batas MySQL. Sisa-sisa underscore
-     *    di ujung dibersihkan supaya tidak menghasilkan nama seperti
-     *    `astaloka_lokasi__`.
+     *   1. Kegagalan satu lokasi TIDAK menghentikan lokasi berikutnya.
+     *      Database lokasi bisa hilang, restore belum selesai, atau sedang
+     *      dipakai migrasi. Kalau exception-nya diteruskan, satu lokasi rusak
+     *      membuat semua lokasi lain dilewati -- dan lokasi yang rusak
+     *      biasanya bukan yang paling penting.
+     *
+     *   2. Registry dibaca dari koneksi PUSAT secara eksplisit, bukan lewat
+     *      `database.default`. Model `Tenant` mengunci koneksinya sendiri,
+     *      tapi pemanggilnya (scheduler, atau command lain) bisa sedang
+     *      berada di dalam `runFor()` -- dan `DB::purge()` di akhir tiap
+     *      iterasi tidak boleh meninggalkan daftar lokasi dalam keadaan
+     *      setengah terbaca.
+     *
+     * @template TReturn
+     *
+     * @param  callable(Tenant):TReturn  $callback
+     * @param  null|callable(Tenant,\Throwable):mixed  $onFailure
+     * @return array<int,array{tenant:Tenant,ok:bool,value?:TReturn,error?:string}>
      */
-    public function createDatabase(string $slug): string
+    public function runForEachActive(callable $callback, ?callable $onFailure = null): array
     {
-        $prefix = (string) config('tenancy.database_prefix', 'astaloka_lokasi_');
+        $hasil = [];
+
+        $tenants = Tenant::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($tenants as $tenant) {
+            try {
+                $hasil[] = [
+                    'tenant' => $tenant,
+                    'ok' => true,
+                    'value' => $this->runFor($tenant, fn () => $callback($tenant)),
+                ];
+            } catch (\Throwable $e) {
+                Log::error('Pemrosesan lintas-lokasi gagal untuk satu lokasi.', [
+                    'tenant_id' => $tenant->getKey(),
+                    'slug' => $tenant->slug,
+                    'error' => $e->getMessage(),
+                ]);
+
+                if ($onFailure) {
+                    $onFailure($tenant, $e);
+                }
+
+                $hasil[] = [
+                    'tenant' => $tenant,
+                    'ok' => false,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Nama database untuk sebuah slug, TANPA membuatnya.
+     *
+     * SATU-SATUNYA tempat aturan ini hidup. Sebelumnya aturan yang sama
+     * ditulis ulang di tiga tempat -- `createDatabase()`, `MakeTenant::
+     * buildDatabaseName()`, dan `LocationController::databaseNameFor()` --
+     * dan ketiganya tidak cocok: dua melakukan `substr()` lalu `rtrim()`,
+     * satu melakukan `rtrim()` lalu `substr()`. Untuk slug pendek hasilnya
+     * sama, jadi bug-nya tidak terlihat; tapi begitu nama melewati batas 64
+     * karakter, `rtrim()`-lalu-`substr()` bisa meninggalkan underscore
+     * menggantung di ujung (`astaloka_aaa...a_`) sementara yang lain
+     * membuangnya. Registry lalu menyimpan nama yang berbeda dari database
+     * yang benar-benar dibuat, dan lokasi itu tidak akan pernah bisa dibuka
+     * -- tanpa error apa pun yang menyinggungnya.
+     *
+     * Dipisah dari `createDatabase()` supaya pemanggil yang hanya butuh
+     * menghitung nama (validasi, display) tidak perlu membuka koneksi
+     * MySQL, dan supaya ada SATU fungsi yang dijamin sama dengan yang
+     * dipakai saat database benar-benar dibuat.
+     *
+     * @throws RuntimeException Kalau slug tidak menghasilkan nama yang valid
+     */
+    public static function databaseNameFor(string $slug): string
+    {
+        $prefix = (string) config('tenancy.database_prefix', 'astaloka_');
         $batas = (int) config('tenancy.max_database_name_length', 64);
 
         $slugUntukDb = preg_replace('/[^a-z0-9_]/', '_', strtolower($slug)) ?? '';
@@ -157,10 +247,39 @@ class TenantManager
             throw new RuntimeException("Slug `{$slug}` tidak menghasilkan nama database yang valid.");
         }
 
-        $nama = rtrim($prefix.$slugUntukDb, '_');
-        $nama = substr($nama, 0, $batas);
+        /*
+         * Urutan: potong DULUAN, baru bersihkan ekor.
+         *
+         * Untuk prefix bawaan (`astaloka_`, 9 karakter) hasilnya sama saja
+         * dengan urutan terbalik -- `rtrim()` tidak pernah menyisakan
+         * underscore untuk dibuang, dan `substr()` tidak pernah memotong
+         * di underscore. Yang berubah baru begitu prefix diganti lewat
+         * `TENANCY_DATABASE_PREFIX`: prefix yang TIDAK berakhir underscore
+         * membuat `substr()` bisa memotong tepat di tanda pemisah, dan
+         * `rtrim()` setelahnya membuangnya.
+         *
+         * Urutan ini tidak boleh punya definisi kedua. Satu nama, satu
+         * tempat -- itulah yang membuat salinan lama tidak mungkin kembali
+         * dan diam-diam tidak cocok lagi.
+         */
+        return rtrim(substr($prefix.$slugUntukDb, 0, $batas), '_');
+    }
 
-        return $this->createDatabaseNamed($nama);
+    /**
+     * Buat database MySQL baru untuk sebuah lokasi.
+     *
+     * Nama database dihitung oleh {@see databaseNameFor()} dan dibuat lewat
+     * `createDatabaseNamed()`. Keduanya dipisah supaya nama yang ditulis ke
+     * registry dijamin identik dengan yang benar-benar ada di MySQL.
+     *
+     * Catatan untuk pemanggil: nilai `$slug` di sini BUKAN nama database
+     * yang dipakai. Kalau pemanggil punya nama sendiri (mis. dari
+     * `--database=` di CLI), ia harus memanggil `createDatabaseNamed()`
+     * -- bukan `createDatabase()`.
+     */
+    public function createDatabase(string $slug): string
+    {
+        return $this->createDatabaseNamed(static::databaseNameFor($slug));
     }
 
     /**
@@ -260,12 +379,36 @@ class TenantManager
      *
      * Dipanggil setelah CREATE DATABASE, supaya database lokasi baru punya
      * skema yang sama persis dengan lokasi lain.
+     *
+     * `--path` WAJIB disebutkan di sini, dan itu bukan sekadar kelengkapan.
+     *
+     * Migrasi lokasi TIDAK memakai `Schema::connection('central')` seperti
+     * migrasi pusat -- semuanya mengikuti `database.default`. Foldernya sudah
+     * dipindah ke luar `database/migrations/` (lihat
+     * `tenancy.migrations_path`), jadi pemanggilan tanpa `--path` akan
+     * memindai folder yang sekarang kosong: perintahnya keluar dengan status
+     * SUKSES sambil mencetak "Nothing to migrate", database lokasi baru tetap
+     * kosong, dan provisioning berlanjut ke seeder -- yang kemudian gagal
+     * dengan "Table 'astaloka_x.settings' doesn't exist".
+     *
+     * Gejalanya itu muncul sebagai lokasi yang gagal disiapkan, padahal
+     * penyebabnya perintah migration yang tidak menjalankan apa pun. Dua
+     * DatabasePath yang saling menuding, dan tidak ada satu pun yang salah
+     * arah.
+     *
+     * Path-nya relatif dan ber-pemisah `/`, bukan hasil `database_path()`,
+     * karena Migrator mencocokkannya dengan `glob()` ber-pemisah `/`.
+     * Backslash di Windows membuat tidak satu pun file yang cocok -- dan
+     * hasilnya sama saja: "Nothing to migrate" dengan status sukses.
      */
     public function migrateTenantDatabase(Tenant $tenant): void
     {
-        $this->runFor($tenant, function () {
+        $path = (string) config('tenancy.migrations_path', 'database/migrations_tenant');
+
+        $this->runFor($tenant, function () use ($path) {
             Artisan::call('migrate', [
                 '--database' => self::CONNECTION,
+                '--path' => $path,
                 '--force' => true,
             ]);
         });
@@ -284,6 +427,9 @@ class TenantManager
      * seeder di sana WAJIB idempoten: provisioning juga dijalankan ulang lewat
      * `tenancy:reseed-master` untuk lokasi yang sudah terlanjur ada, dan
      * skemanya sudah terisi data.
+     *
+     * Seeder yang mengisi data di database PUSAT -- seperti level 1-3
+     * chart of accounts -- TIDAK dipanggil di sini. Lihat {@see seedCentralDatabase()}.
      */
     public function seedTenantDatabase(Tenant $tenant): void
     {
@@ -306,6 +452,118 @@ class TenantManager
                 ]);
             }
         });
+    }
+
+    /**
+     * Buat empat akun demo di database lokasi, satu per role.
+     *
+     *   admin@gmail.com / pelanggan@gmail.com / surveyor@gmail.com /
+     *   teknisi@gmail.com, semuanya password `password`
+     *
+     * DIPANGGIL TERPISAH DARI `seedTenantDatabase()`, dan itu bukan sekadar
+     * urutan pemanggilan -- keduanya punya sifat idempotensi yang BERBEDA, jadi
+     * gabung di daftar `provision.seeders` akan merusak salah satunya.
+     *
+     * `provision.seeders` dijalankan ulang oleh `tenancy:reseed-master` untuk
+     * semua lokasi, termasuk lokasi produksi yang sudah berjalan. Akun demo
+     * yang ikut di sana akan mendapat passwordnya dikembalikan ke `password`
+     * setiap kali perintah itu dijalankan -- membatalkan password yang sudah
+     * diganti pemilik lokasi, hanya karena seseorang menjalankan perintah
+     * pemeliharaan.
+     *
+     * Yang dilindungi di sini justru sebaliknya: baris yang sudah ada TIDAK
+     * disentuh sama sekali. `DemoUserSeeder` hanya membuat yang belum ada.
+     *
+     * @return int Jumlah akun yang benar-benar dibuat pada panggilan ini
+     */
+    public function seedDemoUsers(Tenant $tenant): int
+    {
+        if (! config('tenancy.demo_users.enabled', true)) {
+            return 0;
+        }
+
+        /*
+         * Kedua hitungan DI DALAM satu `runFor()`.
+         *
+         * Versi sebelumnya menghitung di luar, lalu menghitung lagi setelahnya.
+         * Itu selalu mengembalikan 0: `runFor()` mengembalikan `$this->current`
+         * ke `null` di blok `finally`-nya, jadi `countDemoUsers()` yang
+         * memanggilnya dari luar selalu melihat "tidak ada lokasi aktif" dan
+         * mengembalikan 0 -- dua kali. Selisihnya nol, dan akun yang
+         * BENAR-BENAR dibuat dilaporkan sebagai "tidak ada yang dibuat".
+         *
+         * Gejalanya yang paling buruk kalau ditelusuri: akun demo-nya ada
+         * semua dan bisa dipakai, sementara command-nya menyebut "dilewati".
+         * Yang hilang justru informasi yang paling dibutuhkan -- akun mana
+         * yang barusan dibuat.
+         */
+        return $this->runFor($tenant, function () {
+            $sebelumnya = $this->countDemoUsers();
+
+            Artisan::call('db:seed', [
+                '--class' => DemoUserSeeder::class,
+                '--database' => self::CONNECTION,
+                '--force' => true,
+            ]);
+
+            return max(0, $this->countDemoUsers() - $sebelumnya);
+        });
+    }
+
+    /**
+     * Berapa akun demo yang sudah ada di database lokasi yang aktif.
+     *
+     * HANYA BOLEH dipanggil dari dalam `runFor()`. Di luar, tidak ada lokasi
+     * aktif untuk dibaca -- lihat catatan di `seedDemoUsers()`.
+     */
+    private function countDemoUsers(): int
+    {
+        $emails = array_values(array_filter(
+            array_map('strval', (array) config('tenancy.demo_users.emails', []))
+        ));
+
+        if ($emails === []) {
+            return 0;
+        }
+
+        return DB::connection(self::CONNECTION)
+            ->table('users')
+            ->whereIn('email', $emails)
+            ->count();
+    }
+
+    /**
+     * Jalankan seeder master di DATABASE PUSAT.
+     *
+     * Level 1-3 chart of accounts ada di sini, bukan di database lokasi, jadi
+     * seedernya tidak ikut dipanggil oleh {@see seedTenantDatabase()}. Mereka
+     * dijalankan sekali, idempoten, untuk seluruh sistem -- bukan sekali per
+     * lokasi.
+     *
+     * Panggil lewat `tenancy:migrate-central` (--seed) atau langsung lewat
+     * perintah CLI saat struktur chart of accounts perlu di-rebuild. Tidak
+     * dipanggil otomatis saat tenant baru dibuat, karena pusat tidak perlu
+     * menunggu ada lokasi baru untuk diisi.
+     */
+    public function seedCentralDatabase(): void
+    {
+        $seeders = (array) config('tenancy.provision.central_seeders', []);
+
+        if ($seeders === []) {
+            return;
+        }
+
+        foreach ($seeders as $seeder) {
+            if (! is_string($seeder) || ! class_exists($seeder)) {
+                continue;
+            }
+
+            Artisan::call('db:seed', [
+                '--class' => $seeder,
+                '--database' => config('tenancy.central_connection', 'central'),
+                '--force' => true,
+            ]);
+        }
     }
 
     /**

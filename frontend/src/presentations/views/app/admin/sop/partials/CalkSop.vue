@@ -326,7 +326,7 @@
         size="md"
         @click="onSave"
         icon="save"
-        class="w-full! md:w-auto! rounded-xl! px-8! shadow-lg! shadow-indigo-100!"
+        class="w-full! md:w-auto! rounded-xl! px-8! shadow-lg! shadow-slate-200!"
       >
         Simpan Pengaturan CALK
       </BaseButton>
@@ -387,17 +387,17 @@ function insertVariable(value) {
     quillInstance.insertText(index, insertion, 'user')
     quillInstance.setSelection(index + insertion.length)
     // Sinkronkan v-model karena perubahan dari API mungkin belum propagate
-    form.point_a = quillInstance.root.innerHTML
+    form.value.point_a = quillInstance.root.innerHTML
     return
   }
 
   // Fallback: append ke akhir
-  form.point_a = (form.point_a || '') + ' ' + value
+  form.value.point_a = (form.value.point_a || '') + ' ' + value
 }
 
 function resetPointA() {
   if (confirm('Kosongkan Custom CALK? Teks bawaan akan digunakan di laporan.')) {
-    form.point_a = ''
+    form.value.point_a = ''
   }
 }
 </script>
@@ -475,7 +475,7 @@ function resetPointA() {
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button:hover,
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button:focus,
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button.ql-active {
-  color: #4f46e5 !important;
+  color: var(--color-primary, #4f46e5) !important;
 }
 .calk-wysiwyg-wrapper .ql-snow.ql-toolbar button:hover .ql-fill,
 .calk-wysiwyg-wrapper .ql-snow.ql-toolbar button:focus .ql-fill,
@@ -483,7 +483,7 @@ function resetPointA() {
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button:hover .ql-fill,
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button:focus .ql-fill,
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button.ql-active .ql-fill {
-  fill: #4f46e5 !important;
+  fill: var(--color-primary, #4f46e5) !important;
 }
 .calk-wysiwyg-wrapper .ql-snow.ql-toolbar button:hover .ql-stroke,
 .calk-wysiwyg-wrapper .ql-snow.ql-toolbar button:focus .ql-stroke,
@@ -491,13 +491,13 @@ function resetPointA() {
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button:hover .ql-stroke,
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button:focus .ql-stroke,
 .calk-wysiwyg-wrapper .ql-snow .ql-toolbar button.ql-active .ql-stroke {
-  stroke: #4f46e5 !important;
+  stroke: var(--color-primary, #4f46e5) !important;
 }
 .calk-wysiwyg-wrapper .ql-snow .ql-picker-label:hover,
 .calk-wysiwyg-wrapper .ql-snow .ql-picker-label.ql-active,
 .calk-wysiwyg-wrapper .ql-snow .ql-picker-item:hover,
 .calk-wysiwyg-wrapper .ql-snow .ql-picker-item.ql-selected {
-  color: #4f46e5 !important;
+  color: var(--color-primary, #4f46e5) !important;
 }
 
 /* Tooltip */

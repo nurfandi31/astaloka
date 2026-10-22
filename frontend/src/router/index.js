@@ -48,10 +48,13 @@ import CentralLokasiForm from '@/presentations/views/central/CentralLokasiForm.v
 import CentralLokasiEdit from '@/presentations/views/central/CentralLokasiEdit.vue'
 import CentralLokasiDetail from '@/presentations/views/central/CentralLokasiDetail.vue'
 import CentralTagihanIndex from '@/presentations/views/central/CentralTagihanIndex.vue'
-import CentralAuditIndex from '@/presentations/views/central/CentralAuditIndex.vue'
+import CentralCoaIndex from '@/presentations/views/central/CentralCoaIndex.vue'
+import CentralSuperadminIndex from '@/presentations/views/central/CentralSuperadminIndex.vue'
 
 import { getDashboardRoute } from './dashboardRoutes'
 import { isCentralSessionValid, clearCentralSession } from '@/utils/centralAxios'
+import { hapusTenantSlug } from '@/utils/tenantSlug'
+import { useMenuAccessStore } from '@/stores/menuAccessStore'
 
 // NOTE: DashboardHome merender dashboard per-role lewat dynamic component,
 // jadi admin/surveyor/pelanggan berbagi path /app. Teknisi punya route khusus
@@ -68,6 +71,24 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+    },
+    /*
+     | Login pintasan: daftar seluruh user lokasi, masuk tanpa password.
+     |
+     | Sengaja DI LUAR `/app` dan tidak memakai `MainView` -- halaman ini
+     | sepenuhnya mandiri (latar + kartu sendiri), seperti `LoginView`.
+     |
+     | Harus dibaca SEBELUM route catch-all `/:pathMatch(.*)*` di bawah,
+     | kalau tidak tidak akan pernah terpakai.
+     |
+     | Catatan Keamanan: endpoint-nya tidak butuh autentikasi sama sekali --
+     | itulah funcinya. Backend bisa dimatikan lewat
+     | `SHORTCUT_LOGIN_ENABLED=false`, yang membuat keduanya membalas 404.
+     */
+    {
+      path: '/login/user',
+      name: 'shortcut-login',
+      component: () => import('@/presentations/views/auth/ShortcutLoginView.vue'),
     },
     {
       path: '/profil',
@@ -108,6 +129,34 @@ const router = createRouter({
           component: CentralLokasiIndex,
         },
         {
+          // Path-nya SENGAJA `/central/hak-akses`, bukan `/central/lokasi/hak-akses`.
+          //
+          // Menu di panel pusat menyorot berdasarkan awalan path
+          // (`CentralLayout.isActive` memakai `startsWith`). Kalau halamannya
+          // berada di bawah `/central/lokasi/...`, maka "Tenant" akan ikut
+          // menyala bersamaan dengan "Hak Akses" -- dua menu aktif pada satu
+          // halaman. Menu ini adalah saudara "Tenant", bukan anaknya, jadi
+          // path-nya tidak perlu meniru struktur URL-nya.
+          path: 'hak-akses',
+          name: 'central-hak-akses',
+          component: () => import('@/presentations/views/central/CentralHakAksesIndex.vue'),
+        },
+        {
+          /*
+           * Migrasi data, path-nya datar.
+           *
+           * Alasan yang sama seperti "Hak Akses": halaman ini berdiri di
+           * Panel Pusat, bukan di bawah `/central/lokasi/...`, padahal
+           * isinya melintasi banyak lokasi. Kalau path-nya meniru struktur URL
+           * ("/central/lokasi/migrasi"), menu "Tenant" akan ikut menyala
+           * setiap kali halaman ini dibuka -- dan yang disorotkan bukan
+           * halaman yang sedang dibaca.
+           */
+          path: 'migrasi-data',
+          name: 'central-migrasi-data',
+          component: () => import('@/presentations/views/central/CentralMigrasiData.vue'),
+        },
+        {
           path: 'lokasi/tambah',
           name: 'central-lokasi-tambah',
           component: CentralLokasiForm,
@@ -128,9 +177,14 @@ const router = createRouter({
           component: CentralTagihanIndex,
         },
         {
-          path: 'audit',
-          name: 'central-audit',
-          component: CentralAuditIndex,
+          path: 'coa',
+          name: 'central-coa',
+          component: CentralCoaIndex,
+        },
+        {
+          path: 'superadmin',
+          name: 'central-superadmin',
+          component: CentralSuperadminIndex,
         },
       ],
     },
@@ -368,7 +422,20 @@ const router = createRouter({
           component: komisiSPS,
         },
         {
-          path: 'Pelaporan',
+          /*
+            Path-nya huruf kecil semua: 'pelaporan'.
+
+            Sebelumnya ditulis 'Pelaporan' (huruf P besar) sementara sidebar
+            menautkan ke '/app/pelaporan' dan `menu_access.php` juga
+            mendaftarkan '/app/pelaporan'. Vue Router membandingkan path dengan
+            PITAH KASAR, jadi tautan sidebar jatuh ke route `:pathMatch(.*)*`
+            alias NotFound -- halaman Pelaporan tidak pernah terbuka lewat
+            sidebar, dan tidak ada error: NotFound memang halaman yang valid.
+
+            Nama route ('Pelaporan') boleh tetap huruf besar; yang dibaca
+            adalah `path`-nya.
+          */
+          path: 'pelaporan',
           name: 'Pelaporan',
           component: laporan,
         },
@@ -521,7 +588,7 @@ const GUARDED_PREFIXES = ROLE_GUARDS.flatMap((guard) =>
   guard.prefixes.map((prefix) => ({ prefix, roles: guard.roles })),
 )
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   /*
    | Panel pusat punya sesi sendiri (central_token) dengan aturan sendiri.
    | Harus diperiksa sebelum guard aplikasi lokasi: mengecek `auth_token`
@@ -545,7 +612,15 @@ router.beforeEach((to) => {
   const token = localStorage.getItem('auth_token')
   const expiresAt = localStorage.getItem('auth_expires_at')
   const storedRole = localStorage.getItem('user_role')
-  const isAuthPage = to.name === 'login'
+  /*
+   * Halaman yang boleh dibuka TANPA sesi.
+   *
+   * `shortcut-login` ikut masuk daftar ini karena justru tanpa sesi itulah
+   * fungsinya -- halaman itu adalah pintu masuk, bukan tujuan. Tanpa ini,
+   * guard akan melempar semua orang ke `/login`, dan `/login/user` tidak akan
+   * pernah bisa dibuka sama sekali.
+   */
+  const isAuthPage = to.name === 'login' || to.name === 'shortcut-login'
   const now = Date.now()
 
   if (token && expiresAt && now > parseInt(expiresAt)) {
@@ -553,6 +628,10 @@ router.beforeEach((to) => {
     localStorage.removeItem('user_data')
     localStorage.removeItem('user_role')
     localStorage.removeItem('auth_expires_at')
+
+    // `tenant_slug` milik sesi yang sudah kedaluwarsa; sisa di sini akan
+    // dipakai lokasi berikutnya yang login di lokasi berbeda.
+    hapusTenantSlug()
 
     return {
       name: 'login',
@@ -591,6 +670,9 @@ router.beforeEach((to) => {
     localStorage.removeItem('user_role')
     localStorage.removeItem('auth_expires_at')
 
+    // Sama seperti di atas: slug ikut kedaluwarsa bersama sesinya.
+    hapusTenantSlug()
+
     return {
       name: 'login',
     }
@@ -605,6 +687,45 @@ router.beforeEach((to) => {
   if (matched && !matched.roles.includes(userRole)) {
     // Jangan lempar ke halaman login (user sudah login dan itu membingungkan,
     // serta memicu redirect bolak-balik). Kembalikan ke dashboard role-nya.
+    return {
+      path: getDashboardRoute(userRole),
+    }
+  }
+
+  /*
+   | Katalog menu dimuat di sini, bukan cuma di SidebarView.
+   |
+   | Sidebar memanggil `loadCatalog()` di `onMounted`-nya, tapi itu terjadi
+   | SETELAH navigasi pertama selesai -- sehingga guard di bawah akan
+   | selalu melihat katalog kosong pada halaman yang dibuka langsung dari
+   | login. Melempar ke dashboard berdasarkan katalog kosong sama dengan
+   | mengunci semua orang di Beranda. Karena itu di sini, dan hanya di
+   | sini, sehingga selalu siap sebelum guard dipakai.
+   |
+   | `await` nya aman: `loadCatalog` tidak pernah melempar -- kalau gagal,
+   | ia mencatat error dan membiarkan `isLoaded` false, yang oleh
+   | `allowsPath` dibaca sebagai "belum tahu, izinkan lewat".
+   */
+  if (token) {
+    await useMenuAccessStore().loadCatalog()
+  }
+
+  /*
+   | Cek hak akses menu (jabatan).
+   |
+   | Berbeda dengan cek role di atas: yang ini BUKAN pengaman. Backend
+   | sudah memblokir endpoint-nya, dan itu yang benar-benar berlaku. Yang
+   | dilakukan di sini hanya mencegah user mendarat di halaman yang
+   | datanya pasti tidak bisa dimuat -- supaya tidak melihat halaman
+   | setengah jadi yang gagal dengan 403 di tengah-tengah.
+   |
+   | Sifatnya fail-open dengan sengaja. Kalau katalog belum sempat termuat
+   | (token baru hasil login, atau jaringan lambat), lebih baik membuka
+   | halaman lalu isinya gagal dengan pesan yang jelas, daripada mengunci
+   | user keluar dari aplikasi dengan alasan yang tidak dia kenali. Backend
+   | tetap menutup endpoint-nya, jadi tidak ada kebocoran data.
+   */
+  if (!useMenuAccessStore().allowsPath(to.path)) {
     return {
       path: getDashboardRoute(userRole),
     }

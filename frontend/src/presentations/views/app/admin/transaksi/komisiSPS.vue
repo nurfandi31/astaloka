@@ -13,7 +13,7 @@
               v-model="form.tanggal"
               label="Tanggal Transaksi"
               placeholder="Pilih tanggal transaksi"
-              @date-select="(date) => (form.tanggal = date)"
+              :max-date="today"
             />
           </div>
 
@@ -46,8 +46,8 @@
               :readonly="true"
             />
             <span v-if="unpaidInfo" class="text-[11px]! text-slate-500! mt-1!">
-              {{ unpaidInfo.bill_count }} tagihan unpaid • Pelanggan
-              {{ unpaidInfo.customer?.customer_code || '-' }}
+              {{ unpaidInfo.bill_count }} tagihan unpaid •
+              {{ unpaidInfo.customerNames }}
             </span>
           </div>
 
@@ -99,7 +99,7 @@
             @click="simpanTransaksi"
             :disabled="isProcessing || !canSubmit"
             :loading="isProcessing"
-            class="ml-auto! px-5! py-2! rounded-xl! shadow-lg! shadow-blue-200/50!"
+            class="ml-auto! px-5! py-2! rounded-xl! shadow-lg! shadow-slate-200/50!"
           >
             Simpan Komisi SPS
           </BaseButton>
@@ -109,7 +109,10 @@
       <div class="flex! flex-col! gap-4! lg:sticky! lg:top-8!">
         <ContentCard variant="minimal" padding="normal" hoverable>
           <div class="flex! gap-3! items-start!">
-            <div class="text-base! flex-shrink-0! mt-0.5!">â„¹ï¸</div>
+            <font-awesome-icon
+              icon="circle-info"
+              class="text-base! flex-shrink-0! mt-0.5! text-blue-500!"
+            />
             <div class="text-xs! text-slate-600! leading-relaxed!">
               <strong>Bantuan Komisi SPS</strong><br />
               Pilih pelanggan untuk menampilkan total tagihan unpaid. Nominal akan
@@ -178,7 +181,6 @@ const {
   notificationState,
   success,
   error,
-  warning,
   handleConfirm,
   handleCancel,
   handleClose,
@@ -186,8 +188,36 @@ const {
 
 const KOMISI_RATE = 0.1
 
+/*
+ * Tanggal hari ini sebagai `YYYY-MM-DD` di WAKTU LOKAL.
+ *
+ * Sengaja tidak memakai `new Date().toISOString()`: `toISOString()` selalu
+ * mengonversi ke UTC, sehingga di zona waktu di belakang UTC seperti WIB,
+ * tanggal hari ini sebelum pukul 07:00 menjadi tanggal kemarin.
+ */
+function formatTanggalBaru() {
+  const d = new Date()
+  const bulan = String(d.getMonth() + 1).padStart(2, '0')
+  const hari = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${bulan}-${hari}`
+}
+
+/*
+ * Tanggal transaksi disimpan sebagai string `YYYY-MM-DD`, bukan objek Date.
+ *
+ * Form ini boleh dikirim tanpa disentuh, jadi nilai awalnya harus langsung
+ * berbentuk yang diterima backend. `new Date()` diserialisasi axios menjadi
+ * ISO/UTC: di zona waktu di belakang UTC seperti WIB, tanggal hari ini
+ * sebelum pukul 07:00 menjadi tanggal kemarin -- jurnal tercatat sehari
+ * mundur tanpa ada yang menyadarinya.
+ *
+ * `AppDatePicker` juga memancarkan string dengan format yang sama, jadi kedua
+ * jalur ini konsisten tanpa konversi tambahan.
+ */
+const today = formatTanggalBaru()
+
 const form = reactive({
-  tanggal: new Date(),
+  tanggal: today,
   customerIds: [],
   relasi: '',
   totalTagihan: 0,
@@ -233,6 +263,34 @@ const penerimaOptions = computed(() => {
   return opts
 })
 
+/*
+ * Ringkasan tagihan yang sedang dipilih, untuk catatan kecil di bawah kolom
+ * Total Tagihan.
+ *
+ * Template pernah memakai `unpaidInfo` sejak awal, tapi tidak pernah ada
+ * deklarasinya di `<script setup>`: setiap render memunculkan peringatan
+ * "Property 'unpaidInfo' was accessed during render but is not defined", dan
+ * baris yang dimaksud tidak pernah tampil.
+ *
+ * Jumlah tagihan dijumlahkan lintas pelanggan karena form ini menerima lebih
+ * dari satu pelanggan sekaligus.
+ */
+const unpaidInfo = computed(() => {
+  if (unpaidSummary.value.length === 0) return null
+
+  const billCount = unpaidSummary.value.reduce(
+    (sum, row) => sum + (Number(row.bill_count) || 0),
+    0,
+  )
+
+  const customerNames = unpaidSummary.value
+    .map((row) => row.customer?.nama || row.customer?.customer_code)
+    .filter(Boolean)
+    .join(', ')
+
+  return { bill_count: billCount, customerNames }
+})
+
 const canSubmit = computed(
   () =>
     !!form.tanggal &&
@@ -249,9 +307,21 @@ const formatRp = (val) =>
     maximumFractionDigits: 2,
   });
 
-const hitungKomisi = (totalTagihan) => {
-  const t = Number(totalTagihan) || 0
-  return Math.round(t * KOMISI_RATE * 100) / 100
+/*
+ * Total komisi, dibulatkan PER TAGIHAN lalu dijumlahkan.
+ *
+ * Backend membulatkan 10% tiap tagihan secara terpisah sebelum menjumlahkannya
+ * (`KomisiSPSController::store()`). Kalau di sini rate-nya dikalikan sekali
+ * atas total tagihan, angka di layar bisa berbeda beberapa rupiah dari total
+ * jurnal -- dan user akan menganggap jurnal yang salah.
+ */
+const hitungKomisi = (rows) => {
+  const total = (rows || []).reduce(
+    (sum, row) => sum + Math.round((Number(row.total_unpaid) || 0) * KOMISI_RATE * 100) / 100,
+    0,
+  )
+
+  return Math.round(total * 100) / 100
 }
 
 const loadCustomers = async (q = '') => {
@@ -327,7 +397,6 @@ const onCustomersChange = async (customerIds) => {
       ids.map((id) => komisiSPSService.getUnpaidByCustomer(id)),
     )
     const summary = []
-    let totalUnpaid = 0
     const relasiNames = []
 
     results.forEach((res, idx) => {
@@ -343,7 +412,6 @@ const onCustomersChange = async (customerIds) => {
           nominal_komisi: Number(res.data.nominal_komisi) || 0,
           bills: res.data.bills || [],
         })
-        totalUnpaid += unpaid
         if (customer.nama || customer.customer_code) {
           relasiNames.push(customer.nama || customer.customer_code)
         }
@@ -351,8 +419,10 @@ const onCustomersChange = async (customerIds) => {
     })
 
     unpaidSummary.value = summary
-    form.totalTagihan = Math.round(totalUnpaid * 100) / 100
-    form.nominal = hitungKomisi(totalUnpaid)
+    form.totalTagihan = Math.round(
+      summary.reduce((sum, row) => sum + row.total_unpaid, 0) * 100,
+    ) / 100
+    form.nominal = hitungKomisi(summary)
     form.relasi = relasiNames.length
       ? relasiNames.join(', ')
       : `${summary.length} pelanggan`
@@ -385,7 +455,7 @@ const simpanTransaksi = async () => {
       const processed = res.data?.bill_count || 0
       success(
         'Berhasil!',
-        `Transaksi komisi SPS disimpan untuk ${processed} Tagihan (${form.customerIds.length} pelanggan). Nominal komisi: ${formatRp(nominalKomisi)}. Jurnal 5.1.02.04 â†’ 2.1.02.02 terposting otomatis.`,
+        `Transaksi komisi SPS disimpan untuk ${processed} Tagihan (${form.customerIds.length} pelanggan). Nominal komisi: ${formatRp(nominalKomisi)}. Jurnal 5.1.02.04 → 2.1.02.02 terposting otomatis.`,
       )
       form.customerIds = []
       form.relasi = ''

@@ -30,8 +30,20 @@
         class="text-2xl! sm:text-3xl! md:text-4xl! font-black! text-slate-800! tracking-tight! leading-tight! mb-1!"
       >
         Selamat Datang di
+        <!--
+          `bg-clip-text text-transparent` BUKAN opsional di sini.
+
+          Tanpa dua kelas itu, gradasi tidak diterapkan ke teks -- ia tetap jadi
+          kotak latar di belakang huruf, persis seperti yang terlihat kalau
+          kelas-kelas ini hilang. Teksnya sendiri baru jadi bergradasi kalau
+          warnanya dibuat transparan DAN latar dipotong ke bentuk teks.
+
+          TEST: kalau kata-kata ini pernah tampil dengan kotak warna di
+          belakangnya, hampir selalu penyebabnya kedua kelas ini terhapus,
+          bukan warnanya salah.
+        -->
         <span
-          class="bg-gradient-to-r! from-indigo-600! via-blue-600! to-cyan-500! bg-clip-text! text-transparent! drop-shadow-xs!"
+          class="bg-linear-brand! bg-clip-text! text-transparent! drop-shadow-xs!"
           >Pusat Kendali SOP</span
         >
       </h1>

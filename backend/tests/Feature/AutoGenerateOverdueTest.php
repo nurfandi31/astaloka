@@ -325,21 +325,27 @@ class AutoGenerateOverdueTest extends TestCase
             'Format keterangan Abodemen harus "Piutang Abodemen <suffix>".'
         );
 
-        // Keterangan harus mengandung "Piutang Denda bulan ... an. Fuji Riyanta (7349)"
-        // untuk jurnal 4.1.01.03.
-        $dendaJurnal = Transaction::where('reverence_type', 'overdue_bill')
+        // Jurnal untuk 4.1.01.03 ("Tagihan Pemakaian") harus BERITAH
+        // pemakaian, bukan denda.
+        //
+        // Versi lama test ini mengunci perilaku yang salah: akun `4.1.01.03`
+        // adalah "Tagihan Pemakaian" (`AccountsTableSeeder.php:94`), tetapi
+        // keterangannya ditulis "Piutang Denda". Akibatnya baris buku besar
+        // menampilkan pendapatan denda pada akun pemakaian, dan akun Denda
+        // (`4.1.01.04`) tidak pernah dipakai di jalur accrue sama sekali.
+        $pemakaianJurnal = Transaction::where('reverence_type', 'overdue_bill')
             ->where('account_kredit', '4.1.01.03')
             ->first();
-        $this->assertNotNull($dendaJurnal, 'Harus ada jurnal piutang Denda.');
+        $this->assertNotNull($pemakaianJurnal, 'Harus ada jurnal piutang Pemakaian.');
         $this->assertSame(
-            'Piutang Denda '.$expectedSuffix,
-            $dendaJurnal->keterangan_transaksi,
-            'Format keterangan Denda harus "Piutang Denda <suffix>".'
+            'Piutang Pemakaian '.$expectedSuffix,
+            $pemakaianJurnal->keterangan_transaksi,
+            'Format keterangan Pemakaian harus "Piutang Pemakaian <suffix>".'
         );
 
         // Relasi harus berisi customer_code.
         $this->assertSame('7349', $abodemenJurnal->relasi);
-        $this->assertSame('7349', $dendaJurnal->relasi);
+        $this->assertSame('7349', $pemakaianJurnal->relasi);
     }
 
     #[Test]

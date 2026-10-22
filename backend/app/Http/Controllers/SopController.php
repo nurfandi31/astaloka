@@ -27,6 +27,18 @@ class SopController extends Controller
             'sistemTagihan' => [
                 'batasTagihan' => $s?->batas_tagihan ?? 27,
                 'toleransiTunggakan' => $s?->toleransi_tunggakan ?? 0,
+
+                /*
+                 * Batas tagihan menunggak sebelum sambungan diputus.
+                 *
+                 * Dikirim sebagai `null`, bukan angka fallback, supaya
+                 * frontend bisa membedakan "belum diisi" dari "sengaja diisi
+                 * dengan angka yang sama seperti toleransi". Tanpa itu,
+                 * mengisi form dengan angka yang sama tidak bisa dibedakan
+                 * dari membiarkannya kosong -- dan tidak ada jalan untuk
+                 * kembali ke perilaku lama.
+                 */
+                'batasTagihanTunggak' => $s?->billing_unpaid_limit,
             ],
             'pasangBaru' => [
                 'statusPembayaran' => (bool) ($s?->status_pembayaran ?? false),
@@ -123,13 +135,42 @@ $data = $request->validate([
         try {
             $data = $request->validate([
                 'batasTagihan' => 'required|integer|min:1|max:28',
+
+                /*
+                 * Rentang `0..120` TETAP sama seperti pamsides-v2.
+                 *
+                 * Nilai ini punya beberapa makna sekaligus (tanggal
+                 * generate, jumlah hari maf toleransi, ambang advance
+                 * payment, batas tagihan menunggak), dan tiap konsumen
+                 * yang membutuhkannya sudah memeriksa rantainya sendiri
+                 * lewat `BillingTolerance`. Mengubah rentang validasi di
+                 * sini akan menolak SOP lama yang sah -- termasuk nilai 0
+                 * yang berarti "tanpa maf toleransi".
+                 */
                 'toleransiTunggakan' => 'required|integer|min:0|max:120',
+
+                /*
+                 * Batas tagihan menunggak sebelum sambungan diputus.
+                 *
+                 * `nullable` karena kosong berarti "pakai nilai
+                 * `toleransi_tunggakan` seperti sebelumnya". Frontend
+                 * mengirim `null` selama admin tidak menyentuh field ini,
+                 * sehingga semua lokasi yang sudah ada perilakunya tidak
+                 * berubah sampai mereka mengisinya secara sadar.
+                 *
+                 * Rentang 0-120: 0 berarti "tidak pernah diputus otomatis",
+                 * yang utile untuk lokasi yang memeriksa tunggakan manual.
+                 */
+                'batasTagihanTunggak' => 'nullable|integer|min:0|max:120',
             ]);
 
             $s = Setting::firstOrNew([]);
             $s->key = $s->key ?: 'sop';
             $s->batas_tagihan = (int) $data['batasTagihan'];
             $s->toleransi_tunggakan = (int) $data['toleransiTunggakan'];
+            $s->billing_unpaid_limit = $data['batasTagihanTunggak'] !== null
+                ? (int) $data['batasTagihanTunggak']
+                : null;
             $s->save();
 
             return $this->success('Sistem tagihan berhasil disimpan');

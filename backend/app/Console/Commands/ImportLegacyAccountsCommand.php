@@ -22,15 +22,29 @@ class ImportLegacyAccountsCommand extends Command
         $this->warn($isDryRun ? 'DRY-RUN' : 'FORCE MODE');
         if ($bizFilter) $this->info("Filter accounts: hanya business_id={$bizFilter} di DB lama.");
 
+        /*
+         * Level 1-3 tinggal di database PUSAT. Perintah ini membaca dari DB
+         * legacy (koneksi 'legacy') lalu menulis ke dua tujuan berbeda:
+         * struktur akun ke `central`, data operasional ke lokasi.
+         *
+         * Jangan pakai DB::table() polos untuk yang level -- dengan default
+         * koneksi yang sedang aktif (lokasi), truncate akan error "table
+         * doesn't exist" karena tabelnya sudah tidak ada di sana.
+         */
+        $central = (string) config('tenancy.central_connection', 'central');
+
         if (! $isDryRun) {
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
             DB::table('transactions')->truncate();
             DB::table('accounts')->truncate();
-            DB::table('akun_level_3')->truncate();
-            DB::table('akun_level_2')->truncate();
-            DB::table('akun_level_1')->truncate();
             DB::table('jenis_transactions')->truncate();
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            DB::connection($central)->statement('SET FOREIGN_KEY_CHECKS=0');
+            DB::connection($central)->table('akun_level_3')->truncate();
+            DB::connection($central)->table('akun_level_2')->truncate();
+            DB::connection($central)->table('akun_level_1')->truncate();
+            DB::connection($central)->statement('SET FOREIGN_KEY_CHECKS=1');
         }
 
         // 1. akun_level_1
@@ -52,7 +66,7 @@ class ImportLegacyAccountsCommand extends Command
             ];
         }
         $this->line('  rows: '.count($buf));
-        if (! $isDryRun && ! empty($buf)) DB::table('akun_level_1')->insert($buf);
+        if (! $isDryRun && ! empty($buf)) DB::connection($central)->table('akun_level_1')->insert($buf);
 
         // 2. akun_level_2
         $this->info('Import akun_level_2...');
@@ -74,7 +88,7 @@ class ImportLegacyAccountsCommand extends Command
             ];
         }
         $this->line('  rows: '.count($buf));
-        if (! $isDryRun && ! empty($buf)) DB::table('akun_level_2')->insert($buf);
+        if (! $isDryRun && ! empty($buf)) DB::connection($central)->table('akun_level_2')->insert($buf);
 
         // 3. akun_level_3
         $this->info('Import akun_level_3...');
@@ -97,7 +111,7 @@ class ImportLegacyAccountsCommand extends Command
             ];
         }
         $this->line('  rows: '.count($buf));
-        if (! $isDryRun && ! empty($buf)) DB::table('akun_level_3')->insert($buf);
+        if (! $isDryRun && ! empty($buf)) DB::connection($central)->table('akun_level_3')->insert($buf);
 
         // 4. accounts (filter by business_id)
         //
@@ -156,11 +170,11 @@ class ImportLegacyAccountsCommand extends Command
 
         $this->line('');
         $this->info('Verifikasi:');
-        $this->line('  akun_level_1: '.DB::table('akun_level_1')->count());
-        $this->line('  akun_level_2: '.DB::table('akun_level_2')->count());
-        $this->line('  akun_level_3: '.DB::table('akun_level_3')->count());
-        $this->line('  accounts: '.DB::table('accounts')->count());
-        $this->line('  jenis_transactions: '.DB::table('jenis_transactions')->count());
+        $this->line('  [pusat] akun_level_1: '.DB::connection($central)->table('akun_level_1')->count());
+        $this->line('  [pusat] akun_level_2: '.DB::connection($central)->table('akun_level_2')->count());
+        $this->line('  [pusat] akun_level_3: '.DB::connection($central)->table('akun_level_3')->count());
+        $this->line('  [lokasi] accounts: '.DB::table('accounts')->count());
+        $this->line('  [lokasi] jenis_transactions: '.DB::table('jenis_transactions')->count());
 
         return self::SUCCESS;
     }

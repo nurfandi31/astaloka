@@ -34,9 +34,4 @@ class Customer extends Model
     {
         return $this->hasMany(MonthlyBill::class, 'customer_id');
     }
-
-    public function transactions()
-    {
-        return $this->morphMany(Transaction::class, 'reverence');
-    }
 }

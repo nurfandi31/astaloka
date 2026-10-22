@@ -282,7 +282,7 @@ const fetchKelasData = async (id) => {
         price: Number(b.price_per_m3),
       }))
     }
-  } catch (error) {
+  } catch {
     Swal.fire('Error', 'Gagal mengambil data paket', 'error')
   }
 }
@@ -452,7 +452,7 @@ const handleSave = async () => {
       text: 'Perubahan paket & tarif layanan telah disimpan.',
       icon: 'success',
       confirmButtonText: 'Selesai',
-      confirmButtonColor: '#3b82f6',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
 
     router.push('/app/kelas-biaya')

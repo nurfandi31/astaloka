@@ -2,7 +2,7 @@
   <div class="daftar-tagihan-root">
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4! mb-6!">
       <div class="flex-1!">
-        <h1 class="text-xl md:text-2xl font-bold text-cyan-600! tracking-tight mb-1!">
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900! tracking-tight mb-1!">
           Daftar Tagihan Tertunggak (Belum Lunas)
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed">
@@ -44,7 +44,7 @@
         <template #column-customer="{ row }">
           <div class="flex items-center gap-3!">
             <div
-              class="w-9! h-9! rounded-xl! bg-gradient-to-br! from-cyan-500! to-blue-600! flex! items-center! justify-center! text-white! text-xs! font-bold! shrink-0! shadow-sm!"
+              class="w-9! h-9! rounded-xl! bg-linear-brand! flex! items-center! justify-center! text-white! text-xs! font-bold! shrink-0! shadow-sm!"
             >
               {{ getInitials(row) }}
             </div>
@@ -175,7 +175,9 @@ const fetchBills = async () => {
     if (res.success && res.data) {
       bills.value = res.data.bills || []
     }
-  } catch (err) {
+  } catch {
+    // Daftar tagihan gagal diambil. Tabel dibiarkan apa adanya supaya
+    // halaman tidak ikut gagal.
   } finally {
     isLoading.value = false
   }
@@ -232,7 +234,7 @@ const formatDueDate = (dateStr) => {
       'Des',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch (err) {
+  } catch {
     return dateStr
   }
 }
@@ -255,7 +257,7 @@ const getOverdueDays = (dateStr) => {
     } else {
       return `Tersisa ${Math.abs(diffDays)} hari`
     }
-  } catch (err) {
+  } catch {
     return ''
   }
 }

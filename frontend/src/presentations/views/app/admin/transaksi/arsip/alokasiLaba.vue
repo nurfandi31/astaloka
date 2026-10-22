@@ -56,7 +56,7 @@
         <ContentCard variant="default" padding="normal" hoverable>
           <div class="flex items-center gap-2.5 mb-5! pb-4 border-b border-gray-100">
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-teal-50">
-              ¦
+              🏦
             </div>
             <div class="flex flex-col">
               <span class="text-base font-bold text-gray-800">Laba Ditahan</span>
@@ -98,12 +98,12 @@
           Kembali
         </BaseButton>
         <BaseButton
-          variant="primary-gradient"
+          variant="secondary"
           size="lg"
           @click="handleSimpan"
           :disabled="isSaving || isLoading || !canSave"
           :loading="isSaving"
-          class="w-full sm:w-auto px-10! rounded-xl shadow-lg shadow-blue-200/50 font-bold"
+          class="w-full sm:w-auto px-10! rounded-xl shadow-lg shadow-slate-200/50 font-bold"
         >
           Simpan Alokasi Laba
         </BaseButton>
@@ -223,7 +223,7 @@ const loadBookStatus = async (year) => {
     }
     bookClosed.value = false
     return false
-  } catch (e) {
+  } catch {
     bookClosed.value = false
     return false
   } finally {
@@ -254,7 +254,9 @@ const loadExistingAllocation = async (year) => {
         res.data.total_laba,
       )
     }
-  } catch (e) {
+  } catch {
+    // Alokasi laba tahun ini belum tersimpan. Formulir dibiarkan kosong
+    // supaya pengguna bisa mengisi sendiri.
   }
 }
 

@@ -14,7 +14,7 @@
         "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
-        "maatwebsite/excel": "^1.1"
+        "phpoffice/phpspreadsheet": "5.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -85,6 +85,9 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "audit": {
+            "block-insecure": false
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true

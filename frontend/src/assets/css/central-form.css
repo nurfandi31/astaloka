@@ -4,36 +4,168 @@
 |--------------------------------------------------------------------------
 |
 | Dipakai bersama oleh halaman Tambah Lokasi dan Ubah Lokasi. Keduanya punya
-| struktur markup yang hampir sama (kartu + seksi + grid input), jadi gaya
-| disatukan di sini alih-alih diduplikasi di dua file <style scoped>.
+| struktur markup yang hampir sama (baris atas lengket + kartu seksi + grid
+| input), jadi gaya disatukan di sini alih-alih diduplikasi di dua file
+| <style scoped>.
 |
 | Import dari dalam <style scoped> di komponen memunculkan peringatan
 | scoped-style dari Vue, jadi file ini diimpor lewat <script setup>
 | (`import '@/assets/css/central-form.css'`) agar tetap ikut ter-bundle.
 |
+| Class `.btn*`, `.status-pill*`, dan `.form-grid` dipakai juga oleh
+| CentralLokasiDetail dan CentralTagihanIndex. Bagian "dipakai bersama" di
+| bawah tidak boleh diubah tanpa memeriksa kedua halaman itu.
+|
 */
 
+/*
+| Batas lebar halaman form.
+|
+| Sebelumnya `max-width: 74rem` + `margin: 0 auto` sendiri. Dua masalah dari
+| sana:
+|
+| 1. Lebarnya 74rem = 1184px, sedangkan lima halaman panel pusat lain tidak
+|    punya batas lebar sama sekali -- di monitor 1920px isinya melebar sampai
+|    tepi. Form berdiri di tengah dengan ruang kosong besar di kiri dan kanan,
+|    jadi terlihat "menjorok ke dalam" dibanding halaman di sebelahnya.
+| 2. `max-width` tanpa `width` tidak otomatis mengisi ruang yang tersedia, jadi
+|    bentuk kotaknya ikut tergantung aturan display dari elemen induknya.
+|
+| Lebarnya sekarang diambil dari token yang sama dengan halaman lain, bukan
+| angka sendiri. Lihat
+| `assets/css/central-page.css` -- token --central-content-max didefinisikan di
+| CentralLayout.vue.
+*/
 .form-page {
-  max-width: 52rem;
-  margin: 0 auto;
+  width: 100%;
+  max-width: var(--central-content-max, 1200px);
+  margin-inline: auto;
 }
 
-.form-page__back {
+/* ===== Baris atas: Kembali di kiri, Simpan di kanan ===== */
+/*
+| Form ini panjang, dan tombol submit selalu jadi paling bawah -- artinya
+| harus menggulir sampai habis setiap kali mau menyimpan. Baris ini
+| melekat di bawah topnav supaya "Kembali" dan "Simpan" selalu di tempat
+| yang sama.
+|
+| `top` memakai `--central-topnav-height`, bukan 0: topnav panel pusat juga
+| sticky di 0, jadi baris yang juga di 0 akan tersembunyi tepat di bawahnya.
+| Token itu didefinisikan di `CentralLayout.vue` sebagai tinggi topnav yang
+| sama untuk kedua sisi aplikasi (56px).
+|
+| "Kembali" menggantikan tombol Batal, bukan ditambahkan di sampingnya.
+| Keduanya persis aksi yang sama -- kembali tanpa menyimpan -- tapi dua
+| tombol untuk satu tujuan hanya menambah pilihan yang salah.
+*/
+.form-topbar {
+  position: sticky;
+  top: calc(var(--central-topnav-height, 56px) + 0.5rem);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.75rem;
   margin-bottom: 1rem;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--border-radius-lg, 0.75rem);
+  /* Baris ini sticky di atas form yang panjang. Dulu bayangannya 12px blur
+   | dengan opacity rendah, yang praktis hilang begitu isinya lewat di
+   | bawahnya -- jadi bentuk "melayang" yang ada di sini tidak terlihat.
+   | Sekarang elevasi penuh yang sama dengan kartu utama halaman lain. */
+  box-shadow: var(--central-shadow-card);
 }
 
-.form-page__back a {
+.form-topbar__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-topbar__title h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-text-main, #1e293b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-topbar__title p {
+  margin: 0.05rem 0 0;
+  font-size: 0.7rem;
+  color: var(--color-gray-400, #94a3b8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Sama seperti `.detail-bar__back` di halaman detail: tombol, bukan
+   <router-link>. Keduanya bisa dipakai, tapi tautan menandai tujuan --
+   sementara ini berdiri di baris tombol bersama "Simpan", jadi harus
+   terbaca sebagai bagian dari kelompok aksi yang sama. */
+/*
+ * Tombol "Kembali".
+ *
+ * `min-height: 2.5rem` (40px) dengan alasan yang sama seperti `.btn`:
+ * `padding: 0.55rem` + font 0.8rem hanya menghasilkan ~35px, padahal ini
+ * satu-satunya cara keluar dari form tanpa menyentuh browser -- di ponsel
+ * tidak ada tombol "back" hardware yang bisa diandalkan.
+ *
+ * `:disabled` ikut ada karena CentralLokasiEdit.vue mengikat `:disabled`
+ * ke `loading` di tombol ini. Tanpa gaya disabled, tombol yang sedang
+ * tidak bisa dipakai masih terlihat sepenuhnya bisa diklik.
+ */
+.form-topbar__back {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-gray-500, #6b7280);
+  font-family: inherit;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #64748b;
   text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
 }
 
-.form-page__back a:hover {
-  color: #0284c7;
+.form-topbar__back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-topbar__back:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-gray-500, #6b7280);
+}
+
+.form-topbar__back:hover {
+  background: var(--color-gray-100, #f1f5f9);
+  border-color: var(--color-border, #e2e8f0);
+  color: var(--color-text-main, #1e293b);
+}
+
+.form-topbar__back:focus-visible,
+.form-section__head:focus-visible,
+.form-switch:focus-visible {
+  outline: 2px solid var(--color-primary, #0ea5e9);
+  outline-offset: 2px;
 }
 
 .form-card {
@@ -44,6 +176,15 @@
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
+  /* Elevasi penuh, sama dengan kartu utama halaman lain (CentralLayout.vue).
+   *
+   | Nilai lamanya tidak ditulis ulang begitu saja: bayangan kartu ini dulu
+   | 22px blur, sedangkan jaraknya ke kartu utama hanya 16px. Di monitor yang
+   | berarti bayangan ketiga seksi di baris paling bawah sudah keluar dari
+   | kartu induknya dan menempel ke kartu sebelah -- bentuk yang paling sering
+   | dikeluhkan sebagai "kartu di baris paling bawah yang terlihat kepotong".
+   */
+  box-shadow: var(--central-shadow-card);
 }
 
 .form-card--state {
@@ -61,34 +202,827 @@
   font-size: 1.4rem;
 }
 
-.form-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+/* ===== Badan: kartu seksi dua kolom =====
+|
+| Dua kolom, bukan satu: form ini punya enam seksi, dan satu kolom berarti
+| enam kartu selebar layar penuh yang isinya cuma tiga baris input di kiri
+| dengan separuh lebar halaman kosong.
+|
+| `align-items: start` disengaja. Kartu di satu baris boleh tinggi
+| berbeda -- dipaksa sama tinggi, ujung kartu yang pendek jadi ruang kosong
+| di dalam kartu, dan itu justru yang dihindari di sini.
+*/
+.form-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid #f1f5f9;
+  align-items: start;
 }
 
-.form-card__head h2 {
-  font-size: 1.15rem;
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--border-radius-lg, 0.75rem);
+  /* Seksi ini kartu di dalam kartu: putih di atas putih, dipisahkan hanya
+   | oleh garis 1px. Tanpa bayangan, enam seksi terbaca sebagai satu bidang
+   | putih besar dengan garis pemisah -- persis masalah yang sudah diselesaikan
+   | di dashboard, dan kartu identitas di halaman detail yang sekarang sudah
+   | punya bayangan penuh.
+   |
+   | Pakai pasangan `--central-shadow-sm`, bukan elevasi kartu: jarak antar
+   | seksi cuma 16px dan jarak ke tepi `.form-card` juga 28px, jadi
+   | bayangan sepanjang 20px akan keluar dari kotak induknya.
+   */
+  box-shadow: var(--central-shadow-sm);
+  min-width: 0;
+}
+
+/* Kartu yang menyeberangi dua kolom. Dipakai seksi yang isinya deret
+   pendek (mis. tiga field admin) -- tiga field di grid dua kolom menyisakan
+   satu sel kosong, dan tiga kolom menutupnya tanpa sisa. */
+.form-section--wide {
+  grid-column: 1 / -1;
+}
+
+.form-section--wide .form-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-section--wide .form-field--full {
+  grid-column: 1 / -1;
+}
+
+.form-section--accent {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* ===== Kepala seksi ===== */
+/*
+| Judul saja, tanpa paragraf penjelasan.
+|
+| Paragraf di bawah judul pernah menjelaskan hal yang sama dengan yang
+| sudah terlihat dari isi seksi: "Alamat dan kontak administrasi" di atas
+| tiga field yang namanya sudah menyebut itu. Yang benar-benar mengubah
+| cara mengisi -- misalnya penyiapan database yang berjalan 1-2 menit --
+| tetap ditulis, tapi sebagai catatan di dekat isiannya.
+*/
+.form-section__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.form-section__icon {
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.form-section__icon--slate {
+  background: #f1f5f9;
+  color: #475569;
+}
+.form-section__icon--amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+.form-section__icon--violet {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+.form-section__icon--green {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.form-section__head h2 {
+  font-size: 0.85rem;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
 }
 
-.form-card__slug {
-  font-family: ui-monospace, monospace;
-  font-size: 0.72rem;
-  color: #94a3b8;
-  margin: 0.2rem 0 0;
+.form-section__aside {
+  margin-left: auto;
 }
 
-.form-card__hint {
+/* ===== Grid isian =====
+|
+| Dua kolom tetap, bukan `auto-fit minmax(...)`.
+|
+| `auto-fit` menghitung kolom dari lebar yang tersedia, jadi jumlah
+| field terakhirnya yang menentukan -- dan field terakhir yang ganjil
+| selalu berakhir sendirian di baris paling bawah dengan sel kosong di
+| sebelahnya. Dua kolom eksplisit membuat setiap field tahu sejak awal
+| kolom mana pun dia tempati; field ganjil terakhir cukup diberi
+| `form-field--full` supaya melebar penuh, bukan menggantung.
+*/
+.form-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.8rem;
+  align-items: start;
+}
+
+/*
+| ==========================================================================
+| Token tinggi form
+| ==========================================================================
+|
+| Dua angka ini diulang di banyak tempat, dan setiap tempat yang menulis
+| sendiri angkanya adalah satu tempat lagi yang bisa meleset. Jadi keduanya
+| didefinisikan sekali di sini, dan -- yang lebih penting -- DITURUNKAN dari
+| komponen aslinya, bukan diketik ulang.
+|
+| `--form-label-height` sengaja memakai `lh` (line-height) dan bukan angka
+| px/rem. Label mewarisi `line-height: 1.6` dari `body` (lihat
+| `assets/css/base.css`), jadi tinggi kotak label sebenarnya:
+|
+|     0.75rem x 1.6  =  19.2px  (teksnya)
+|   + 0.375rem       =   6.0px  (margin bawah)
+|   ---------------------------------
+|                     25.2px
+|
+| Menuliskannya sebagai `0.75rem + 0.375rem` (18px) terlihat benar dan
+| tetap salah, karena kelalaian `line-height` tidak terlihat dari
+| `font-size` saja. Variabel `lh` membuat angka itu ikut berubah sendiri
+| kalau `line-height` global diganti.
+|
+| `--form-input-height` (2.75rem / 44px) sengaja sama dengan tinggi
+| `.base-input__field` milik `BaseInput` dan `:deep(.p-datepicker-input)`
+| milik `AppDatePicker`. Dua komponen itu punya <style scoped> sendiri dan
+| harus selalu di-override lewat `!important` -- token ini adalah tempat
+| satu-satunya di file ini yang menyatakan tinggi yang WAJIB sama dengan
+| keduanya.
+*/
+/*
+ | Tinggi kontrol form, dipisah dari `.form-body`.
+ |
+ | Dulu kedua token ini dideklarasikan di `.form-body`, yang hanya dipakai
+ | oleh form tenant. Modal penerbitan tagihan memakai `.modal-box__body`
+ | -- bukan `.form-body` -- sehingga `--form-input-height` tidak pernah
+ | resolve di sana, dan `min-height: var(--form-input-height)` jatuh ke
+ | `auto`. Akibatnya `BaseSelect` memakai tinggi default-nya sendiri
+ | (2.35rem) sementara `AppDatePicker` di sebelahnya tetap 2.75rem, dan
+ | dua kontrol yang sengaja dibetakkan satu baris terlihat melompat.
+ |
+ | Dipindah ke `:root` supaya resolve di mana pun token dipakai. Nilai
+ | dan tujuannya tidak berubah -- hanya tempat dan cakupannya.
+ */
+:root {
+  --form-input-height: 2.75rem;
+  --form-label-height: calc(0.875rem * 1.25 + 0.375rem);
+}
+
+.form-field {
+  min-width: 0;
+}
+
+.form-field--full {
+  grid-column: 1 / -1;
+}
+
+/*
+| Field yang memakan dua dari tiga kolom.
+|
+| Dipakai di seksi `--wide` yang jumlah fieldnya tidak habis dibagi tiga.
+| Tiga kolom menutup lima field tanpa sisa asal field terakhir diberi
+| `span 2` -- lima field di tiga kolom akan menyisakan satu sel kosong,
+| dan itu persis yang dihindari seksi ini.
+*/
+.form-field--span2 {
+  grid-column: span 2;
+}
+
+/*
+| Jarak antarbaris di sini milik `gap` grid, bukan margin milik komponen.
+|
+| `BaseInput`, `BaseSelect`, dan `AppDatePicker` semuanya menambahkan
+| margin bawah sendiri (`.mb-2!` / `noMargin`), dan margin itu tidak ikut
+| hilang saat komponen diletakkan di dalam grid. Kalau dibiarkan, setiap
+| baris dapat jarak bawah dari komponen SEKALIGUS dari `gap` -- baris
+| pertama jadi renggang, baris berikutnya makin renggang, dan yang
+| paling bawah kelihatan paling longgar dari semua.
+|
+| `noMargin` (BaseInput/BaseSelect) dan `no-margin` (AppDatePicker) yang
+| dipakai di kedua halaman form ini untuk alasan yang sama. Aturan
+| pengaman di bawah tetap ada karena ketiga komponen itu punya aturan
+| `!important` sendiri pada margin itu.
+*/
+.form-fields > * {
+  margin-bottom: 0 !important;
+}
+
+/*
+ | Ukuran label form, diseragamkan di satu tempat.
+ |
+ | SEBELUMNYA ada tiga ukuran label yang berbeda dalam satu form:
+ |
+ |   - `.base-input__label` (BaseInput)  -> 0.875rem, tanpa line-height
+ |   - `.label`          (AppDatePicker) -> 0.875rem, `text-sm` Tailwind
+ |   - `.form-label`     (label manual)  -> 0.75rem
+ |
+ | Yang ketiga itu yang membuat dropdown kas/rekening terlihat meleset:
+ | di sebelah "Tanggal Bayar" yang 0.875rem, label 0.75rem-nya jadi
+ | lebih pendek dan kotaknya mulai lebih tinggi -- tepat masalah yang
+ | dilaporkan di screenshot.
+ |
+ | Yang dipakai sekarang: 0.875rem, `line-height: 1.25`, margin bawah
+ | 0.375rem, margin kiri 0.25rem. 0.875rem mengikuti BaseInput dan
+ | AppDatePicker (bukan nilai ketiga yang sebelumnya ada di sini), dan
+ | `line-height: 1.25` membuat tinggi label terhitung -- bukan tebakan --
+ | tanpa itu, label dengan `line-height` mewaris 1.6 dari body dan
+ | terlihat lebih tinggi dari yang berukuran di sebelahnya.
+ |
+ | `--form-label-height` di atas ikut memakai angka yang sama, jadi
+ | sakelar di `.form-switch` tetap berimpit dengan baris label.
+ */
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  font-weight: 400;
+  color: #64748b;
+  margin: 0 0 0.375rem 0.25rem;
+}
+
+.form-label--req {
+  color: #dc2626;
+}
+
+.form-hint {
+  margin: 0.375rem 0 0 0.25rem;
   font-size: 0.75rem;
   color: #94a3b8;
+}
+
+.form-error {
+  margin: 0.375rem 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #dc2626;
+}
+
+/*
+| InputNumber dipakai untuk kuota user. Tingginya ditulis eksplisit
+| (2.75rem) agar sama persis dengan `.base-input__field` -- lihat catatan
+| yang sama di `MaksMoneyInput.vue` soal kenapa tinggi tidak boleh
+| dihitung dari CSS.
+|
+| `input-class` dipakai, bukan `class`: pada `InputNumber`, `class` menempel
+| ke elemen `<span>` pembungkus, sedangkan inputnya ada satu level di
+| bawah. Menempelkan aturan tinggi ke `<span>` tidak akan mengubah apa pun
+| yang terlihat.
+*/
+.form-body .p-inputnumber-input {
+  width: 100% !important;
+  height: var(--form-input-height) !important;
+  padding: 0 0.875rem !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  font-size: 0.875rem !important;
+  color: #334155 !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.form-body .p-inputnumber-input:hover {
+  border-color: #60a5fa !important;
+  background: #ffffff !important;
+}
+
+.form-body .p-inputnumber-input:focus {
+  border-color: #3b82f6 !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Hapus tombol spinner bawaan browser: panel pusat tidak punya tempat
+   untuk tombol plus/minus, dan spinner-nya membuat orang mengira ada
+   kendali yang bisa dipakai di situ. `useGrouping` yang dimatikan di
+   template melakukan bagian lainnya -- agar 1500 tampil "1500", bukan
+   "1.500": kolom ini membandingkan angka, bukan membaca nominal. */
+.form-body input[type='number']::-webkit-outer-spin-button,
+.form-body input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.form-body input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/*
+| Select bawaan PrimeVue (lewat `BaseSelect`) punya tinggi dan radius
+| sendiri supaya seragam dengan filter di halaman lain. Di dalam form ini
+| tinggi itu membuat baris input tidak lurus dengan `BaseInput` dan
+| `AppDatePicker` di sebelahnya.
+|
+| Selektor ini sengaja TIDAK memakai `.form-body` sebagai syarat. Dulu
+| iya, dan itu sebabnya select di modal penerbitan tagihan tidak ikut
+| aturan -- modal itu memakai `.modal-box__body`, bukan `.form-body`.
+| Hasilnya dropdown kas/rekening berdiri 2.35rem di sebelah kalender yang
+| 2.75rem, padahal keduanya sengaja diletakkan satu baris.
+|
+| Syaratnya sekarang cukup "ada di dalam form": `.form-field`, `.form-grid`,
+| atau `.form-fields` -- tiga nama yang dipakai ketiga halaman form panel
+| pusat. Di luar form (filter di halaman daftar) aturan ini tidak aktif,
+| jadi `BaseSelect` tetap tampil setinggi aslinya di sana.
+|
+| Butuh `!important`, dan itu memang disengaja. `BaseSelect` menetakkan
+| tinggi dan radius-nya sendiri dengan `!important` di dalam
+| <style scoped>; scoped menambahkan atribut ke selektor, jadi
+| spesifisitasnya naik dari (0,1,0) jadi (0,2,0). Selektor yang lebih
+| pendek di sini kalah tanpa `!important`.
+|
+| Yang disamakan hanya ukuran dan radius. Warna, border, dan state fokus
+| milik komponen itu sendiri tidak disentuh, supaya `BaseSelect` tetap
+| tampil sama seperti di halaman lain.
+*/
+.form-field .base-select,
+.form-fields .base-select,
+.form-grid .base-select {
+  min-height: var(--form-input-height) !important;
+  border-radius: 0.75rem !important;
+}
+
+.form-field .p-datepicker-input,
+.form-fields .p-datepicker-input {
+  border-radius: 0.75rem !important;
+}
+
+/* ==========================================================================
+   MODAL — dipakai bersama oleh CentralLokasiDetail & CentralBayarDialog
+   ==========================================================================
+
+   Pindah ke sini, bukan tetap di `CentralLokasiDetail.vue` yang scoped.
+
+   Dua komponen ini memakai kelas yang PERSIS SAMA (`.modal-overlay`,
+   `.modal-box`, `.modal-box--lebar`, `.modal-box__header/__body/__footer`),
+   tapi `<style scoped>` hanya berlaku untuk elemen yang dirender komponen itu
+   sendiri -- setiap aturanVue diberi atribut `data-v-<hash>`, dan
+   elemennya harus punya atribut itu. Elemen di `CentralBayarDialog.vue` punya
+   `data-v-<hash dialog>`, bukan hash `CentralLokasiDetail.vue`, jadi tidak
+   satu pun aturan `.modal-box` di sana yang mengenainya.
+
+   Akibatnya bukan sekadar "kurang bagus": `.modal-box` kehilangan
+   `display: flex`, `max-height`, dan `overflow: hidden`, sehingga berubah jadi
+   blok biasa yang ikut aturan halaman. Kepala, isi, dan kaki kehilangan batas
+   visualnya dan isinya memenuhi layar penuh -- persis yang
+   terlihat di tangkapan layar (kartu modal tidak terlihat, isi form menimpa
+   daftar tagihan di belakangnya).
+
+   `central-form.css` dipilih karena kedua file sudah mengimpornya.
+*/
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: var(--border-radius-xl, 1rem);
+  width: 100%;
+  max-width: 34rem;
+  /*
+   * Panjang isinya dibatasi di sini, bukan digulir seluruh kotak.
+   *
+   * Kalau `overflow-y: auto` ada di `.modal-box`, kepala modal ikut
+   * ter-scroll: begitu isian melewati tinggi layar, judul dan tombol "Tutup"
+   * ikut hilang. Memindahkan gulirnya ke `.modal-box__body` membuat kepala
+   * dan kaki tetap di tempat, dan satu-satunya tombol submit selalu terlihat
+   * tanpa harus menggulir naik lagi.
+   *
+   * `100dvh` dan bukan `90vh`: `vh` menghitung tinggi viewport termasuk
+   * bilah URL browser seluler yang ukurannya berubah-ubah saat address bar
+   * muncul lalu menghilang. Karena `.modal-box` `overflow: hidden` sementara
+   * `.modal-overlay` tidak punya scroll, bagian yang terpotong adalah kaki
+   * modal -- tempat tombolnya. `dvh` mengikuti tinggi yang benar-benar
+   * terlihat.
+   */
+  max-height: calc(100dvh - 2rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.3);
+}
+
+/*
+ * Modal tagihan & pembayaran lebih lebar dari modal standar.
+ *
+ * Isinya: nominal, tanggal, keterangan, dan blok pelunasan. Di 34rem blok itu
+ * turun menjadi satu kolom dan pilihan rekening terpotong -- jadi lebarnya
+ * dinaikkan. `min(44rem, calc(100vw - 3rem))`: sisa 3rem itu margin 1rem di
+ * kiri-kanan overlay, supaya di HP modal tidak pernah lebih lebar dari layar.
+ *
+ * PENTING: aturan ini harus SETELAH `.modal-box`, bukan sebelumnya.
+ * `.modal-box--lebar` dan `.modal-box` sama-sama satu kelas, jadi
+ * spesifisitasnya sama dan yang menang adalah yang tertulis belakangan.
+ * Diletakkan di atas blok `.modal-box`, `max-width: 34rem` menimpa lebar di
+ * sini dan modal tetap selebar bawaan -- tanpa error apa pun.
+ */
+.modal-box--lebar {
+  max-width: min(44rem, calc(100vw - 3rem));
+}
+
+.modal-box__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-gray-100, #f1f5f9);
+}
+
+.modal-box__header h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text-main, #1e293b);
+  margin: 0;
+}
+
+.modal-box__header p {
+  font-size: 0.78rem;
+  color: var(--color-gray-400, #94a3b8);
   margin: 0.15rem 0 0;
 }
+
+.modal-box__close {
+  background: none;
+  border: none;
+  color: var(--color-gray-400, #94a3b8);
+  font-size: 1rem;
+  padding: 0.25rem;
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.modal-box__close:hover {
+  color: var(--color-text-main, #1e293b);
+}
+
+.modal-box__close:focus-visible {
+  outline: 2px solid var(--color-primary, #0ea5e9);
+  outline-offset: 2px;
+}
+
+.modal-box__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* Satu-satunya bagian yang bergulir. `min-height: 0` wajib di flex column:
+     tanpa itu isinya menolak menyusut di bawah tinggi isinya sendiri dan
+     seluruh modal ikut melebar ke bawah -- persis yang aturan scroll di atas
+     ingin cegah. */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * Select dan kalender di dalam modal disamakan tingginya dengan input biasa.
+ *
+ * `.modal-box__body` sengaja MASUK ke daftar selektor di atas. Semula tidak,
+ * dan itu sebabnya `BaseSelect` di dialog pembayaran terlihat lebih pendek
+ * dan sedikit lebih lebar daripada `AppDatePicker` di sebelahnya -- dua
+ * kontrol yang sengaja diletakkan berdiri satu baris jadi melompat.
+ */
+.modal-box__body .base-select {
+  min-height: var(--form-input-height) !important;
+  border-radius: 0.75rem !important;
+}
+
+.modal-box__body .p-datepicker-input {
+  border-radius: 0.75rem !important;
+}
+
+.modal-box__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--color-primary-light, #e0f2fe);
+  border: 1px solid #bae6fd;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.73rem;
+  line-height: 1.5;
+  color: #0369a1;
+  margin: 0;
+}
+
+.modal-box__note svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.modal-box__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  /* Sama seperti kepala: tidak ikut bergulir. Tombol di kaki adalah
+     satu-satunya jalan keluar dari modal ini, jadi tidak boleh ikut hilang
+     saat isian lebih tinggi dari layar. */
+  flex-shrink: 0;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-gray-100, #f1f5f9);
+  background: var(--color-gray-50, #f8fafc);
+}
+
+/* Status aktif: sakelar + label yang bisa diklik. */
+.form-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.form-switch:hover {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.form-switch__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.form-switch__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-main, #1e293b);
+  line-height: 1.2;
+}
+
+.form-switch__desc {
+  font-size: 0.7rem;
+  color: var(--color-gray-500, #6b7280);
+  line-height: 1.35;
+  margin-top: 0.1rem;
+}
+
+/*
+| ==========================================================================
+| `.form-switch--match` -- menyamakan tinggi sakelar dengan tinggi field
+| ==========================================================================
+|
+| MASALAHNYA
+| ----------
+| Seksi Langganan hanya berisi dua elemen, jadi ketidaksejajaran di sana
+| paling cepat kelihatan. Field tanggal punya dua bagian: baris label di
+| atas, lalu input 2.75rem. Sakelar tidak punya label sama sekali -- hanya
+| satu bagian, dan tingginya ikut isi teks (judul + satu kalimat + padding).
+|
+| Hasilnya bukan sekadar "kurang tinggi" atau "lebih tinggi", tapi meleset
+| arah: tepi atas kotak sakelar berimpit dengan teks LABEL tanggal, bukan
+| dengan kotak inputnya, dan tepi bawahnya juga tidak sejajar.
+|
+| SOLUSINYA: DUA PROPERTI YANG HARUS LAHIR BERSAMA
+| ----------------------------------------------
+| Field di sebelahnya = label (25.2px) + input (44px). Sakelar tidak punya
+| label, jadi supaya berimpit dia harus digeser turun sebesar tinggi label
+| DAN dikunci setinggi input. Salah satu tanpa yang lain tetap salah:
+|
+| 1. Geser saja (`margin-block-start`), tinggi dibiarkan. Kotak masuk ke
+|    posisi yang benar, tapi ujungnya tidak sampai bawah input -- masih
+|    tidak rata.
+|
+| 2. Kunci tinggi saja (`height`), tanpa digeser. Kotak jadi setinggi
+|    input, tapi tetap menempel di baris paling atas, yaitu tempat label.
+|
+| Yang dipakai di sini menggabungkan keduanya, dan keduanya membaca token
+| yang sama -- bukan angka yang ditulis ulang. Ubah `--form-input-height`
+| atau `--form-label-height` sekali, semuanya ikut berubah.
+|
+| BUG YANG PERNAH ADA DI SINI, DAN KENAPA TIDAK AKAN BERULANG
+| -------------------------------------------------------
+| Dua versi sebelumnya gagal karena satu hal yang sama berulang:
+|
+| Versi 1 menambah elemen kosong (`form-switch__pad`) berisi satu `<span>`
+| setinggi baris label, untuk "menahan isi sakelar turun". Itu tidak akan
+| pernah bekerja: `.form-switch` berorientasi BARIS (`display: flex` tanpa
+| `flex-direction: column`), jadi anak-anaknya ditata mendatar. `<span>`
+| setinggi baris label di sana tidak mendorong apa pun ke bawah -- dia
+| menambah ruang kosong di SEBELAH KIRI sakelar, sehingga kotak justru
+| terlihat meleset ke KANAN.
+|
+| Versi 2 mengganti elemen itu dengan `padding-block-start`. Lebih halus,
+| dan tetap salah: padding berada DI DALAM kotak. Padding menambah ruang
+| di dalam border, bukan menggeser border itu -- jadi isinya turun, tapi
+| kotak yang digambar tetap mulai dari atas baris.
+|
+| Yang membedakan keduanya dari versi ini hanya satu kata: MARGIN berada
+| di luar kotak, dan itulah satu-satunya cara menggeser kotak itu sendiri
+| ke bawah.
+|
+| Dan `height`, bukan `min-height`. `min-height` hanya batas bawah:
+| begitu konten + padding melebihi angka itu, kotak tumbuh lagi. Karena
+| konten sakelar memang lebih tinggi daripada sisa ruang setelah dikurangi
+| baris label, `min-height` akan selalu dilanggar -- kotaknya jadi
+| 44px + 25px, justru lebih jomlok dari sebelumnya.
+*/
+.form-switch--match {
+  /* Geser kotak ke bawah sejauh tinggi baris label. */
+  margin-block-start: var(--form-label-height);
+  /* Kunci tingginya agar sama persis dengan input sebelahnya. */
+  height: var(--form-input-height);
+  /* Dikecilkan dari 0.55rem supaya judul + kalimat muat di dalam 2.75rem:
+     44 - (2 x 4) - (2 x 1 border) = 32px, konten butuh 32.1px. */
+  padding-block: 0.25rem;
+  padding-inline: 0.7rem;
+  /* Aman terhadap `.form-fields > * { margin-bottom: 0 !important }` --
+     itu properti berbeda, tapi ditulis eksplisit supaya tidak perlu
+     ditafsirkan pembaca. */
+  margin-bottom: 0;
+}
+
+/*
+| Isi sakelar rata tengah terhadap kotak.
+|
+| Kotaknya sudah dikunci `height` di atas, jadi `align-items: center` bawaan
+| `.form-switch` otomatis menengahkan isi secara vertikal -- sama dengan
+| posisi teks di dalam input sebelahnya.
+|
+| Padding di sini sengaja dihapus. Kotaknya sudah punya `padding-block`
+| sendiri; menambah padding lagi pada isinya hanya membuat konten
+| melewati 2.75rem dan menggeser tinggi kotak kembali.
+*/
+.form-switch--match .form-switch__text {
+  min-width: 0;
+}
+
+/* ===== Pratinjau nama database ===== */
+/*
+| Nama database ikut berubah mengikuti slug, jadi informasinya harus terlihat
+| SEBELUM form dikirim -- bukan jadi popup setelah 422 dari server.
+|
+| Pratinjau ini menghitung ulang dengan aturan yang sama dengan backend
+| (`LocationController::databaseNameFor`): prefix + slug dengan tanda hubung
+| diganti underscore, dipotong 64 karakter.
+*/
+.slug-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 9px;
+  color: #0369a1;
+}
+
+.slug-preview > svg {
+  flex-shrink: 0;
+}
+
+.slug-preview__label {
+  font-size: 0.72rem;
+  margin: 0;
+}
+
+.slug-preview__value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #075985;
+  word-break: break-all;
+}
+
+/* ===== Strip penyiapan database =====
+|
+| Ringkas, bukan daftar per langkah. Yang perlu diketahui sebelum menekan
+| tombol: database akan dibuat, isinya apa, dan berapa lama.
+|
+| Ini bukan opsi yang bisa dimatikan, jadi tidak ada kontrol apa pun di
+| sini. Opsi "siapkan nanti" pernah ada dan itu jebakan: lokasi terdaftar
+| di panel, terlihat aktif, tapi setiap request ke lokasi itu gagal dengan
+| error koneksi -- dan tidak ada halaman yang menunjukkan hal itu.
+| Backend menolak `provision: false` dengan 422, jadi checkbox yang tersisa
+| hanya menambah satu langkah yang selalu berakhir sama.
+*/
+.db-strip {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.db-strip__name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.db-strip__name span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+.db-strip__name code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #075985;
+  word-break: break-all;
+}
+
+.db-strip__items {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  margin-left: auto;
+}
+
+.db-strip__items li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--radius-full, 9999px);
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.db-strip__items svg {
+  font-size: 0.62rem;
+}
+
+/* Catatan inline untuk hal yang mengubah cara mengisi, bukan penjelasan
+  Umum. */
+.form-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.form-note > svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.form-note--warn {
+  background: var(--color-yellow-50, #fef3c7);
+  border: 1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 30%, transparent);
+  color: var(--color-yellow-800, #92400e);
+}
+
+.form-note--lock {
+  background: var(--color-gray-100, #f1f5f9);
+  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-gray-700, #374151);
+}
+
+/* ==========================================================================
+   Dipakai bersama oleh CentralLokasiDetail & CentralTagihanIndex
+   ========================================================================== */
 
 .status-pill {
   display: inline-block;
@@ -111,228 +1045,164 @@
   color: #64748b;
 }
 
-/* ===== Keterangan kunci yang tidak bisa diubah ===== */
-/*
- * Peringatan "tidak bisa dilewati".
- *
- * Background dan teks memakai pasangan yellow-50/yellow-800 yang sudah
- * ada di main.css; hanya garis batas yang diambil dari --color-warning
- * dengan color-mix. Alasannya: yellow-800 juga dipakai sebagai teks di
- * dalam, dan boundary dari warna teks yang sama membuat kotak amber
- * terlihat seperti paragraf yang ditebalkan, bukan seperti peringatan.
- *
- * color-mix dipakai di sini meski belum dipakai di file lain --
- * ini bukan gaya dekoratif, dan warna pendorong ke warna teks selalu
- * gelap kalau rhodanya naik, sementara hex #fde68a yang biasa dipakai
- * tidak punya aturan seperti itu.
- */
-/*
- * Peringatan "tidak bisa dilewati".
- *
- * Background dan teks memakai pasangan yellow-50 / yellow-800 yang sudah
- * ada di `main.css`; hanya garis batas yang diambil dari `--color-warning`
- * dengan `color-mix`. Alasannya: yellow-800 juga dipakai sebagai teks di
- * dalam, dan batas yang warnanya sama dengan teks membuat kotak amber
- * terlihat seperti paragraf yang ditebalkan, bukan seperti peringatan.
- *
- * `color-mix` dipakai di sini meski belum dipakai di file lain. Ini bukan
- * gaya dekoratif: warna batas ikut naik bersama warna isinya kalau nanti
- * dipoles ulang, sedangkan hex tetap yang lama -- dan tombol "Daftarkan
- * Lokasi" punya warna submit yang tidak boleh ikut berubah diam-diam.
- */
-.locked-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
-  padding: 0.85rem 1rem;
-  background: var(--color-yellow-50, #fef3c7);
-  border: 1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 30%, transparent);
-  border-radius: var(--border-radius-sm);
-  color: var(--color-yellow-800, #92400e);
-}
-
-.locked-note > svg {
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-}
-
-.locked-note__title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.locked-note__desc {
-  font-size: 0.74rem;
-  line-height: 1.5;
-  color: var(--color-yellow-800, #92400e);
-  opacity: 0.85;
-  margin: 0.2rem 0 0;
-}
-
-/* ===== Seksi ===== */
-.form-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  padding-bottom: 1.75rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.form-section:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.form-section--highlight {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.25rem;
-}
-
-.form-section__head {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-}
-
-.form-section__icon {
-  width: 2.4rem;
-  height: 2.4rem;
-  flex-shrink: 0;
-  border-radius: 9px;
-  background: #ecfdf5;
-  color: #059669;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.form-section__icon--slate {
-  background: #f1f5f9;
-  color: #475569;
-}
-.form-section__icon--amber {
-  background: #fffbeb;
-  color: #d97706;
-}
-.form-section__icon--violet {
-  background: #f5f3ff;
-  color: #7c3aed;
-}
-.form-section__icon--green {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.form-section__head h2,
-.form-section__head h3 {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-}
-
-.form-section__head p {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin: 0.15rem 0 0;
-}
-
+/* Grid dua kolom untuk modal di kedua halaman lain. Dipakai di dalam modal
+   yang lebarnya sudah dibatasi, jadi jarak kolomnya lebih rapat. */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 1rem;
 }
 
-/* ===== Pratinjau nama database ===== */
-.slug-preview {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.7rem 0.9rem;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 9px;
-  color: #0369a1;
+/*
+| Elemen form yang membentang dari kolom pertama sampai kolom terakhir.
+|
+| Dipakai isian yang terlalu lebar untuk satu kolom: pilihan rekening
+| menampilkan "Kas di Bank BRI - 0123456789 (PT Asta Brata)", dan dipotong
+| di 15rem hanya "...(PT Asta Brata)" -- jadi nomornya, yang justru bagian
+| yang dicari orang, justru yang hilang.
+|
+| `grid-column: 1 / -1` dan bukan `width: 100%`: yang diperlukan bukan
+| elemen selebar layar, tapi elemen yang mulai dari kolom pertama.
+| Monospace-ish tabel yang tidak punya grid sama sekali tidak terpengaruh
+| aturan ini.
+*/
+.form-span {
+  grid-column: 1 / -1;
 }
 
-.slug-preview > svg {
-  flex-shrink: 0;
-}
-
-.slug-preview__label {
-  font-size: 0.73rem;
-  margin: 0;
-}
-
-.slug-preview__value {
-  font-family: ui-monospace, monospace;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #075985;
-}
-
-/* ===== Toggle ===== */
-.provision-list {
-  list-style: none;
-  margin: 0 0 1rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: var(--border-radius-sm);
-  background: var(--color-gray-100, #f1f5f9);
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.provision-list li {
+/*
+| Saklar "sudah dibayar" di form penerbitan.
+|
+| Checkbox di depan label, bukan setelahnya. Urutan "klik label lalu
+| checkbox" di kiri adalah yang sudah biasa di aplikasi ini, dan yang
+| menentukan tampilan adalah jarak 0.65rem -- cukup untuk menunjuk dengan
+| benar tanpa terlihat seperti dua kontrol terpisah.
+|
+| `align-items: flex-start`, bukan `center`: isinya tiga baris (judul,
+| penjelasan, dan kosong). Rata vertikal akan membuat checkbox-nya
+| melayang di antara baris pertama dan kedua, jauh dari teks yang
+| menjelaskannya.
+*/
+.sudah-lunas {
   display: flex;
   align-items: flex-start;
-  gap: 0.55rem;
-  font-size: 0.78rem;
-  color: var(--color-text-main, #1e293b);
-  line-height: 1.5;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--central-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--central-bg-soft, #f8fafc);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
-/* Centang hijau dipakai karena menandai "sudah dipastikan terjadi", bukan
-   sekadar "ada". Warna biru di tempat lain di halaman berarti aksi, dan
-   daftar ini bukan aksi -- tidak ada yang bisa diklik. */
-.provision-list li svg {
-  margin-top: 0.2rem;
+.sudah-lunas:hover {
+  border-color: var(--central-primary, #0284c7);
+}
+
+.sudah-lunas:has(input:checked) {
+  border-color: var(--central-primary, #0284c7);
+  background: var(--central-primary-soft, #eff6ff);
+}
+
+.sudah-lunas input[type='checkbox'] {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.15rem;
+  accent-color: var(--central-primary, #0284c7);
+  cursor: pointer;
   flex-shrink: 0;
-  color: var(--color-success, #10b981);
-  font-size: 0.72rem;
 }
 
-.provision-list code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.72rem;
-  padding: 0.05rem 0.3rem;
-  border-radius: 4px;
-  background: #fff;
-  border: 1px solid var(--color-border, #e2e8f0);
-  color: var(--color-primary-dark, #0284c7);
-  word-break: break-all;
+.sudah-lunas strong {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--central-text, #0f172a);
 }
-.form-actions {
+
+.sudah-lunas em {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-style: normal;
+  line-height: 1.45;
+  color: var(--central-text-muted, #64748b);
+}
+
+/*
+| Nomor rekening di bawah pilihan yang sudah dipilih.
+|
+| Ditaruh di dalam kotak abu karena ini BUKAN bagian dari daftar -- dia
+| hasil yang muncul setelah satu baris dipilih. Tanpa kotak, teks abu
+| dengan ukuran 0.78rem akan terbaca sebagai sisa baris pilihan yang
+| terpotong, bukan sebagai informasi baru.
+*/
+.rekening-detail {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding-top: 0.5rem;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--central-bg-soft, #f1f5f9);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--central-text, #1e293b);
 }
 
+/*
+| `.form-block` memberi jarak vertikal untuk satu elemen penuh di antara
+| dua bagian form.
+|
+| Tidak pakai `margin-bottom` di dalam `.form-grid` karena jarak antar
+| kolom sudah diatur oleh `gap`. Yang perlu jarak tambahan hanya bagian
+| yang melintasi beberapa baris: saklar, catatan rekening, pesan.
+*/
+.form-block {
+  margin: 1rem 0;
+}
+
+/*
+| Tombol, dipakai bersama oleh Tambah/Ubah Tenant, Detail Tenant, dan Tagihan.
+|
+| Bayangan dasar ada di `.btn` supaya tidak ada varian yang "lupa". Yang
+| berubah per varian hanya warnanya: tombol aksi utama punya bayangan biru
+| (abu di atas biru terbaca sebagai noda, bukan cahaya), tombol bahaya punya
+| bayangan merah, tombol netral mengikuti abu.
+|
+| Angkanya dari CentralLayout.vue (`--central-shadow-btn*`) supaya tombol di
+| panel ini sama dengan tombol di navbar, bukan uma kelompok tersendiri.
+*/
+/*
+ * Tombol form.
+ *
+ * `min-height: 2.5rem` (40px): `padding: 0.6rem` + font 0.82rem hanya
+ * menghasilkan ~38px, dan tombol "Simpan" adalah kontrol utama di kedua
+ * halaman form ini. 40px bukan angka asli -- itu batas target sentuh yang
+ * dipakai platform mobile, jadi tinggi yang lebih kecil berarti lebih
+ * sering salah ketuk, terutama karena tombol "Batal" dan "Simpan" berdiri
+ * bersebelahan di baris yang sama.
+ *
+ * `min-height`, bukan `height`: tombol boleh tumbuh kalau labelnya nanti
+ * dua baris ("Menyimpan perubahan..."), dan tinggi tetap akan memotongnya.
+ */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  min-height: 2.5rem;
   padding: 0.6rem 1.15rem;
   border-radius: 9px;
   font-size: 0.82rem;
   font-weight: 700;
   text-decoration: none;
   border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  box-shadow: var(--central-shadow-btn);
   transition: all 0.18s ease;
 }
 
@@ -345,19 +1215,50 @@
 .btn--ghost:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
+  box-shadow: var(--central-shadow-btn-hover);
 }
 
 .btn--primary {
   background: linear-gradient(135deg, #0284c7, #0ea5e9);
   color: #fff;
-  box-shadow: 0 6px 14px -6px rgba(14, 165, 233, 0.7);
+  box-shadow: var(--central-shadow-btn-primary);
 }
 
 .btn--primary:hover:not(:disabled) {
   filter: brightness(1.08);
+  box-shadow: var(--central-shadow-btn-primary-hover);
 }
 
 .btn--primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/*
+ * Tombol "Simpan" -- abu, sama dengan `BaseButton` varian `secondary`
+ * di aplikasi lokasi.
+ *
+ * Kenapa tidak `btn--primary` (biru) di sini: aplikasi lokasi memakai abu
+ * untuk semua tombol simpan, jadi kalau panel pusat memakai biru, dua
+ * panel aplikasi menampilkan tombol simpan dengan warna berbeda. Penyebabnya
+ * bukan beda kebutuhan -- panel pusat juga menyimpan data seperti yang
+ * lain -- tapi hanya karena tombol panel punya CSS sendiri sejak dulu.
+ *
+ * Token warnanya `--central-btn-save` di `central-page.css`, jadi nilai
+ * ini bisa diubah di satu tempat.
+ */
+.btn--save {
+  background: var(--central-btn-save);
+  color: #fff;
+  box-shadow: var(--central-shadow-btn-save);
+}
+
+.btn--save:hover:not(:disabled) {
+  background: var(--central-btn-save-hover);
+  box-shadow: var(--central-shadow-btn-save-hover);
+}
+
+.btn--save:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
@@ -366,8 +1267,103 @@
   background: #fff;
   border-color: #fecaca;
   color: #dc2626;
+  box-shadow: var(--central-shadow-btn-danger);
 }
 
 .btn--danger:hover {
   background: #fef2f2;
+  box-shadow: var(--central-shadow-btn-danger-hover);
+}
+
+/* ==========================================================================
+   RESPONSIF
+   ========================================================================== */
+
+@media (max-width: 68rem) {
+  /* Di bawah ini satu kartu sudah menyisakan kolom yang sempit, dan grid
+     isian di dalamnya jadi dua kolom yang isinya terpotong. */
+  .form-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /*
+   * Seksi `--wide` ikut dua kolom, bukan tiga.
+   *
+   * Seksi ini membentang selebar seluruh form, jadi isinya punya lebar penuh
+   * halaman -- bukan setengahnya seperti seksi biasa. Tiga kolom di lebar itu
+   * pada 414px menyisakan ~54px per kolom setelah padding, dan placeholder
+   * `tirtomulo.astaloka.co.id` (20 karakter) tidak muat di situ. Input tidak
+   * akan "meluap" secara visual karena `width: 100%`, tapi isinya jadi tidak
+   * terbaca dan tidak bisa diedit tanpa menggulir di dalam kotak 54px.
+   *
+   * Dua kolom memberi ~110px -- cukup untuk placeholder domain dan tanggal.
+   */
+  .form-section--wide .form-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 46rem) {
+  .form-topbar {
+    gap: 0.5rem;
+  }
+
+  .form-topbar__title {
+    /* Judul boleh terpotong -- bukan tempatnya menjejalkan dua aksi. */
+    flex-basis: 100%;
+    order: -1;
+  }
+
+  .form-topbar__back,
+  .form-topbar__actions {
+    flex: 1;
+  }
+
+  .form-topbar__back,
+  .form-topbar__actions .btn {
+    justify-content: center;
+  }
+
+  .form-fields,
+  .form-section--wide .form-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Di satu kolom tidak ada lagi jumlah kolom untuk dilewati. */
+  .form-field--full,
+  .form-field--span2 {
+    grid-column: auto;
+  }
+}
+
+/*
+ * Bawah 26rem (416px): tombol aksi turun ke barisnya sendiri.
+ *
+ * Di 320px ruang yang tersisa di dalam kartu hanya ~246px, sedangkan
+ * "Batal" + "Simpan" + jaraknya ingin ~261px -- dan keduanya
+ * `white-space: nowrap`, jadi tidak bisa dilipat. Hasilnya tombol "Simpan"
+ * melewati tepi kartu, dan bagian yang terpotong justru bagian yang berisi
+ * teks, jadi tidak jelas apa yang sebenarnya tertulis di sana.
+ *
+ * Menumpuk bukan memperkecil: `Batal` tetap penuh (memang opsional),
+ * `Simpan` juga penuh (memang tombol utama). Yang berubah cuma arah --
+ * tombol utama di bawah, bukan setelah dipotong.
+ */
+@media (max-width: 26rem) {
+  .form-topbar__actions {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+  }
+
+  .form-topbar__actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  /* "Kembali" ikut baris penuh supaya tidak terlihat sempit sendirian
+     di baris yang sebenarnya bisa dipakai untuk dua tombol. */
+  .form-topbar__back {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
 }

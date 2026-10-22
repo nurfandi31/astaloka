@@ -2,7 +2,7 @@
   <div class="daftar-tagihan-root">
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4! mb-6!">
       <div class="flex-1!">
-        <h1 class="text-xl md:text-2xl font-bold text-cyan-600! tracking-tight mb-1!">
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900! tracking-tight mb-1!">
           Daftar Tagihan
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed">
@@ -55,7 +55,7 @@
         <template #column-customer="{ row }">
           <div class="flex items-center gap-3!">
             <div
-              class="w-9! h-9! rounded-xl! bg-gradient-to-br! from-cyan-500! to-blue-600! flex! items-center! justify-center! text-white! text-xs! font-bold! shrink-0! shadow-sm!"
+              class="w-9! h-9! rounded-xl! bg-linear-brand! flex! items-center! justify-center! text-white! text-xs! font-bold! shrink-0! shadow-sm!"
             >
               {{ getInitials(row) }}
             </div>
@@ -362,7 +362,7 @@ const formatDueDate = (dateStr) => {
       'Des',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch (err) {
+  } catch {
     return dateStr
   }
 }
@@ -382,7 +382,7 @@ const getOverdueDays = (dateStr) => {
     if (diffDays > 0) return `Terlambat ${diffDays} hari`
     if (diffDays === 0) return 'Jatuh tempo hari ini'
     return `Tersisa ${Math.abs(diffDays)} hari`
-  } catch (err) {
+  } catch {
     return ''
   }
 }
@@ -401,7 +401,9 @@ const handleOpenDetail = async (row) => {
     } else if (res?.data) {
       selectedBill.value = res.data
     }
-  } catch (err) {
+  } catch {
+    // Detail tagihan gagal diambil. Baris yang diklik tetap ditampilkan
+    // supaya pengguna punya konteks tagihan mana yang gagal.
   } finally {
     detailLoading.value = false
   }

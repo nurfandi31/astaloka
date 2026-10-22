@@ -53,6 +53,7 @@ return [
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
+            'connect_timeout' => (int) env('DB_TIMEOUT', 5),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -73,6 +74,7 @@ return [
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
+            'connect_timeout' => (int) env('DB_TIMEOUT', 5),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -86,12 +88,18 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Database PUSAT (ASTA BRATA)
+        | Database PUSAT
         |----------------------------------------------------------------------
         |
         | Menyimpan data lintas lokasi: registry tenant (tabel `tenants`),
         | user superadmin, dan invoice langganan. Tidak memuat data operasional
         | maupun keuangan milik lokasi mana pun.
+        |
+        | Namanya `astaloka` -- sama dengan nama aplikasinya, tanpa
+        | suffix. Database lokasi memakai pola `astaloka_<nama>`, jadi
+        | `astaloka_lokasi`, `astaloka_pamsimas`, dst. Nama polos `astaloka`
+        | dipakai pusat supaya tidak pernah tertukar dengan salah satu
+        | database lokasi.
         |
         | Credensial memakai DB_* yang sama dengan tenant -- satu server MySQL,
         | hanya nama database-nya yang berbeda.
@@ -101,10 +109,11 @@ return [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('TENANCY_CENTRAL_DATABASE', 'astaloka_pusat'),
+            'database' => env('TENANCY_CENTRAL_DATABASE', 'astaloka'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
+            'connect_timeout' => (int) env('DB_TIMEOUT', 5),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -142,6 +151,7 @@ return [
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
+            'connect_timeout' => (int) env('DB_TIMEOUT', 5),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
@@ -155,12 +165,19 @@ return [
 
         // Koneksi ke database LAMA (server produksi yg sudah online)
         // Dipakai khusus untuk import data, JANGAN dipakai di runtime aplikasi
+        //
+        // Default `astaloka_lama` BUKAN `astaloka` dengan sengaja. Nama polos
+        // `astaloka` sekarang milik database pusat, jadi default lama
+        // `astaloka` membuat koneksi ini diam-diam menunjuk ke pusat --
+        // `getPdo()` tetap sukses, lalu import membaca tabel yang tidak ada
+        // di sana. Kalau server legacy Anda memang memakai nama lain, isi
+        // LEGACY_DB_DATABASE di .env.
         'legacy' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),
             'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
             'port' => env('LEGACY_DB_PORT', '3306'),
-            'database' => env('LEGACY_DB_DATABASE', 'astaloka'),
+            'database' => env('LEGACY_DB_DATABASE', 'astaloka_lama'),
             'username' => env('LEGACY_DB_USERNAME', 'root'),
             'password' => env('LEGACY_DB_PASSWORD', ''),
             'unix_socket' => env('LEGACY_DB_SOCKET', ''),

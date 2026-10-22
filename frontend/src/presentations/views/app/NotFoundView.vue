@@ -1,7 +1,7 @@
 <template>
   <div class="not-found-root flex flex-col items-center justify-center text-center py-16 px-6">
     <div
-      class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center text-3xl font-black shadow-lg mb-6"
+      class="w-20 h-20 rounded-2xl bg-linear-brand text-white flex items-center justify-center text-3xl font-black shadow-lg mb-6"
     >
       404
     </div>
