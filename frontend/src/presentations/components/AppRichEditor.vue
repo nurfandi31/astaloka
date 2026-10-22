@@ -283,11 +283,11 @@ function insertSignatureTable() {
 }
 .rich-editor__btn:hover:not(:disabled) {
   background: #e2e8f0;
-  color: #2563eb;
+  color: var(--color-primary-600, #2563eb);
 }
 .rich-editor__btn.is-active {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--color-primary-100, #dbeafe);
+  color: var(--color-primary-600, #2563eb);
 }
 .rich-editor__btn:disabled {
   cursor: not-allowed;

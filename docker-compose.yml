@@ -5,14 +5,51 @@ services:
       args:
         user: sam
         uid: 1000
-      context: ./backend
-      dockerfile: docker/Dockerfile
+        # Konteks build ada di ./backend, tapi frontend berada di ./frontend
+        # -- satu folder di atas, jadi di luar konteks. Tanpa arg ini
+        # Dockerfile tidak bisa menyalin apa pun untuk `pnpm build`, dan
+        # hasilnya: image tanpa index.html, sehingga semua halaman Vue
+        # Router berakhir 404.
+        frontend_dir: /var/www/frontend
+      context: ./
+      dockerfile: backend/docker/Dockerfile
     image: astaloka-app
     container_name: astaloka-app
     restart: unless-stopped
     working_dir: /var/www
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
-      - ./backend:/var/www
+      # Dipisah per direktori, bukan `./backend:/var/www`.
+      #
+      # `./backend:/var/www` yang lama menimpa SELURUH /var/www, termasuk
+      # folder yang dibangun di dalam image: `public/` di host sudah berisi
+      # `index.php` milik Laravel, dan isinya akan menutupi hasil `vite
+      # build`. Gejalanya tidak muncul sebagai error -- container tetap
+      # start, Symfony masih jalan, dan hanya `/login` serta
+      # `/central/login` yang 404.
+      #
+      # Satu per satu daftar ini terlihat lebih panjang, tapi setiap baris
+      # berarti satu folder yang SENGAJA ikut ditimpa host. Persis yang
+      # dituju.
+      - ./backend/app:/var/www/app
+      - ./backend/bootstrap:/var/www/bootstrap
+      - ./backend/config:/var/www/config
+      - ./backend/database:/var/www/database
+      - ./backend/resources:/var/www/resources
+      - ./backend/routes:/var/www/routes
+      - ./backend/storage:/var/www/storage
+      - ./backend/vendor:/var/www/vendor
+      - ./backend/.env:/var/www/.env
+      #
+      # `public/` DI-mount dengan alasan yang berlawanan: hasil build
+      # frontend di-sync ke sini oleh `docker/entrypoint.sh`, dan nginx
+      # membaca folder yang sama langsung dari host. Kalau `public/` tidak
+      # di-mount, yang tersalin ke dalam image hilang begitu container
+      # start, dan nginx akan melihat `backend/public` yang hanya berisi
+      # `index.php`.
+      - ./backend/public:/var/www/public
     networks:
       - astaloka
 
@@ -24,7 +61,12 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - ./backend:/var/www
+      # Nginx butuh dua hal saja: folder `public/` (untuk menyajikan
+      # index.html dan aset SPA) dan folder `storage/app/public` (upload).
+      # Folder `app/` dan `vendor/` tidak perlu ikut serta -- tidak ada satu
+      # pun request yang dilayani lewat filesystem oleh container ini.
+      - ./backend/public:/var/www/public
+      - ./backend/storage/app/public:/var/www/storage/app/public
       - ./backend/docker/nginx/conf.d/:/etc/nginx/conf.d/
     networks:
       - astaloka
@@ -35,6 +77,10 @@ services:
     container_name: astaloka-db
     restart: unless-stopped
     ports:
+      # 3307 di host, bukan 3306. Port default MySQL sudah dipakai MySQL
+      # lokal (Laragon / installasi lain), dan dua server dengar di port
+      # yang sama saling gagal start -- dengan pesan yang menyebut MySQL,
+      # padahal penyebabnya ada di konfigurasi Docker.
       - "3307:3306"
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-ASTALOKA}
@@ -44,7 +90,21 @@ services:
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
     volumes:
+      # Disimpan sebagai bind mount di `backend/docker/mysql`, bukan named
+      # volume. Perubahan ke folder ini terbaca dari host tanpa perlu
+      # `docker compose down` dulu, dan isinya bisa diperiksa langsung
+      # (`data/` berisi berkas InnoDB) tanpa perintahnya.
       - ./backend/docker/mysql:/var/lib/mysql
+    healthcheck:
+      # `app` bergantung pada `db`, dan komposenya tidak tahu itu selama
+      # migration belum jalan. Tanpa healthcheck, `app` bisa mulai sebelum
+      # MySQL selesai boot, dan hasilnya "SQLSTATE[HY000] [2002] Connection
+      # refused" -- sekali di awal, dan baru hilang setelah restart manual.
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     networks:
       - astaloka
 

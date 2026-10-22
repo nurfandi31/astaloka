@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\MigrateCentral;
+use App\Listeners\GuardCentralDatabaseWrites;
+use App\Listeners\GuardDestructiveCommands;
 use App\Models\BillPayment;
 use App\Models\Customer;
 use App\Models\MonthlyBill;
@@ -12,8 +15,10 @@ use App\Observers\PaymentObserver;
 use App\Observers\TransactionObserver;
 use App\Services\TenantManager;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -54,6 +59,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiters();
+        $this->registerDestructiveCommandGuard();
+        $this->registerCentralDatabaseWriteGuard();
         Relation::enforceMorphMap([
             'payment' => Payment::class,
             'monthly_bill' => MonthlyBill::class,
@@ -67,35 +74,96 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Catatan penting soal migrasi database PUSAT.
+     * Catatan penting soal pemisahan folder migrasi.
      *
-     * Folder `database/migrations/central/` SENGAJA TIDAK didaftarkan lewat
-     * `loadMigrationsFrom()`, dan itu bukan kelalaian.
+     * Folder `database/migrations/` SENGAJA TIDAK berisi apa pun, dan
+     * folder `database/migrations_central/` SENGAJA TIDAK didaftarkan lewat
+     * `loadMigrationsFrom()`. Keduanya bukan kelalaian -- keduanya adalah
+     * penjaga.
      *
      * `migrate` menulis catatan ke tabel `migrations` pada koneksi yang SEDANG
-     * AKTIF, bukan ke koneksi yang dipakai di dalam migrasi. Jadi begitu folder
-     * pusat ikut dipindai oleh `php artisan migrate` biasa:
+     * AKTIF, bukan ke koneksi yang dipakai di dalam migrasi. Folder default
+     * Migrator juga tetap `database/migrations/`, yang tidak bisa ia ubah
+     * sendiri.
      *
-     *   1. Tabel `tenants`, `users` pusat, dan `audit_logs` tetap dibuat dengan
-     *      benar, karena tiap migrasi memanggil `Schema::connection('central')`
-     *      secara eksplisit.
-     *   2. Tapi baris catatannya masuk ke tabel `migrations` milik LOKASI,
-     *      karena `database.default` saat itu `mysql` (= `astaloka_lokasi`).
+     * Empat arah kesalahan, dan semuanya nyata:
      *
-     * Akibatnya setiap database lokasi baru mewarisi catatan "sudah jalan"
-     * untuk migrasi yang tidak pernah jalan di sana -- dan provisioning
-     * berikutnya tidak akan pernah menjalankannya, karena yang dibaca
-     * `TenantManager::migrateTenantDatabase()` adalah `migrate` pada koneksi
-     * lokasi.
+     *   1. Folder LOKASI ikut dipindai saat menulis ke PUSAT -> database
+     *      pusat mewarisi catatan "sudah jalan" untuk migrasi lokasi.
      *
-     * Karena itu migrasi pusat punya perintahnya sendiri:
-     * `tenancy:migrate-central`, yang menjalankan
-     * `migrate --database=central --path=.../central` sebagai satu langkah.
-     * `--database` itu yang membuat catatan migrasi ikut masuk ke database
-     * yang benar, bukan ke `database.default`.
+     *   2. Folder LOKASI dipindai dengan target PUSAT -> database `astaloka`
+     *      berakhir berisi 36 tabel LOKASI (`customers`, `monthly_bills`,
+     *      `villages`, trigger `*_amount_debit`), sementara tabel pusatnya
+     *      (`tenants`, `audit_logs`, ...) tidak ada sama sekali. INILAH yang
+     *      terjadi di repo ini sebelum foldernya dipisah.
      *
-     * `@see \App\Console\Commands\MigrateCentral`
+     *   3. Folder PUSAT dipindai dengan target LOKASI -> tabelnya tetap jadi
+     *      di pusat (karena `Schema::connection('central')`), tapi catatannya
+     *      masuk ke `migrations` lokasi. Lokasi mewarisi booking untuk tabel
+     *      yang tidak pernah dibuat di sana.
+     *
+     *   4. Folder PUSAT ikut dipindai saat menulis ke lokasi -> sama dengan
+     *      nomor 3.
+     *
+     * Arah 2 adalah yang paling merusak karena tidak meninggalkan jejak:
+     * `migrate` keluar dengan status sukses, dan penjaga `hasTable()` di
+     * migrasi pusat (mis. `create_central_users_table`) menganggap tabel yang
+     * sudah ada itu memang miliknya -- jadi ia skip dan tetap mencatat dirinya
+     * "sudah jalan". Migrasi pusat berikutnya tidak akan pernah dicoba lagi.
+     *
+     * Karena itu kedua folder dipisah dari default Migrator, dan masing-masing
+     * punya perintahnya sendiri yang menyebut `--path` secara eksplisit:
+     *
+     *   tenant  ->  TenantManager::migrateTenantDatabase()
+     *               php artisan tenancy:migrate-central --seed  (untuk pusat)
+     *
+     * Pasangan target + path itu dijaga oleh
+     * {@see GuardCentralDatabaseWrites}, yang menolak perintah yang menulis
+     * ke salah satu database dengan folder milik yang lain.
+     *
+     * @see \App\Console\Commands\MigrateCentral
      */
+
+    /**
+     * Pasang pengaman terhadap perintah artisan yang menghapus data.
+     *
+     * Di-daftarkan lewat event `CommandStarting`, bukan sebagai middleware,
+     * karena yang perlu dicegah adalah perintah CLI. Middleware hanya jalan
+     * untuk HTTP request, sehingga `migrate:fresh` yang dijalankan di terminal
+     * akan lolos tanpa ada yang menghentikannya.
+     *
+     * Syarat `runningInConsole()` saja TIDAK cukup. Saat PHPUnit berjalan,
+     * aplikasi di-boots ulang di dalam proses dan `runningInConsole()`
+     * bisa bernilai false -- sehingga guard diam-diam tidak aktif, dan
+     * `php artisan test` bisa menjatuhkan database yang tidak seharusnya.
+     * Karena itu `runningUnitTests()` ikut diperiksa.
+     *
+     * @see GuardDestructiveCommands
+     */
+    private function registerDestructiveCommandGuard(): void
+    {
+        if ($this->app->runningInConsole() || $this->app->runningUnitTests()) {
+            Event::listen(CommandStarting::class, GuardDestructiveCommands::class);
+        }
+    }
+
+    /**
+     * Pasang pengaman terhadap migrasi lokasi yang ditulis ke database pusat.
+     *
+     * Terpisah dari {@see registerDestructiveCommandGuard()} karena mengatur
+     * dua bahaya yang berbeda: yang satu-soal-menghapus-data, yang satu-soal-
+     * menulis-di-database-yang-salah. Menjadikannya satu method dengan satu
+     * daftar perintah berarti salah satu aturan harus mengorbankan syaratnya
+     * demi yang lain.
+     *
+     * `@see \App\Listeners\GuardCentralDatabaseWrites`
+     */
+    private function registerCentralDatabaseWriteGuard(): void
+    {
+        if ($this->app->runningInConsole() || $this->app->runningUnitTests()) {
+            Event::listen(CommandStarting::class, GuardCentralDatabaseWrites::class);
+        }
+    }
 
     /**
      * Batasi percobaan brute-force pada endpoint autentikasi.
@@ -124,7 +192,7 @@ class AppServiceProvider extends ServiceProvider
         // Endpoint berat yang menyimpan file, supaya tidak bisa dipakai
         // memenuhi disk atau membebani server dengan request beruntun.
         RateLimiter::for('uploads', function (Request $request) {
-            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(30)->by($this->rateLimitKey($request));
         });
 
         // Dipakai oleh throttleApi() di bootstrap/app.php, yang memasang
@@ -132,9 +200,47 @@ class AppServiceProvider extends ServiceProvider
         // setiap request yang tidak bisa dilayani limiter akan 500 dengan
         // MissingRateLimiterException, bukan 429.
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by(
-                $request->user()?->id ?: $request->ip()
-            );
+            return Limit::perMinute(60)->by($this->rateLimitKey($request));
         });
+    }
+
+    /**
+     * Kunci rate limiter yang tidak bertabrakan antar lokasi.
+     *
+     * Dulu kunci ini hanya `user->id`. Masalahnya: `id` itu milik database
+     * LOKASI, dan setiap lokasi punya tabel `users` sendiri yang mulai dari
+     * 1. Jadi `admin` di lokasi A dan `admin` di lokasi B sama-sama `id = 1`
+     * -- dan satu lokasi bisa menghabiskan kuota request milik lokasi lain,
+     * atau sebaliknya, keduanya saling memblokir tanpa ada yang menyinggung.
+     *
+     * Betulan bocor? Tidak. Betulan SUSAH DIJELASKAN? Ya: user di lokasi A
+     * mendapat 429 padahal tidak pernah mengirim banyak request, dan tidak
+     * ada satu pun pesan yang menyebut lokasi lain.
+     *
+     * Karena itu id user digabung dengan id lokasi aktif. `TenantManager`
+     * disimpan sebagai `scoped`, jadi instance-nya di-resolve dari container
+     * SAAT limiter dievaluasi -- bukan saat provider di-boot. Provider adalah
+     * singleton, jadi instance yang ditangkap di boot akan membawa lokasi
+     * aktif dari request pertama ke semua request berikutnya -- persis kelas
+     * kebocoran yang `scoped` justru ada untuk mencegah.
+     *
+     * Middleware `ResolveTenant` memanggil `activate()` SEBELUM limiter
+     * dievaluasi, jadi `$current` sudah benar pada saat kunci ini dihitung.
+     *
+     * Tanpa lokasi aktif -- panel pusat, atau domain yang tidak terdaftar --
+     * dipakai `pusat` sebagai penanda. Nilai itu tidak mungkin sama dengan
+     * id lokasi (yang berupa angka), jadi tidak ada tabrakan.
+     */
+    private function rateLimitKey(Request $request): string
+    {
+        $userId = $request->user()?->id;
+
+        if ($userId === null) {
+            return $request->ip();
+        }
+
+        $tenantId = app(TenantManager::class)->current()?->getKey() ?? 'pusat';
+
+        return $tenantId.':'.$userId;
     }
 }

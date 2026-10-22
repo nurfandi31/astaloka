@@ -373,12 +373,12 @@ onUnmounted(() => {
 }
 
 .option-checkbox input[type='checkbox']:hover {
-  border-color: #60a5fa;
+  border-color: var(--color-primary-400, #60a5fa);
 }
 
 .option-checkbox input[type='checkbox']:checked {
-  background-color: #2563eb;
-  border-color: #2563eb;
+  background-color: var(--color-primary-600, #2563eb);
+  border-color: var(--color-primary-600, #2563eb);
 }
 
 .option-checkbox input[type='checkbox']:checked::after {

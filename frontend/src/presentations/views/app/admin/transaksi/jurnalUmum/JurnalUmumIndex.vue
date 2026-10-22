@@ -132,7 +132,7 @@
           variant="secondary"
           size="md"
           @click="handleSubmit"
-          class="ml-auto px-5! py-2! rounded-xl shadow-lg shadow-blue-200/50"
+          class="ml-auto px-5! py-2! rounded-xl shadow-lg shadow-slate-200/50"
           icon="save"
         >
           Simpan Transaksi
@@ -156,7 +156,7 @@
       <ContentCard variant="bordered" padding="normal" hoverable>
         <div class="flex items-center gap-3 mb-2! pb-3 border-b border-slate-100/80">
           <div
-            class="w-9 h-9 rounded-xl bg-linear-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-200"
+            class="w-9 h-9 rounded-xl bg-linear-brand text-white flex items-center justify-center shadow-lg shadow-blue-200"
           >
             <font-awesome-icon icon="filter" />
           </div>
@@ -211,7 +211,7 @@
 
       <ContentCard variant="minimal" padding="normal" hoverable>
         <div class="flex gap-3 items-start">
-          <div class="text-base flex-shrink-0 mt-0.5">â„¹ï¸</div>
+          <div class="text-base flex-shrink-0 mt-0.5">ℹ️</div>
           <div class="text-xs text-slate-600 leading-relaxed">
             <strong>Butuh Bantuan?</strong><br />
             Pastikan nominal sesuai bukti transaksi fisik. Periksa saldo kas sebelum menyimpan.
@@ -478,7 +478,9 @@ const fetchJenisTransaksi = async () => {
         ...items,
       ]
     }
-  } catch (error) {
+  } catch {
+    // Daftar jenis transaksi gagal diambil. Select dibiarkan kosong
+    // supaya pengguna tidak memilih nilai dari daftar yang sudah basi.
   }
 }
 
@@ -488,7 +490,9 @@ const fetchAccounts = async () => {
     if (response.data.success) {
       accounts.value = response.data.data?.accounts || []
     }
-  } catch (error) {
+  } catch {
+    // Daftar akun gagal diambil. Select akun dibiarkan kosong supaya
+    // pengguna tidak memilih akun dari daftar yang sudah basi.
   }
 }
 
@@ -499,7 +503,8 @@ const regenerateAmount = async () => {
       bulan: now.getMonth() + 1,
       tahun: now.getFullYear()
     })
-  } catch (error) {
+  } catch {
+    // Regenerasi nominal gagal. Nilai transaksi tidak diubah.
   }
 }
 
@@ -537,7 +542,9 @@ const fetchTransactions = async (page = 1) => {
         last_page: response.data.data.last_page,
       }
     }
-  } catch (error) {
+  } catch {
+    // Daftar jurnal gagal diambil. Tabel dibiarkan apa adanya supaya
+    // halaman tidak ikut gagal.
   } finally {
     loading.value = false
   }
@@ -556,7 +563,9 @@ const fetchAllTransactions = async () => {
     if (response.data.success) {
       transactions.value = response.data.data.data
     }
-  } catch (error) {
+  } catch {
+    // Daftar jurnal gagal diambil untuk filter sumber dana. Tabel
+    // dibiarkan apa adanya supaya halaman tidak ikut gagal.
   } finally {
     loading.value = false
   }
@@ -585,7 +594,9 @@ const fetchBukuBesar = async () => {
           : null,
       }
     }
-  } catch (error) {
+  } catch {
+    // Saldo buku besar gagal diambil. Kartu saldo dibiarkan apa adanya
+    // supaya halaman tidak ikut gagal.
   }
 }
 
@@ -631,7 +642,7 @@ const fetchSaldoSumberDana = async (kodeAkun) => {
       params: { kode_akun: kodeAkun },
     })
     saldoSumberDana.value = response.data.success ? Number(response.data.data.saldo) || 0 : 0
-  } catch (error) {
+  } catch {
     saldoSumberDana.value = 0
   }
 }
@@ -725,7 +736,19 @@ async function deleteTransaction(id) {
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
+    /*
+     * Cancel tidak diberi warna lokasi.
+     *
+     * Tombol "Batal" bukan aksi -- dia jalan keluar dari dialog. Kalau
+     * warnanya sama dengan tombol "Ya, Hapus" di sebelahnya, keduanya terlihat
+     * seperti dua pilihan yang setara, dan orang bisa salah klik karena
+     * mengira warna menentukan yang mana yang aman.
+     *
+     * Abu-abu netral dipakai di `.swal2-cancel` (main.css) untuk semua
+     * dialog. Nilai di sini ditimpa aturan itu, jadi baris ini hanya
+     * mengatakan bahwa cancel tidak boleh memakai warna brand.
+     */
+    cancelButtonColor: '#6b7280',
     confirmButtonText: 'Ya, Hapus',
     cancelButtonText: 'Batal',
   })
@@ -893,7 +916,11 @@ function handleOpenCetak() {
 
 <style scoped>
 .total-saldo-card {
-  background: linear-gradient(to bottom right, #0284c7, #0c4a6e);
+  background: linear-gradient(
+    to bottom right,
+    var(--color-primary, #0284c7),
+    var(--color-primary-700, #0c4a6e)
+  );
   border-radius: 1rem;
   padding: 1rem 1.25rem;
   color: white;

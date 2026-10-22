@@ -38,10 +38,11 @@
   border-color: #f59e0b;
 }
 .notification-dialog.type-info {
-  border-color: #3b82f6;
+  /* Warna lokasi: dialog "info" ikut identitas lokasi, bukan biru tetap. */
+  border-color: var(--color-primary, #3b82f6);
 }
 .notification-dialog.type-confirm {
-  border-color: #0b7a9e;
+  border-color: var(--color-primary-dark, #0b7a9e);
 }
 
 .notification-header {
@@ -172,155 +173,65 @@
   }
 }
 
-.price-detail-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
+/*
+ | Blok modal rincian harga (`price-detail-*`, `price-tier*`, `summary__*`)
+ | DIHAPUS: tidak ada satu pun template yang memakai kelas-kelas ini.
+ |
+ | Dihapus karena stylesheet ini ikut ter-bundle di SELURUH aplikasi
+ | (`main.js`), jadi ~135 baris yang tidak pernah berefek tetap ikut
+ | terkirim ke setiap pengguna. Verifikasi: pencarian `class=` dan
+ | `:class=` di seluruh `src/` tidak menemukan satu pun dari kelas ini.
+ |
+ | Kalau ada layar yang butuh tampilannya lagi, kelas aslinya ada di
+ | riwayat git -- tidak ada yang perlu ditulis ulang dari nol.
+ */
 
-.price-detail-modal {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+/*
+ | `.modal-overlay` / `.modal-container` globals juga DIHAPUS dari file ini,
+ | dan ini yang paling penting.
+ |
+ | Dua alasannya, dan keduanya soal "tidak ada yang memakainya".
+ |
+ | 1. Tidak pernah dipakai. Satu-satunya elemen berkelas `.modal-container`
+ |    ada di `CameraModal.vue`, dan file itu punya `<style scoped>` sendiri
+ |    untuk `.modal-overlay` maupun `.modal-container` -- lengkap dengan
+ |    atribut `data-v-<hash>`, jadi spesifisitasnya (0,2,0) mengalahkan
+ |    aturan globals di sini (0,1,0). Aturan globals di bawah tidak pernah
+ |    menang sekali pun untuk elemen itu. `z-index: 9999` di `CameraModal`
+ |    yang berlaku, bukan `z-[3000]` yang tadinya tertulis di sini.
+ |
+ | 2. Merusak secara aktif. Aturan globals di sini berlaku untuk SEMUA
+ |    elemen berkelas `.modal-overlay` di seluruh aplikasi, termasuk yang
+ |    milik `central-form.css` (modal tagihan panel pusat, dipakai
+ |    `CentralLokasiDetail` + `CentralBayarDialog`) dan milik `ProfilIndex`
+ |    (ubah password) -- keduanya elemen yang benar-benar hidup.
+ |
+ | Yang paling merusak ada di blok `@media (max-width: 640px)` yang juga
+ | dihapus: penulisan `!important` menang dari urutan import dan dari
+ | spesifisitas. Jadi di HP, `.modal-overlay` milik `central-form.css` ikut
+ | dipaksa `items-end` dan `padding: 0`. Efeknya: modal tagihan yang
+ | mestinya terpusat menempel ke dasar layar, dan `.modal-box` di dalamnya
+ | kehilangan jarak tepi yang dipakai menghitung `max-height: calc(100dvh
+ | - 2rem)` -- ujungnya bisa menempel atau terpotong tepat di layar HP
+ | yang paling sempit. Tanpa error, tanpa peringatan di console.
+ |
+ | `.modal-header` dan `.close-btn` TETAP DIBAWAH dan tetap globals: keduanya
+ | dipakai `ProfilIndex` (`.modal-header`) dan `TopNavigationView`
+ | (`.close-btn`), yang memakai utility class, bukan blok `modal-*` punya
+ | sendiri. Menghapusnya akan kehilangan gaya tombol tutup di sana.
+ |
+ | Kalau suatu saat modal kamera butuh gaya globals, ia harus memakai nama
+ | kelas sendiri -- bukan menabrak `.modal-overlay` yang sedang dipakai
+ | tiga tempat lain.
+ */
 
-.price-detail-modal__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(to right, #f8fafc, #f1f5f9);
-}
-
-.price-detail-modal__content {
-  padding: 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.price-tier {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  transition: all 0.2s ease;
-}
-
-.price-tier:hover {
-  border-color: #0b7a9e;
-  box-shadow: 0 4px 6px -1px rgba(11, 122, 158, 0.1);
-}
-
-.price-tier__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.price-tier__range {
-  font-weight: 600;
-  color: #334155;
-  font-size: 0.875rem;
-}
-
-.price-tier__price {
-  font-weight: 700;
-  color: #0b7a9e;
-  font-size: 0.875rem;
-  background: rgba(11, 122, 158, 0.1);
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-}
-
-.price-tier__details {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 0.75rem;
-}
-
-.price-tier__calculation {
-  font-family: 'Courier New', monospace;
-}
-
-.price-detail-modal__summary {
-  margin-top: 1.5rem;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: white;
-  border-radius: 0.75rem;
-  padding: 1rem;
-}
-
-.summary__header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.summary__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.summary__list li {
-  font-size: 0.75rem;
-  margin-bottom: 0.25rem;
-  opacity: 0.9;
-}
-
-.summary__list li::before {
-  content: '•';
-  margin-right: 0.5rem;
-  opacity: 0.7;
-}
-
-.price-detail-modal__footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 640px) {
-  .price-detail-modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-
-  .price-detail-modal {
-    margin: 0;
-    max-width: 100%;
-    border-radius: 24px 24px 0 0;
-    max-height: 85vh;
-    animation: slide-up 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  }
-}
-
-.modal-overlay {
-  @apply fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[3000] p-2 md:p-6 transition-all;
-}
-
-.modal-container {
-  @apply bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.2)] w-full max-w-3xl overflow-hidden relative border border-white!;
-  animation: modal-pop 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-}
-
+/* Garis aksencyan -> biru -> indigo di sini tetap biru DI SEMUA lokasi,
+   termasuk yang warnanya oranye. Ini satu-satunya garis di atas modal yang
+   selalu terlihat, jadi kalau tidak ikut brand, warna lokasi terasa tidak
+   sampai ke modal mana pun. */
 .modal-top-accent {
-  @apply h-1.5 w-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600;
+  background: var(--brand-gradient);
+  @apply h-1.5 w-full;
 }
 
 .modal-header {
@@ -331,154 +242,41 @@
   @apply w-10! h-10! rounded-xl! flex! items-center! justify-center! bg-slate-100! text-slate-400! hover:bg-red-50! hover:text-red-500! transition-all! duration-300!;
 }
 
-.identity-card {
-  @apply bg-slate-50 rounded-2xl md:rounded-[2rem] p-1! border! border-slate-100/50!;
-}
+/*
+ | Blok di sini DIHAPUS karena tidak ada template yang memakainya:
+ |   - `identity-card`, `info-badge`, `badge-icon`, `badge-content`
+ |     (termasuk `@media (max-width: 768px)`-nya) dan `input-modern-group`
+ |     -> kelas kartu ringkasan modal lama; tidak ada markup-nya lagi.
+ |   - `modal-container .input-wrapper*` -> ikut mati bersama
+ |     `.modal-container` globals yang dihapus di atas; satu-satunya
+ |     `input-wrapper` yang masih hidup ada di `SelectSearch.vue` dan
+ |     `MaksMoneyInput.vue`, dan keduanya memakai nama kelas berbeda.
+ |   - `scanner-*`, `bracket-left/right`, `tech-scan-line`, `pulse-icon`
+ |     beserta `@keyframes scan-move` dan `pulse-ring` -> sisa tampilan
+ |     pemindai kamera; `CameraModal.vue` sekarang memakai video biasa
+ |     tanpa overlay pemindai.
+ |
+ | Semua ikut ter-bundle di seluruh aplikasi, jadi ~140 baris ini
+ | terkirim ke setiap pengguna tanpa efek apa pun.
+ */
 
-.info-badge {
-  @apply flex items-center! gap-2! md:gap-3! p-2! md:p-4! rounded-xl! transition-all!;
-}
-
-.info-badge.highlight {
-  @apply bg-white shadow-sm! border! border-white!;
-}
-
-.badge-icon {
-  @apply text-slate-300! text-lg! md:text-xl!;
-}
-
-.highlight .badge-icon {
-  @apply text-cyan-500!;
-}
-
-.badge-content {
-  @apply flex-1! flex! flex-col!;
-}
-
-@media (max-width: 768px) {
-  .badge-content {
-    @apply flex-row! items-center! justify-between!;
-  }
-  .badge-content label {
-    @apply mb-0! mr-4!;
-  }
-  .badge-content span {
-    @apply text-right!;
-  }
-}
-
-.badge-content label {
-  @apply block text-[8px]! font-black! uppercase! tracking-widest! text-slate-400! mb-0.5!;
-}
-
-.badge-content span {
-  @apply text-sm font-bold! text-slate-600!;
-}
-
-.input-modern-group label {
-  @apply block text-[9px]! md:text-[10px]! font-black! text-slate-500! uppercase! tracking-widest! mb-2! ml-1!;
-}
-
-.modal-container .input-wrapper {
-  @apply relative bg-slate-50! border! border-slate-200! rounded-xl! px-4! py-2.5! flex! items-center! transition-all! duration-300!;
-}
-
-.modal-container .input-wrapper.readonly {
-  @apply bg-white border-dashed! border-slate-200! opacity-90!;
-}
-
-.modal-container .input-wrapper input {
-  @apply bg-transparent border-none! outline-none! w-full! text-2xl! md:text-3xl! font-black! text-slate-800! tracking-tighter!;
-}
-
-.modal-container .input-wrapper .unit {
-  @apply text-xs! font-black! text-slate-400! ml-3!;
-}
-
-.scanner-container {
-  @apply flex flex-col! h-full!;
-}
-
-.scanner-viewfinder-wrapper {
-  @apply relative rounded-xl! md:rounded-2xl! overflow-hidden! bg-slate-900! aspect-[32/9]! max-h-[100px]! md:max-h-[120px]! border-2! border-white! shadow-2xl!;
-}
-
-.scanner-video {
-  @apply w-full h-full! object-cover! opacity-80!;
-}
-
-.bracket-left {
-  @apply absolute left-3! md:left-4! top-1/2! -translate-y-1/2! w-10! h-[60%]! border-l-[6px]! border-t-[6px]! border-b-[6px]! border-cyan-400! rounded-l-2xl! z-30!;
-}
-
-.bracket-right {
-  @apply absolute right-3! md:right-4! top-1/2! -translate-y-1/2! w-10! h-[60%]! border-r-[6px]! border-t-[6px]! border-b-[6px]! border-cyan-400! rounded-r-2xl! z-30!;
-}
-
-.tech-scan-line {
-  @apply absolute left-10! md:left-12! right-10! md:right-12! h-[3px]! bg-cyan-400! z-40! blur-[1.5px]!;
-  box-shadow:
-    0 0 20px #22d3ee,
-    0 0 40px #22d3ee;
-  animation: scan-move 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes scan-move {
-  0% {
-    top: 25%;
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    top: 75%;
-    opacity: 0;
-  }
-}
-
-.scanner-placeholder {
-  @apply absolute inset-0! flex! flex-col! items-center! justify-between! py-2! md:py-3! text-slate-500! z-10!;
-}
-
-.pulse-icon {
-  @apply w-12! md:w-14! h-12! md:h-14! rounded-full! bg-slate-800/80! backdrop-blur-sm! flex! items-center! justify-center! text-lg! md:text-xl! border! border-slate-700! text-cyan-400!;
-  animation: pulse-ring 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-}
-
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.3);
-  }
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 20px rgba(34, 211, 238, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
-  }
-}
-
-.scanner-placeholder p {
-  @apply text-[9px]! md:text-[10px]! font-black! uppercase! tracking-[0.4em]! text-white/80! mb-1!;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-@media (max-width: 640px) {
-  .modal-overlay {
-    @apply items-end! p-0!;
-  }
-
-  .modal-container {
-    @apply rounded-none! max-w-full! h-full! flex! flex-col!;
-    animation: slide-up 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-  }
-}
+/*
+ * Sliding-up full-screen DI HP, dulu untuk `.modal-overlay` polos.
+ *
+ * DIHAPUS. Semestinya hanya untuk modal kamera, tapi selector-nya polos --
+ * jadi blok ini ikut berlaku untuk `.modal-overlay` milik
+ * `central-form.css` dan `ProfilIndex` juga. Dan karena penulisan di sini
+ * memakai `!important`, yang menang adalah aturan ini, bukan aturan
+ * scoped milik `CameraModal` (0,2,0) yang justru mestinya menang.
+ *
+ * Gejalanya nyata di HP: modal tagihan panel pusat menempel ke dasar
+ * layar tanpa jarak tepi, dan `.modal-box`-nya kehilangan ruang yang
+ * dipakai menghitung `max-height: calc(100dvh - 2rem)`, sehingga kaki
+ * modal -- tempat tombolnya -- bisa terpotong.
+ *
+ * Kalau memang masih dipakai, rules-nya harus Scoped -- ditulis di
+ * `CameraModal.vue` yang sudah punya `<style scoped>`, bukan di sini.
+ */
 
 @keyframes modal-pop {
   from {
@@ -544,11 +342,11 @@ input[type='text'] {
   max-width: 960px;
 }
 
-/* ---- Accent bar (top of modal) — gradient brand ---- */
+/* ---- Accent bar (top of modal) - gradient brand ---- */
 .package-modal__accent {
   height: 4px;
   width: 100%;
-  background: linear-gradient(90deg, #22d3ee 0%, #3b82f6 50%, #6366f1 100%);
+  background: var(--brand-gradient);
 }
 
 /* ---- Header ---- */
@@ -560,8 +358,11 @@ input[type='text'] {
   @apply relative px-5 md:px-6 py-4 md:py-5;
 }
 
+/* Latar header "sukses" boleh pucat, tapi TIDAK boleh bergradasi ke biru:
+     biru berarti lokasi di sini, jadi hijau-ke-biru dibaca sebagai "sukses
+     tapi dari sistem yang lain". Hijau pucat ke putih sudah cukup. */
 .package-modal__header--success {
-  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 60%, #cffafe 100%);
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 60%, #d1fae5 100%);
 }
 
 .package-modal__header--warning {
@@ -569,7 +370,7 @@ input[type='text'] {
 }
 
 .package-modal__header--brand {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 55%, #4338ca 100%);
+  background: var(--brand-gradient-deep);
   color: white;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
@@ -1238,24 +1039,69 @@ input[type='text'] {
   font-size: 0.75rem;
   padding: 10px 22px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 50%, #4338ca 100%);
+  background: var(--brand-gradient-deep);
   box-shadow:
-    0 6px 16px -4px rgba(8, 145, 178, 0.4),
+    0 6px 16px -4px rgb(var(--color-primary-rgb, 8 145 178) / 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(8, 145, 178, 0.4);
+  border: 1px solid rgb(var(--color-primary-rgb, 8 145 178) / 0.4);
   background-size: 200% 200%;
   background-position: 0% 50%;
 }
 
 .btn-primary-modal:hover:not(:disabled) {
   box-shadow:
-    0 8px 22px -4px rgba(8, 145, 178, 0.5),
+    0 8px 22px -4px rgb(var(--color-primary-rgb, 8 145 178) / 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
   background-position: 100% 50%;
 }
 
 .btn-primary-modal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/*
+ * Tombol "Simpan" di kaki modal -- abu, sama dengan `BaseButton` varian
+ * `secondary` dan dengan `.btn--save` milik panel pusat.
+ *
+ * Bentuknya (pill, huruf kapital) sengaja sama dengan `.btn-primary-modal`:
+ * yang membedakan hanya warnanya. Kalau bentuknya ikut berubah, dua
+ * tombol yang berdampingan di kaki modal terlihat seperti milik dua
+ * aplikasi berbeda.
+ *
+ * `btn-primary-modal` (biru brand) tetap dipakai untuk tombol yang
+ * membuka langkah berikutnya, bukan yang menyimpan data.
+ *
+ * Warnanya dibaca dari token `--btn-save-*` yang sama dengan `BaseButton`
+ * dan panel pusat, bukan hex yang ditulis di sini. Shapes boleh berbeda
+ * antar file; warna tombol simpan tidak boleh.
+ */
+.btn-save-modal {
+  @apply font-bold uppercase tracking-wider transition-all flex items-center gap-2;
+  font-size: 0.75rem;
+  padding: 10px 22px;
+  border-radius: 9999px;
+  background: var(--btn-save-bg);
+  border: 1px solid var(--btn-save-border);
+  color: var(--btn-save-text);
+  box-shadow:
+    0 6px 16px -4px rgb(100 116 139 / 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-save-modal:hover:not(:disabled) {
+  background: var(--btn-save-bg-hover);
+  border-color: var(--btn-save-bg-hover);
+  box-shadow:
+    0 8px 22px -4px rgb(100 116 139 / 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-save-modal:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
@@ -1271,18 +1117,18 @@ input[type='text'] {
 }
 
 .radio-card:hover:not(:disabled) {
-  border-color: #67e8f9;
+  border-color: var(--color-primary-400, #67e8f9);
   background: #f8fafc;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px -2px rgba(6, 182, 212, 0.15);
+  box-shadow: 0 4px 12px -2px rgb(var(--color-primary-rgb, 6 182 212) / 0.15);
 }
 
 .radio-card--selected {
-  border-color: #06b6d4;
-  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  border-color: var(--color-primary, #06b6d4);
+  background: var(--brand-gradient-soft);
   box-shadow:
-    0 0 0 3px rgba(6, 182, 212, 0.15),
-    0 6px 16px -4px rgba(6, 182, 212, 0.25);
+    0 0 0 3px rgb(var(--color-primary-rgb, 6 182 212) / 0.15),
+    0 6px 16px -4px rgb(var(--color-primary-rgb, 6 182 212) / 0.25);
 }
 
 .radio-card__check {
@@ -1290,10 +1136,10 @@ input[type='text'] {
   width: 22px;
   height: 22px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: var(--brand-gradient);
   top: 8px;
   right: 8px;
-  box-shadow: 0 2px 6px rgba(6, 182, 212, 0.5);
+  box-shadow: 0 2px 6px rgb(var(--color-primary-rgb, 6 182 212) / 0.5);
 }
 
 .radio-card__title {
@@ -1407,7 +1253,10 @@ input[type='text'] {
   @apply w-1.5 h-1.5 rounded-full flex-shrink-0;
 }
 .billing-dot--blue {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  /* Dot ini menandai paket aktif. Warna birunya ikut brand lokasi, karena
+     biru hardcoded membuat lokasi yang warnanya oranye masih melihat titik
+     biru di daftar paketnya. */
+  background: var(--brand-gradient);
 }
 .billing-dot--emerald {
   background: linear-gradient(135deg, #10b981, #059669);
@@ -1533,8 +1382,8 @@ input[type='text'] {
   inset: 0;
   border-radius: 9999px;
   border: 3px solid transparent;
-  border-top-color: #06b6d4;
-  border-right-color: #6366f1;
+  border-top-color: var(--color-primary-400, #06b6d4);
+  border-right-color: var(--color-primary-600, #6366f1);
   animation: pdm-spin 1s linear infinite;
 }
 
@@ -1546,7 +1395,7 @@ input[type='text'] {
   width: 6px;
   height: 6px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #06b6d4, #6366f1);
+  background: var(--brand-gradient);
   animation: pdm-bounce 1.2s ease-in-out infinite;
 }
 
@@ -1672,7 +1521,7 @@ div.swal2-container.swal2-fade {
 
 /* Confirm button — gradient cyan → indigo */
 .swal2-confirm.swal-btn-confirm {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 50%, #4338ca 100%) !important;
+  background: var(--brand-gradient-deep) !important;
   background-size: 200% 200% !important;
   background-position: 0% 50% !important;
   color: white !important;
@@ -1682,16 +1531,16 @@ div.swal2-container.swal2-fade {
   letter-spacing: 0.04em !important;
   padding: 11px 24px !important;
   border-radius: 9999px !important;
-  border: 1px solid rgba(8, 145, 178, 0.4) !important;
+  border: 1px solid rgb(var(--color-primary-rgb, 8 145 178) / 0.4) !important;
   box-shadow:
-    0 6px 16px -4px rgba(8, 145, 178, 0.4),
+    0 6px 16px -4px rgb(var(--color-primary-rgb, 8 145 178) / 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
   transition: all 0.25s ease !important;
 }
 .swal2-confirm.swal-btn-confirm:hover:not(:disabled) {
   background-position: 100% 50% !important;
   box-shadow:
-    0 8px 22px -4px rgba(8, 145, 178, 0.5),
+    0 8px 22px -4px rgb(var(--color-primary-rgb, 8 145 178) / 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   transform: translateY(-1px) !important;
 }

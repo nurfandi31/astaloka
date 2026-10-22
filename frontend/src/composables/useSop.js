@@ -41,9 +41,23 @@ export function useSop() {
     statusPembayaran: false,
   })
 
+  /*
+   * `batasTagihanTunggak` sengaja `null`, bukan angka.
+   *
+   * Kolom ini dulu dipaksa berbagi angka dengan `toleransiTunggakan`, padahal
+   * satuannya berbeda total: `toleransiTunggakan` dibaca sebagai TANGGAL
+   * dalam bulan (untuk generate piutang) dan sebagai JUMLAH HARI (untuk
+   * ambang piutang), sedangkan yang ini adalah JUMLAH TAGIHAN sebelum
+   * sambungan pelanggan diputus.
+   *
+   * `null` berarti "pakai nilai `toleransiTunggakan` seperti sebelumnya",
+   * sehingga semua lokasi yang sudah ada perilakunya tidak berubah sampai
+   * admin mengisi field ini secara sadar.
+   */
   const sistemTagihanForm = ref({
     batasTagihan: 10,
     toleransiTunggakan: 0,
+    batasTagihanTunggak: null,
   })
 
   // ---- CALK ----
@@ -113,6 +127,13 @@ export function useSop() {
         sistemTagihanForm.value = {
           batasTagihan: Number(data.sistemTagihan.batasTagihan ?? 10),
           toleransiTunggakan: Number(data.sistemTagihan.toleransiTunggakan ?? 0),
+          // `null` berarti belum diisi: backend memakai `toleransiTunggakan`
+          // sebagai gantinya, sama seperti sebelum kolom ini ada.
+          batasTagihanTunggak:
+            data.sistemTagihan.batasTagihanTunggak === null ||
+            data.sistemTagihan.batasTagihanTunggak === undefined
+              ? null
+              : Number(data.sistemTagihan.batasTagihanTunggak),
         }
       }
 
@@ -167,7 +188,24 @@ export function useSop() {
   const saveSistemTagihan = async () => {
     try {
       isSaving.value = true
-      await sopService.saveSistemTagihan({ ...sistemTagihanForm.value })
+      /*
+       * Input yang kosong harus dikirim sebagai `null`, bukan `''` atau `NaN`.
+       *
+       * Backend memakai `nullable|integer` untuk field ini, dan nilai kosong
+       * berarti "pakai `toleransiTunggakan` seperti sebelumnya". `Number('')`
+       * menghasilkan `0`, yang berarti "tidak pernah memutus sambungan" --
+       * dua arti yang sama sekali berbeda, jadi mengosongkan form diam-diam
+       * mengubah perilaku sistem.
+       */
+      await sopService.saveSistemTagihan({
+        ...sistemTagihanForm.value,
+        batasTagihanTunggak:
+          sistemTagihanForm.value.batasTagihanTunggak === null ||
+          sistemTagihanForm.value.batasTagihanTunggak === '' ||
+          Number.isNaN(Number(sistemTagihanForm.value.batasTagihanTunggak))
+            ? null
+            : Number(sistemTagihanForm.value.batasTagihanTunggak),
+      })
       showSuccessToast('Sistem Tagihan berhasil disimpan')
     } catch (error) {
       showErrorToast(error)

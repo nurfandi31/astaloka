@@ -73,11 +73,11 @@
               <div v-if="sub.children" class="sidebar-nav-group">
                 <router-link
                   to="#"
-                  class="sidebar-submenu-item"
+                  class="sidebar-submenu-item is-parent"
                   :class="{ 'submenu-open': openSubmenus[sub.label] }"
                   @click.prevent="toggleSubmenu(sub.label)"
                 >
-                  <font-awesome-icon :icon="sub.icon" class="sidebar-submenu-icon" width="16" />
+                  <span class="sidebar-submenu-marker"></span>
                   <span>{{ sub.label }}</span>
                   <font-awesome-icon
                     v-if="sidebarOpen"
@@ -99,7 +99,7 @@
                     :class="{ active: isActive(nested.to) }"
                     @click="handleMenuClick"
                   >
-                    <span class="sidebar-submenu-bullet"></span>
+                    <span class="sidebar-submenu-marker"></span>
                     <span>{{ nested.label }}</span>
                   </router-link>
                 </div>
@@ -112,13 +112,7 @@
                 :class="{ active: isActive(sub.to) }"
                 @click="handleMenuClick"
               >
-                <span v-if="!sub.icon" class="sidebar-submenu-bullet"></span>
-                <font-awesome-icon
-                  v-if="sub.icon"
-                  :icon="sub.icon"
-                  class="sidebar-submenu-icon"
-                  width="16"
-                />
+                <span class="sidebar-submenu-marker"></span>
                 <span>{{ sub.label }}</span>
               </router-link>
             </template>
@@ -153,9 +147,65 @@
 import { onMounted, watch, computed, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '@/stores/uiStore'
+import { useMenuAccessStore } from '@/stores/menuAccessStore'
 import BaseButton from '@/presentations/components/ui/BaseButton.vue'
 import AbtAstaBrataModal from '@/presentations/components/ui/AbtAstaBrataModal.vue'
 import sopService from '@/services/sop.service'
+import { getDashboardRoute } from '@/router/dashboardRoutes'
+
+/**
+ * Group yang punya ikon sendiri di sidebar.
+ *
+ * Katalog backend hanya menyertakan group sebagai NAMA ("Basis Data"),
+ * bukan ikon. Ikon sidebar adalah keputusan tampilan, jadi di frontend --
+ * yang tetap satu-satunya tempat concerns tampilan itu hidup. Group yang
+ * tidak ada di sini memakai ikon cadangan, supaya menambah group baru di
+ * katalog tidak membuat sidebar gagal diam-diam.
+ */
+const GROUP_ICONS = {
+  Utama: 'home',
+  Pengaturan: 'cog',
+  'Basis Data': 'database',
+  'Master Instalasi': 'chart-bar',
+  'Pencatatan Tagihan': 'file-invoice-dollar',
+  Transaksi: 'money-bill-wave',
+  Pelaporan: 'file-alt',
+  Arsip: 'archive',
+  Survey: 'clipboard-check',
+  'Pusat Teknis': 'screwdriver-wrench',
+  'Layanan Pelanggan': 'file-invoice-dollar',
+}
+
+/**
+ * Ikon item tetap "Beranda".
+ *
+ * Sengaja ditulis terpisah dari `GROUP_ICONS`, bukan diambil dari
+ * `GROUP_ICONS.Utana`: "Utama" itu NAMA GROUP di katalog, sedangkan
+ * Beranda di sini bukan group -- ia item tunggal yang berdiri sendiri.
+ * Kalau nanti group "Utama" diisi menu lain, keduanya jadi dua hal
+ * berbeda dan hanya satu yang boleh berubah.
+ */
+const ICON_BERANDA = 'home'
+
+/**
+ * Submenu yang punya halaman turunannya sendiri.
+ *
+ * "Pelanggan" dan "Desa" punya Tambah/Edit yang merupakan halaman
+ * tersendiri, sehingga jadi group bersarang. Menu lainnya tidak
+ * punya, jadi jadi anak biasa.
+ *
+ * Kuncinya path menu induk, bukan label, supaya perubahan label di katalog
+ * tidak ikut memutus hierarki ini.
+ */
+const NESTED_PARENTS = ['/app/data-pelanggan', '/app/data-desa']
+
+/** Halaman anak dari group bersarang tersebut. */
+const NESTED_CHILDREN = [
+  { parent: '/app/data-pelanggan', label: 'Tambah Pelanggan', to: '/app/data-pelanggan/tambah' },
+  { parent: '/app/data-pelanggan', label: 'Data Pelanggan', to: '/app/data-pelanggan' },
+  { parent: '/app/data-desa', label: 'Tambah Desa', to: '/app/data-desa/tambah' },
+  { parent: '/app/data-desa', label: 'Data Desa', to: '/app/data-desa' },
+]
 
 const props = defineProps({
   sidebarOpen: {
@@ -171,6 +221,7 @@ const props = defineProps({
 const emit = defineEmits(['toggle-sidebar', 'close-mobile-sidebar'])
 const uiStore = useUiStore()
 const route = useRoute()
+const menuAccessStore = useMenuAccessStore()
 
 // Popup "Tentang Aplikasi Ini" — kredit untuk Asta Brata Teknologi.
 const showAbtModal = ref(false)
@@ -225,6 +276,7 @@ const loadLembagaName = async () => {
 
 onMounted(() => {
   loadLembagaName()
+  menuAccessStore.loadCatalog()
 })
 
 const openSubmenus = reactive({})
@@ -245,8 +297,141 @@ function isActiveOrChild(to) {
   return route.path === to || route.path.startsWith(to + '/')
 }
 
+/**
+ * Menu yang benar-benar dirender sidebar, sudah dirapikan jadi pohon
+ * group > anak > (cucun).
+ *
+ * Disusun dari katalog backend, bukan dari daftar yang ditulis di sini.
+ * Dua filter yang sebelumnya ada di `filteredMenuItems` -- role dan
+ * jabatan -- sekarang sudah digabung oleh backend jadi satu nilai
+ * `allowed`, jadi frontend tidak perlu menilai hak akses sendiri.
+ *
+ * Pengecualiannya satu: "Beranda" tidak dari katalog, tapi ditambahkan
+ * sebagai item tetap di akhir fungsi ini. Alasannya ada di blok `beranda`.
+ *
+ * Sisa satu hal yang MASIH dinilai di sini: `hidden`. Item ber-hidden ada
+ * di router dan bisa dibuka dari dashboard (Arsip), tapi tidak pernah jadi
+ * entri sidebar. Yang disembunyikan adalah menunya, bukan halamannya.
+ *
+ * Group tanpa anak yang boleh TIDAK dirender. Kalau tetap dirender, user
+ * akan melihat group yang bisa dibuka tapi isinya kosong -- dan mengira
+ * menunya hilang karena bug, bukan karena haknya memang dicabut.
+ */
+const filteredMenuItems = computed(() => {
+  const role = uiStore.userRole
+
+  const bolehTampil = menuAccessStore.items.filter((item) => {
+    if (!item.allowed) return false
+    if (item.hidden) return false
+    // `roles` kosong berarti tidak ada batasan role -- jangan diperlakukan
+    // sebagai "tidak ada role yang boleh", itu akan menyembunyikan menu
+    // yang justru terbuka untuk semua orang.
+    if (Array.isArray(item.roles) && item.roles.length > 0 && !item.roles.includes(role)) {
+      return false
+    }
+    return true
+  })
+
+  /*
+   * Beranda: item tetap, bukan dari katalog.
+   *
+   * Katalog `config/menu_access.php` sengaja tidak memuat "/app" -- bukan
+   * kelalaian, tapi keputusan: `/app` adalah halaman tujuan SETELAH login,
+   * bukan pekerjaan yang perlu dikerjakan, jadi tidak ada gunanya
+   * menawarkannya centang untuk mengunci.
+   *
+   * Konsekuensinya harus ditangani di sini: sidebar dibangun dari katalog,
+   * jadi entri yang tidak ada di katalog tidak akan pernah muncul -- dan
+   * "Beranda" hilang dari sidebar hanya karena tidak bisa dikunci.
+   *
+   * Ditambahkan sebagai item tetap, di luar daftar group, supaya:
+   *   - tidak pernah hilang, apa pun konfigurasi jabatan
+   *   - tidak muncul sebagai group "Utama" yang isinya cuma satu
+   *   - tetap memakai `getDashboardRoute(role)`, karena tiap role punya
+   *     URL dashboard-nya sendiri (lihat `router/dashboardRoutes.js`)
+   *
+   * Sengaja TIDAK ikut disaring oleh `allowed`: kalau nanti katalognya ikut
+   * memuat "Beranda" dan suatu jabatan menicentangnya mati, user akan
+   * mendarat di halaman yang tidak ada isinya. Beranda harus selalu bisa
+   * dibuka -- itulah bedanya dengan menu yang benar-benar bisa dicabut.
+   */
+  const beranda = {
+    key: 'beranda',
+    label: 'Beranda',
+    icon: ICON_BERANDA,
+    to: getDashboardRoute(role),
+  }
+
+  // Katalog mengirim group dalam urutan kemunculannya. Preserve urutan itu:
+  // mengurutkan ulang berdasarkan nama akan memindahkan "Pencatatan Tagihan"
+  // ke belakang "Master Instalasi", dan urutan itu memang disengaja.
+  const groupsBaru = []
+  const byGroup = new Map()
+
+  for (const item of bolehTampil) {
+    const group = item.group || ''
+
+    if (!byGroup.has(group)) {
+      byGroup.set(group, [])
+      groupsBaru.push(group)
+    }
+
+    byGroup.get(group).push({
+      key: item.key,
+      label: item.label,
+      icon: item.icon,
+      to: item.path,
+    })
+  }
+
+  const hasil = groupsBaru
+    .map((group) => {
+      const children = byGroup.get(group)
+
+      const denganAnak = children.map((child) => {
+        // Menu yang punya halaman turunan sendiri jadi group bersarang.
+        // Anaknya diambil dari NESTED_CHILDREN, bukan dari katalog, karena
+        // halaman turunan itu tidak punya entri menu sendiri -- kalau
+        // ditambah ke katalog, sidebar akan menampilkan "Data Pelanggan"
+        // dua kali: sebagai group dan sebagai link biasa.
+        if (!NESTED_PARENTS.includes(child.to)) return child
+
+        return {
+          ...child,
+          children: NESTED_CHILDREN.filter((n) => n.parent === child.to),
+        }
+      })
+
+      // Group dengan satu anak saja ditampilkan sebagai link langsung,
+      // bukan sebagai submenu yang harus diklik dulu. Lebih cepat, dan
+      // supaya tidak ada menu yang cuma punya satu isi tapi butuh dua klik.
+      if (denganAnak.length === 1 && !denganAnak[0].children) {
+        return denganAnak[0]
+      }
+
+      return {
+        label: group,
+        icon: GROUP_ICONS[group] || 'folder',
+        children: denganAnak,
+      }
+    })
+    .filter(Boolean)
+
+  // Beranda mendahului semua group, jadi posisinya tetap pertama walaupun
+  // daftar group berubah karena jabatan lain yang hak aksesnya baru disimpan.
+  return [beranda, ...hasil]
+})
+
+/**
+ * Buka submenu yang memuat halaman yang sedang dibuka.
+ *
+ * Menjalankan ini lagi saat daftar menu berubah penting: setelah admin
+ * menyimpan hak akses, group yang tadi tersembunyi bisa muncul --
+ * dan kalau submenu yang menjadi tujuannya tidak ikut terbuka, user
+ * mendarat di sidebar yang terlihat benar tapi submenunya tertutup.
+ */
 function syncOpenSubmenus() {
-  menuItems.forEach((item) => {
+  filteredMenuItems.value.forEach((item) => {
     if (!item.children) return
     const childActive = item.children.some((sub) => {
       if (sub.children) {
@@ -266,128 +451,21 @@ function syncOpenSubmenus() {
   })
 }
 
-const menuItems = [
-  {
-    label: 'Beranda',
-    icon: 'home',
-    to: '/app',
-    roles: ['admin', 'surveyor', 'teknisi', 'pelanggan'],
-  },
-  {
-    label: 'Buat Survey Baru',
-    icon: 'plus-circle',
-    to: '/app/survey/create',
-    roles: ['surveyor'],
-  },
-  {
-    label: 'Pengaturan',
-    icon: 'cog',
-    roles: ['admin'],
-    children: [
-      { label: 'Personalisasi (SOP)', to: '/app/settings/personalisasi-sop' },
-      { label: 'Chart of Account (CoA)', to: '/app/settings/coa' },
-      { label: 'Paket & Tarif Layanan', to: '/app/kelas-biaya' },
-    ],
-  },
-  {
-    label: 'Basis Data',
-    icon: 'database',
-    roles: ['admin'],
-    children: [
-      {
-        label: 'Pelanggan',
-        icon: 'users',
-        children: [
-          { label: 'Tambah Pelanggan', to: '/app/data-pelanggan/tambah' },
-          { label: 'Data Pelanggan', to: '/app/data-pelanggan' },
-        ],
-      },
-      {
-        label: 'Desa',
-        icon: 'map-marker-alt',
-        children: [
-          { label: 'Tambah Desa', to: '/app/data-desa/tambah' },
-          { label: 'Data Desa', to: '/app/data-desa' },
-        ],
-      },
-      { label: 'Daftar Instalasi', icon: 'building', to: '/app/dataInstalasi' },
-    ],
-  },
-  {
-    label: 'Master Instalasi',
-    icon: 'chart-bar',
-    roles: ['admin', 'teknisi'],
-    children: [
-      { label: 'Registrasi Instalasi', to: '/app/instalasi/register', roles: ['admin'] },
-      { label: 'Status Instalasi', to: '/app/instalasi/status', roles: ['admin'] },
-      {
-        label: 'Input Pemakaian Air',
-        to: '/app/instalasi/teknisiPemakaianAir',
-        roles: ['teknisi'],
-      },
-    ],
-  },
-  {
-    label: 'Pencatatan Tagihan',
-    icon: 'file-invoice-dollar',
-    roles: ['admin'],
-    children: [
-      { label: 'Input Tagihan', to: '/app/instalasi/pemakaian-air' },
-      { label: 'Daftar Tagihan', to: '/app/instalasi/daftar-tagihan' },
-    ],
-  },
-  {
-    label: 'Transaksi',
-    icon: 'money-bill-wave',
-    roles: ['admin'],
-    children: [
-      { label: 'Jurnal Umum', to: '/app/transaksi/jurnal-umum' },
-      { label: 'Tagihan Bulanan', to: '/app/transaksi/tagihan-bulanan' },
-      { label: 'Tagihan Instalasi', to: '/app/transaksi/tagihan-instalasi' },
-      { label: 'E-Budgeting', to: '/app/transaksi/E-budgeting' },
-      { label: 'Tutup Buku', to: '/app/transaksi/tutup-buku' },
-      { label: 'Komisi SPS', to: '/app/transaksi/komisi-sps' },
-    ],
-  },
-  {
-    label: 'Pelaporan',
-    icon: 'file-alt',
-    roles: ['admin'],
-    to: '/app/pelaporan',
-  },
-]
-
 watch(
   () => route.path,
-  (newPath) => {
-    menuItems.forEach((item) => {
-      if (!item.children) return
-      const hasActive = item.children.some(
-        (c) => c.to === newPath || (c.to && newPath.startsWith(c.to)),
-      )
-      if (hasActive) openSubmenus[item.label] = true
-    })
+  () => {
+    syncOpenSubmenus()
   },
-  { immediate: true },
 )
 
-const filteredMenuItems = computed(() => {
-  return menuItems
-    .filter((item) => {
-      if (item.roles && !item.roles.includes(uiStore.userRole)) return false
-      return true
-    })
-    .map((item) => {
-      if (!item.children) return item
-      const visibleChildren = item.children.filter((child) => {
-        if (child.roles && !child.roles.includes(uiStore.userRole)) return false
-        return true
-      })
-      if (visibleChildren.length === 0) return null
-      return { ...item, children: visibleChildren }
-    })
-    .filter(Boolean)
-})
+watch(
+  () => filteredMenuItems.value,
+  () => {
+    syncOpenSubmenus()
+  },
+)
+
+syncOpenSubmenus()
 
 syncOpenSubmenus()
 

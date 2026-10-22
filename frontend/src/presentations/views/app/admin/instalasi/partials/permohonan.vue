@@ -185,7 +185,7 @@
           <button
             @click="submitSurvey"
             :disabled="!isFormValid || isSubmitting || !customer.ticketId"
-            class="w-full! flex! items-center! justify-center! gap-2! bg-gradient-to-r! from-indigo-500! to-blue-600! hover:from-indigo-600! hover:to-blue-700! text-white! font-bold! py-2.5! rounded-xl! shadow-lg! shadow-indigo-200/50! transition-all! active:scale-95! disabled:opacity-50! disabled:cursor-not-allowed!"
+            class="w-full! flex! items-center! justify-center! gap-2! bg-slate-500! hover:bg-slate-600! text-white! font-bold! py-2.5! rounded-xl! shadow-lg! shadow-slate-200/50! transition-all! active:scale-95! disabled:opacity-50! disabled:cursor-not-allowed!"
           >
             <font-awesome-icon icon="save" />
             {{ isSubmitting ? 'Menyimpan...' : 'Proses ke Pasang Baru' }}
@@ -303,7 +303,7 @@ const handleCameraCapture = async (file) => {
     formData.photo = compressed
     photoPreview.value = URL.createObjectURL(compressed)
     photoSource.value = 'camera'
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal memproses foto.')
   } finally {
     uiStore.setLoading(false)
@@ -367,7 +367,7 @@ const submitSurvey = async () => {
     router.push({
       path: `/app/instalasi/status/pasang-baru/${encodeURIComponent(kodeInstalasi)}`,
     })
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal menyimpan survey.')
   } finally {
     isSubmitting.value = false

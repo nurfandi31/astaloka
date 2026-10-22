@@ -357,6 +357,8 @@ const emit = defineEmits([
   'update:perPage',
   'update:per-page',
   'update:selection',
+  'expand',
+  'collapse',
 ])
 
 // Selection Logic
@@ -388,12 +390,31 @@ const toggleSelectAll = () => {
 // Expansion Logic
 const expandedRows = ref(new Set())
 const isExpanded = (row) => expandedRows.value.has(row.id || JSON.stringify(row))
+
+/**
+ * Buka/tutup baris, lalu beri tahu luar HANYA saat statusnya benar-benar berubah.
+ *
+ * Dua event terpisah, bukan satu `toggle`: pemanggil hampir selalu butuh
+ * membedakan "baru dibuka" (mulai memuat) dari "baru ditutup" (berhenti
+ * memuat, atau batalkan request yang jalan). Satu event `toggle` memaksa
+ * setiap pemanggil menghitung ulang statusnya sendiri.
+ *
+ * `expand` HANYA dilepas saat baris dibuka, bukan saat slot dirender.
+ * Slot `expanded-row` dirender ulang setiap render -- search, ganti halaman,
+ * state centang berubah -- jadi memanggil loader dari sana akan menembak
+ * request berulang untuk data yang sudah ada. Ini yang membuat halaman Hak
+ * Akses lama tidak bisa memuat jabatan sama sekali: pemicunya diletakkan di
+ * dalam daftar yang belum terisi.
+ */
 const toggleExpand = (row) => {
   const id = row.id || JSON.stringify(row)
+
   if (expandedRows.value.has(id)) {
     expandedRows.value.delete(id)
+    emit('collapse', row)
   } else {
     expandedRows.value.add(id)
+    emit('expand', row)
   }
 }
 

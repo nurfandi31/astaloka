@@ -3,12 +3,14 @@
 namespace App\Observers;
 
 use App\Models\Transaction;
+use App\Services\TenantCache;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class TransactionObserver
 {
+    public function __construct(private TenantCache $cache) {}
+
     public function created(Transaction $transaction)
     {
         $this->syncAmount($transaction);
@@ -121,9 +123,23 @@ class TransactionObserver
 
     protected function invalidateJurnalCache(int $tahun, string $bulan): void
     {
+        /*
+         * Kunci cache DILEWATI lewat `TenantCache`, bukan ditulis polos.
+         *
+         * Kunci polos (`jurnal_transaksi:2026:10`) milik SIAPA pun: semua
+         * lokasi memakai satu cache store yang sama, jadi kunci dengan bulan
+         * dan tahun yang sama menabrak antar lokasi. Efeknya bukan data
+         * bocor -- yang dihapus cuma cache -- tapi satu lokasi bisa menghapus
+         * cache milik lokasi lain, dan laporan lokasi itu harus dihitung ulang
+         * padahal datanya tidak berubah.
+         *
+         * `TenantCache::forget()` menambahkan dimensi lokasi ke kuncinya, jadi
+         * yang terhapus hanya cache milik lokasi yang sedang aktif.
+         */
         $key = "jurnal_transaksi:{$tahun}:{$bulan}";
+
         try {
-            Cache::forget($key);
+            $this->cache->forget($key);
         } catch (\Throwable $e) {
         }
     }

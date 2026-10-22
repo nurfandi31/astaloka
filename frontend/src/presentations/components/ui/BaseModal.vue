@@ -188,8 +188,28 @@ onBeforeUnmount(() => {
   color: var(--color-text-main, #1e293b);
 }
 
+/*
+ * `min-height: 0` itu wajib, bukan tambahan.
+ *
+ * `.base-modal__body` adalah flex item di kolom dengan `flex: 1`. Flex item
+ * punya `min-height: auto` secara default, yang berarti ia TIDAK BOLEH
+ * menyusut di bawah tinggi isinya sendiri. Jadi `max-height` di panel tidak
+ * pernah ditegakkan: badannya memaksa panel tumbuh mengikuti isi, bukan
+ * panel yang membatasi body lalu body yang menggulir.
+ *
+ * Akibatnya isi panjang membuat panel melewati batas layar, dan karena
+ * `.base-modal` `overflow: hidden`, yang terpotong adalah `.base-modal__foot`
+ * -- tempat tombol "Batal" dan "Simpan". Isi formulir masih bisa dibaca
+ * (dan digulir sendiri), tapi tombolnya tidak terlihat dan tidak bisa
+ * diklik. Form yang tidak bisa disubmit.
+ *
+ * `min-height: 0` melepas batasan itu: body sekarang benar-benar boleh
+ * menyusut ke ruang yang tersisa, jadi `max-height` panel berlaku dan
+ * `overflow-y: auto` di body punya sesuatu untuk digulir.
+ */
 .base-modal__body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 1.1rem 1.25rem;
 }
@@ -209,8 +229,23 @@ onBeforeUnmount(() => {
     padding: 0.75rem;
   }
 
+  /*
+  | `100dvh`, bukan `100vh`.
+  |
+  | Di HP, `100vh` memakai tinggi viewport tanpa address bar dan tanpa
+  | keyboard virtual -- jadi nilainya lebih besar dari tinggi layar yang
+  | benar-benar terlihat. Efeknya di sini: panel modal memaksakan
+  | `max-height` yang melebihi layar, sehingga bagian paling bawah (tombol
+  | "Simpan" / "Batal") berada DI LUAR area yang bisa dilihat, dan tidak
+  | ada scroll yang muncul karena panel yang terpotong bukan elemen yang
+  | punya scroll.
+  |
+  | `dvh` mengikuti tinggi yang terlihat sekarang, sehingga tombol di kaki
+  | modal selalu terjangkau.
+  */
   .base-modal__panel {
     max-height: calc(100vh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
   }
 }
 </style>

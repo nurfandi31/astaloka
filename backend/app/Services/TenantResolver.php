@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantDomain;
 use Illuminate\Http\Request;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 
 /**
  * Menentukan lokasi mana yang melayani request.
@@ -44,30 +46,21 @@ class TenantResolver
         return $this->fromSlug($request);
     }
 
-    /** Sama seperti resolve(), tapi gagal keras kalau lokasi tidak ketemu. */
-    public function resolveOrFail(Request $request): Tenant
-    {
-        $tenant = $this->resolve($request);
-
-        if (! $tenant) {
-            throw new RuntimeException(
-                'Lokasi tidak ditemukan untuk host "'.$request->getHost().'". '
-                .'Pastikan subdomain terdaftar di tabel `tenants` database pusat.'
-            );
-        }
-
-        return $tenant;
-    }
-
     /**
      * Cari lokasi dari host request.
      *
-     * Host dicocokkan ke kolom `domain` dan `domain_alternatif`, bukan
-     * dengan memotong subdomain. Menebak subdomain dari host lebih sederhana,
-     * tapi salah begitu cepat: dengan domain `astaloka.co.id`, host
-     * `www.astaloka.co.id` akan menghasilkan slug `www` yang tidak ada,
-     * sedangkan `tirto-mulo.astaloka.co.id` menghasilkan `tirto-mulo` --
-     * padahal nama lokasi belum tentu sama dengan slug subdomain-nya.
+     * Host dicocokkan ke tiga sumber, berurutan dari yang paling umum:
+     *
+     *   1. `tenant_domains` -- domain custom, termasuk wildcard `*.x.test`
+     *   2. kolom `tenants.domain`
+     *   3. kolom `tenants.domain_alternatif`
+     *
+     * Ketiganya dicocokkan sebagai HOST LITERAL, bukan dengan memotong
+     * subdomain. Menebak subdomain dari host lebih sederhana, tapi salah
+     * begitu cepat: dengan domain `astaloka.co.id`, host `www.astaloka.co.id`
+     * akan menghasilkan slug `www` yang tidak ada, sedangkan
+     * `tirto-mulo.astaloka.co.id` menghasilkan `tirto-mulo` -- padahal nama
+     * lokasi belum tentu sama dengan slug subdomain-nya.
      *
      * Host SELALU diperiksa, di mode `host` maupun mode `slug`. Pencocokan
      * host hanya memperketat identitas: kalau tidak cocok, request tetap
@@ -80,16 +73,96 @@ class TenantResolver
      * Petugas yang membuka `tirto-mulo.astaloka.test` akan melihat halaman
      * marketing di mana dia justru ingin langsung masuk login.
      */
-    private function fromHost(Request $request): ?Tenant
+private function fromHost(Request $request): ?Tenant
     {
-        $host = $request->getHost();
+        try {
+            $host = strtolower(trim($request->getHost()));
+        } catch (SuspiciousOperationException) {
+            /*
+             * Host yang tidak valid DITOLAK, bukan diteruskan ke query.
+             *
+             * `Request::getHost()` melempar `SuspiciousOperationException` untuk
+             * host berisi karakter yang tidak boleh ada di header -- `%`, `_`,
+             * newline. Menangkapnya di sini mengubah dua hal sekaligus:
+             *
+             *   1. Request tetap mendapat jawaban normal (tenant tidak
+             *      ditemukan -> halaman depan), bukan 500 dari dalam
+             *      middleware. Penolakan host memang kondisi yang wajar --
+             *      scanner internet mengirim header aneh secara rutin.
+             *   2. Query wildcard `LIKE` tidak pernah menerima `%` atau `_`
+             *      dari user. Tanpa capture ini, `escapeLike()` di bawah
+             *      adalah satu-satunya pertahanan, dananguard seperti itu
+             *      mudah terlewat kalau ada jalur lain yang menambah klausa
+             *      LIKE.
+             *
+             * `escapeLike()` tetap dipakai. Dua lapis, bukan satu: capture ini
+             * menegakkan aturan "host tidak valid tidak dilayani", sedangkan
+             * escape menegakkan aturan "wildcard di LIKE adalah literal".
+             */
+            return null;
+        }
 
         if ($host === '') {
             return null;
         }
 
-        // Satu query, bukan load-all-then-loop: daftar lokasi tumbuh
-        // seiring pelanggan, dan tiap request tidak boleh ikut melambat.
+        // (1) Domain persis. Satu indexed query, bukan load-all-then-loop:
+        // daftar lokasi tumbuh seiring pelanggan, dan tiap request tidak boleh
+        // ikut melambat.
+        //
+        // `is_active` ada di KEDUA tabel yang terlibat -- `tenant_domains` dan
+        // `tenants` -- jadi harus ditulis lengkap dengan nama tabelnya.
+        // MySQL menolak dengan "Column 'is_active' in where clause is
+        // ambiguous" kalau dibiarkan polos.
+        //
+        // `whereHas` dipakai, bukan `join` + `select('tenants.*')`: join
+        // mengembalikan instance `TenantDomain` yang kolomnya berisi baris
+        // `tenants`, sehingga `$tenant->id` malah berisi id domain dan
+        // `TenantManager::activate()` akan membuka database yang salah --
+        // tanpa error apa pun, hanya data lokasi yang tidak sesuai.
+        $exact = TenantDomain::query()
+            ->where('host', $host)
+            ->where('tenant_domains.is_active', true)
+            ->whereHas('tenant', fn ($q) => $q->where('is_active', true))
+            ->first();
+
+        if ($exact) {
+            return $exact->tenant;
+        }
+
+        // (2) Wildcard `*.astaloka.test`. Host `demo.astaloka.test` tidak ada
+        // di kolom `host`, jadi query (1) tidak akan menemukannya.
+        //
+        // Kandidat diambil lewat `LIKE '%' . suffix`, yang memakai index
+        // `tenant_domains_host_unique` untuk mempersempit ke domain yang
+        // berakhiran sama. Setelah itu aturan "hanya menjulurkan satu label"
+        // ditegakkan di PHP oleh `TenantDomain::matches()`, karena `*.a.b.test`
+        // tidak boleh melayani `x.y.a.b.test` -- aturan itu mustahil
+        // diekspresikan di SQL tanpa mengorbankan index.
+        //
+        // Suffix = host tanpa label pertamanya, didahului titik:
+        // `demo.astaloka.test` -> `.astaloka.test`.
+        $suffix = '.'.$this->wildcardSuffix($host);
+
+        if ($suffix !== '.') {
+            $candidates = TenantDomain::query()
+                ->where('is_wildcard', true)
+                ->where('tenant_domains.is_active', true)
+                ->where('host', 'like', '%'.$this->escapeLike($suffix))
+                ->whereHas('tenant', fn ($q) => $q->where('is_active', true))
+                ->get();
+
+            foreach ($candidates as $candidate) {
+                if ($candidate->matches($host)) {
+                    return $candidate->tenant;
+                }
+            }
+        }
+
+        // (3) Kolom legacy. Tetap dibaca sebagai cadangan supaya lokasi yang
+        // ditambahkan lewat `php artisan tenancy:make` -- yang tidak melewati
+        // controller dan tidak selalu punya baris di `tenant_domains` -- tetap
+        // bisa diakses lewat domainnya.
         return Tenant::query()
             ->where('is_active', true)
             ->where(function ($q) use ($host) {
@@ -97,6 +170,32 @@ class TenantResolver
                     ->orWhere('domain_alternatif', $host);
             })
             ->first();
+    }
+
+    /**
+     * Buang label pertama dari host, sisakan sisanya untuk pencarian wildcard.
+     *
+     * `demo.astaloka.test` -> `astaloka.test`
+     * `astaloka.test`      -> `` (tidak punya subdomain sama sekali)
+     */
+    private function wildcardSuffix(string $host): string
+    {
+        $dot = strpos($host, '.');
+
+        return $dot === false ? '' : substr($host, $dot + 1);
+    }
+
+    /**
+     * Escape wildcard SQL di LIKE.
+     *
+     * Host dari request bisa memuat `%` atau `_` -- keduanya wildcard di LIKE.
+     * Tanpa escape, permintaan ke `foo%bar.test` cocok dengan host apa pun yang
+     * berakhiran `bar.test`, termasuk milik lokasi lain. Pengguna normal tidak
+     * punya akses ke sini, tapi input ini tetap datang dari luar.
+     */
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     /** Cari lokasi dari slug yang dikirim frontend. */
@@ -144,17 +243,5 @@ class TenantResolver
         }
 
         return ! app()->environment('production');
-    }
-
-    /** Aktifkan lokasi untuk request ini. */
-    public function activateFor(Request $request): ?Tenant
-    {
-        $tenant = $this->resolve($request);
-
-        if ($tenant) {
-            $this->manager->activate($tenant);
-        }
-
-        return $tenant;
     }
 }

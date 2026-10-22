@@ -311,7 +311,7 @@
               type="button"
               @click="$emit('submit')"
               :disabled="loading || !form.newPackageId"
-              class="btn-primary-modal"
+              class="btn-save-modal"
             >
               <font-awesome-icon v-if="loading" icon="spinner" spin />
               <font-awesome-icon v-else icon="check" />
@@ -411,7 +411,7 @@ const previewTypeLabel = computed(
 const previewHeaderBg = computed(
   () =>
     ({
-      upgrade: 'bg-gradient-to-br from-emerald-500 to-cyan-500',
+      upgrade: 'bg-gradient-to-br from-emerald-500 to-emerald-700',
       downgrade: 'bg-gradient-to-br from-amber-500 to-rose-500',
       reset: 'bg-gradient-to-br from-slate-500 to-slate-600',
     })[changeType.value],

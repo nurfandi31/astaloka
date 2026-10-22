@@ -347,7 +347,7 @@ const showMaintenanceAlert = () => {
     text: 'Fitur pembayaran online sedang dalam pengembangan untuk pengalaman yang lebih baik.',
     icon: 'info',
     confirmButtonText: 'Oke, Saya Mengerti',
-    confirmButtonColor: '#4f46e5',
+    confirmButtonColor: 'var(--color-primary, #3b82f6)',
     background: '#ffffff',
     customClass: {
       popup: 'rounded-[2rem]!',

@@ -26,10 +26,48 @@
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_HOST" value="127.0.0.1"/>
         <env name="DB_PORT" value="3306"/>
-        <env name="DB_DATABASE" value="astaloka"/>
+        <env name="DB_DATABASE" value="astaloka_testing"/>
         <env name="DB_USERNAME" value="root"/>
         <env name="DB_PASSWORD" value=""/>
         <env name="DB_URL" value=""/>
+        <!--
+            Test jalan single-DB: DB_DATABASE di atas sekaligus jadi fallback
+            koneksi `tenant` dan satu-satunya DB yang boleh disentuh.
+
+            Jangan diarahkan ke `astaloka` (pusat) di sini. Nilai itu akan
+            dipakai sebagai fallback `database.connections.tenant`, jadi test
+            yang belum melewati middleware tenancy bisa membaca/menulis
+            registry tenant dan log audit produksi.
+        -->
+        <env name="TENANCY_CENTRAL_DATABASE" value="astaloka_testing_central"/>
+        <!--
+            Batas koneksi pendek untuk seluruh test.
+
+            Test membuat lokasi palsu yang database-nya memang tidak pernah
+            dibuat. Itu justru yang diuji: registry pusat harus tetap bisa
+            dibaca dan ditulis tanpa menyentuh database lokasi. Tanpa batas
+            ini, MySQL menunggu `connect_timeout` bawaan (kurang lebih 15
+            detik) setiap kali kode itu salah jalannya, dan satu test bisa
+            terlihat menggantung belasan menit tanpa error sama sekali.
+
+            20 detik, bukan 2. Angka lama terlalu pendek untuk mesin yang juga
+            dipakai aplikasi lain: dengan 2 detik, suite gagal penuh,
+            dan gejalanya bukan "timeout", melainkan
+            `Table 'astaloka_testing.users' doesn't exist` pada test
+            pertama lalu `Table 'users' already exists` pada test
+            berikutnya. Dua-duanya error dari satu database yang sama,
+            jadi yang terlihat selalu "test-nya rusak", padahal migrasinya
+            belum sempat selesai.
+
+            20 detik menutup itu tanpa efek samping yang terasa:
+            `connect_timeout` hanya batas atas. Koneksi ke MySQL lokal
+            selesai dalam milidetik, jadi tidak ada test yang jadi lebih
+            lambat karena angka ini. Hanya test yang benar-benar salah
+            tujuan yang menunggu lebih lama sebelum gagal, dan itulah
+            gunanya: ia menunggu MySQL bawaan 15 detik lalu gagal tanpa
+            pesan yang bisa dibaca.
+        -->
+        <env name="DB_TIMEOUT" value="20"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

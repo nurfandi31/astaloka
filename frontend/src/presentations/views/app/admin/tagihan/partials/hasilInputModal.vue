@@ -393,15 +393,15 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .cb-white:hover {
-  border-color: #0891b2;
+  border-color: var(--color-primary, #0891b2);
 }
 .cb-white:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
+  box-shadow: 0 0 0 3px rgb(var(--color-primary-rgb, 8 145 178) / 0.2);
 }
 .cb-white:checked {
   background-color: #ffffff !important;
-  border-color: #0891b2;
+  border-color: var(--color-primary, #0891b2);
 }
 .cb-white:checked::after {
   content: '';
@@ -410,7 +410,7 @@ onUnmounted(() => {
   top: 0px;
   width: 5px;
   height: 10px;
-  border: solid #0891b2;
+  border: solid var(--color-primary, #0891b2);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }

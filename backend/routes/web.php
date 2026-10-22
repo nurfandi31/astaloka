@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\BladeLiveReload;
+use App\Support\StatistikPengguna;
+use App\Services\BladeWatch;
 use App\Services\TenantResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -54,10 +57,94 @@ Route::get('/', function (Request $request) {
         // sama, jadi path relatif benar dan tidak perlu URL absolut.
         $spa = config('tenancy.frontend_url');
 
-        return $spa
-            ? redirect(rtrim($spa, '/').'/login')
-            : redirect('/login');
+        if (! $spa) {
+            return redirect('/login');
+        }
+
+        /*
+         * `frontend_url_template`, kalau diisi, menggantikan `frontend_url`
+         * dengan host yang sedang diakses.
+         *
+         * Kenapa ini harus ada, dan kenapa pakai template alih-alih selalu
+         * menebak:
+         *
+         * Nilai polos `http://localhost:5173` membuang subdomain yang dipakai
+         * petugas. `demo.astaloka.test` dilempar ke `localhost:5173`, dan
+         * begitu request menyentuh backend, `TenantResolver::fromHost()`
+         * tidak punya apa-apa untuk dicocokkan -- tidak ada subdomain, tidak
+         * ada domain persis. Identitas lokasi hilang di titik ini, dan
+         * gejalanya muncul jauh dari penyebabnya: branding kembali ke bawaan
+         * padahal teks dan warnanya tersimpan rapi di database pusat.
+         *
+         * Tapi menebak "selalu pakai subdomain sekarang" juga salah, dan
+         * lebih damaging lagi: begitu port ikut terbawa, `demo.astaloka.test`
+         * jadi `http://demo.astaloka.test/login` tanpa port 5173, yaitu
+         * backend yang menjawab dengan 404 SPA -- atau, kalau `frontend_url`
+         * menunjuk mesin orang (`http://192.168.1.5:5173` untuk dev server
+         * bersama), memaksa semua orang masuk lewat subdomain mesin itu.
+         *
+         * Karena itu pertukaran host harus EKSPLISIT lewat template. Kalau
+         * template tidak diisi, perilaku lama dipertahankan dan tidak ada
+         * yang berubah diam-diam.
+         */
+        $template = config('tenancy.frontend_url_template');
+
+        if ($template) {
+            return redirect(str_replace('{host}', $request->getHost(), $template).'/login');
+        }
+
+        return redirect(rtrim($spa, '/').'/login');
     }
 
-    return view('landing');
+    /*
+     * Angka untuk bagian "sudah dipakai siapa" di halaman depan.
+     *
+     * Dihitung di route, bukan di dalam Blade, supaya halaman yang tidak
+     * memakai angka ini tidak pernah membayarkannya, dan supaya test bisa
+     * mengunci angkanya tanpa harus merender 250 baris HTML.
+     *
+     * `@see StatistikPengguna` untuk kenapa yang dikembalikan hanya jumlah,
+     * tanpa nama lokasi maupun domain.
+     */
+    return view('landing', [
+        'pengguna' => StatistikPengguna::hitung(),
+    ]);
 })->name('landing');
+
+/*
+|--------------------------------------------------------------------------
+| Live reload Blade (development only)
+|--------------------------------------------------------------------------
+|
+| Menjawab satu pertanyaan saja: "apakah ada file Blade yang lebih baru dari
+| waktu halaman ini dirender?".
+|
+| Endpoint-nya di luar grup `api` dan DI DALAM `web` supaya tetap tanpa
+| auth -- halaman depan memang tanpa auth, dan live reload tidak boleh
+| mengubah itu.
+|
+| Yang membuat ini aman di produksi bukan middleware yang menyembunyikan,
+| tapi pemeriksaan environment di sini: kalau `app()->environment('local')`
+| false, route ini dibalas 404. Bukan 403, bukan response kosong -- keduanya
+| masih mengonfirmasi bahwa ada sesuatu di alamat itu. 404 indistinguishable
+| dari route yang memang tidak pernah ada.
+|
+| Response-nya sengaja sangat kecil. Satu integer dan satu boolean; nama file
+| tidak pernah keluar dari server.
+|
+*/
+Route::get(BladeLiveReload::watchPath(), function (Request $request) {
+    // PENTING: dicek SEBELUM apa pun diproses. Di produksi, endpoint ini
+    // harus sama sekali tidak ada.
+    if (! app()->environment('local') || app()->runningUnitTests()) {
+        abort(404);
+    }
+
+    $since = $request->query('since');
+    $since = is_numeric($since) ? (int) $since : null;
+
+    return response()->json([
+        'changed' => app(BladeWatch::class)->changedSince($since),
+        'latest' => app(BladeWatch::class)->latestMtime(),
+    ])->header('Cache-Control', 'no-store');
+})->name('blade-watch');

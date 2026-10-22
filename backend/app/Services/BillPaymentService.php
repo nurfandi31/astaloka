@@ -7,6 +7,7 @@ use App\Models\MonthlyBill;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BillPaymentService
 {
@@ -20,14 +21,31 @@ class BillPaymentService
         string $keterangan,
         ?int $penerimaKomisiId = null
     ): BillPayment {
-        $now = now();
         $userId = Auth::id();
 
+        /*
+         * `paid_at` memakai tanggal transaksi yang sama dengan jurnal, bukan
+         * `now()`.
+         *
+         * `paid_at` adalah tanggal yang dibaca laporan Piutang Komisi
+         * (`PelaporanController::piutang_komisi()` menyaring
+         * `whereDate('paid_at', ...)`), sedangkan jurnal memakai
+         * `tgl_transaksi`. Kalau keduanya diisi berbeda -- satu tanggal yang
+         * dipilih admin di form, satu waktu server saat request -- baris yang
+         * sama muncul di laporan periode yang bukan periode jurnalnya.
+         *
+         * Pada halaman komisi SPS tanggal transaksi boleh dipilih bebas, jadi
+         * selisih ini bukan hipotetis: memilih tanggal bulan lalu akan membuat
+         * jurnal masuk periode itu tetapi baris piutang komisinya tidak.
+         *
+         * `startOfDay()` dipakai supaya penyaringan `whereDate()` di laporan
+         * tidak bergantung pada jam server.
+         */
         $payment = BillPayment::create([
             'bill_id'      => $bill->id,
             'amount_paid'  => $bill->total_amount,
             'confirmed_by' => $userId,
-            'paid_at'      => $now,
+            'paid_at'      => Carbon::parse($tglTransaksi)->startOfDay(),
         ]);
 
         $billRelasi = optional($bill->customer?->user)->name
@@ -48,7 +66,25 @@ class BillPaymentService
             'urutan'               => 1,
             'id_user'              => $userId,
         ]);
-        $transaksi->update(['urutan' => $transaksi->id]);
+
+        /*
+         * Isi `urutan` lewat `DB::table()`, bukan `->update()`.
+         *
+         * Kolom `urutan` tidak memengaruhi saldo, tapi `->update()` lewat
+         * Eloquent tetap memicu observer `TransactionObserver::updated()`
+         * yang menjalankan agregasi penuh atas tabel `transactions`.
+         * Observer itu sendiri sudah melewati kolom ini; lewat `DB::table()`
+         * observer-nya dilewati, dan itu cukup karena `urutan` memang bukan
+         * bagian dari perhitungan saldo.
+         *
+         * Dipanggil sekali per tagihan, dan komisi SPS menerima banyak
+         * pelanggan sekaligus, jadi selisih kecil per baris terakumulasi
+         * menjadi perbedaan yang terasa: ratusan baris sudah cukup untuk
+         * memicu "Lock wait timeout".
+         */
+        DB::table('transactions')
+            ->where('id', $transaksi->id)
+            ->update(['urutan' => $transaksi->id]);
 
         return $payment;
     }

@@ -38,7 +38,7 @@
           <div class="p-6! lg:p-10! flex! flex-col! h-full!">
             <div class="flex! items-center! gap-4! lg:gap-6! mb-8! lg:mb-10!">
               <div
-                class="w-16! lg:w-20! h-16! lg:h-20! bg-gradient-to-br! from-indigo-400! to-indigo-600! text-white! rounded-2xl! lg:rounded-[2rem]! flex! items-center! justify-center! shadow-xl! shadow-indigo-200! group-hover:rotate-6! transition-transform!"
+                class="w-16! lg:w-20! h-16! lg:h-20! bg-linear-brand! text-white! rounded-2xl! lg:rounded-[2rem]! flex! items-center! justify-center! shadow-xl! shadow-indigo-200! group-hover:rotate-6! transition-transform!"
               >
                 <font-awesome-icon icon="file-alt" class="text-2xl! lg:text-4xl!" />
               </div>
@@ -269,7 +269,7 @@ const openWhatsApp = () => {
       icon: 'info',
       title: 'Nomor WhatsApp Belum Tersedia',
       text: 'Silakan isi nomor telepon pada menu Profil Lembaga terlebih dahulu, atau laporkan gangguan lewat form.',
-      confirmButtonColor: '#4f46e5',
+      confirmButtonColor: 'var(--color-primary, #3b82f6)',
     })
     return
   }

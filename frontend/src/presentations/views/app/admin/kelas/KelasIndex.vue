@@ -43,7 +43,7 @@
         <template #column-nama="{ row }">
           <div class="flex items-center gap-3!">
             <div
-              class="w-9! h-9! rounded-xl! bg-gradient-to-br! from-blue-500! to-blue-600! flex! items-center! justify-center! text-white! text-xs! font-black! shrink-0! shadow-md! shadow-blue-200!"
+              class="w-9! h-9! rounded-xl! bg-linear-brand! flex! items-center! justify-center! text-white! text-xs! font-black! shrink-0! shadow-md! shadow-blue-200!"
             >
               <font-awesome-icon icon="droplet" />
             </div>
@@ -248,7 +248,7 @@ const fetchData = async () => {
     if (res.success) {
       items.value = res.data
     }
-  } catch (error) {
+  } catch {
     Swal.fire('Error', 'Gagal mengambil data paket', 'error')
   } finally {
     loading.value = false

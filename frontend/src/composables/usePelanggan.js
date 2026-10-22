@@ -92,7 +92,7 @@ export function usePelanggan(router = null) {
       if (currentPage.value > serverLastPage.value) {
         currentPage.value = serverLastPage.value
       }
-    } catch (error) {
+    } catch {
       if (myId !== fetchId) return
       tableData.value = []
       serverTotal.value = 0

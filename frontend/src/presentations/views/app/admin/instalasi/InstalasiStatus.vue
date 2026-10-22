@@ -2,7 +2,7 @@
   <div class="instalasi-status-root w-full!">
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4! mb-6!">
       <div class="flex-1!">
-        <h1 class="text-2xl font-bold text-indigo-600! tracking-tight mb-1!">Status Instalasi</h1>
+        <h1 class="text-2xl font-bold text-slate-900! tracking-tight mb-1!">Status Instalasi</h1>
         <p class="text-sm text-slate-500! leading-relaxed">
           Manage and monitor the lifecycle of water service installations.
         </p>

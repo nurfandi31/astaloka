@@ -8,20 +8,32 @@
 
       <div class="cover-inner">
         <div class="cover-logo-wrap">
-          <img v-if="lembaga?.logo" :src="logoUrl" class="cover-logo" alt="logo" crossorigin="anonymous" />
+          <img
+            v-if="lembaga?.logo"
+            :src="logoUrl"
+            class="cover-logo"
+            alt="logo"
+            crossorigin="anonymous"
+          />
           <div v-else class="cover-logo-fallback">{{ initials }}</div>
         </div>
       </div>
 
       <div class="cover-footer">
-        <div class="cover-footer-name">{{ (lembaga?.nama || 'UNIT PERDAGANGAN').toUpperCase() }}</div>
-        <div class="cover-footer-kab"><b>{{ (lembaga?.alamat || '-').toUpperCase() }}</b></div>
+        <div class="cover-footer-name">
+          {{ (lembaga?.nama || 'UNIT PERDAGANGAN').toUpperCase() }}
+        </div>
+        <div class="cover-footer-kab">
+          <b>{{ (lembaga?.alamat || '-').toUpperCase() }}</b>
+        </div>
         <div class="cover-footer-sub">SK Kemenkumham RI No.-</div>
         <div class="cover-footer-sub" v-if="lembaga?.telepon">
           <i>Telp.{{ lembaga.telepon }}</i>
         </div>
         <div class="cover-footer-sub" v-if="lembaga?.email">{{ lembaga.email }}</div>
-        <div class="cover-footer-year"><i>Tahun {{ periode.tahun || '' }}</i></div>
+        <div class="cover-footer-year">
+          <i>Tahun {{ periode.tahun || '' }}</i>
+        </div>
       </div>
     </div>
   </div>
@@ -29,6 +41,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { storageUrl } from '@/utils/storage'
 
 const props = defineProps({
   payload: { type: Object, required: true },
@@ -57,8 +70,7 @@ const logoUrl = computed(() => {
   const logo = lembaga.value?.logo
   if (!logo) return ''
   if (logo.startsWith('http')) return logo
-  const base = import.meta.env.VITE_API_STORAGE_URL || 'http://localhost:8000/storage'
-  return `${base}/sop/logo/${logo}`
+  return `${storageUrl('')}/sop/logo/${logo}`
 })
 </script>
 
@@ -86,7 +98,8 @@ const logoUrl = computed(() => {
 .cover-header {
   position: absolute;
   top: 24mm;
-width: 100%;  text-align: center;
+  width: 100%;
+  text-align: center;
 }
 
 .cover-inner {
@@ -142,7 +155,7 @@ width: 100%;  text-align: center;
   font-size: 18pt;
   font-weight: 500;
   /* Ubah margin-top dari 4px menjadi 0 atau angka negatif */
-  margin: -5px 0 0; 
+  margin: -5px 0 0;
   color: #000000;
 }
 
@@ -152,8 +165,6 @@ width: 100%;  text-align: center;
   background: #000000;
   margin: 14px 0;
 }
-
-
 
 .cover-alamat {
   font-size: 10pt;
@@ -199,4 +210,4 @@ width: 100%;  text-align: center;
   color: #000000;
   margin-top: 10px;
 }
-</style> 
+</style>

@@ -9,6 +9,7 @@ use App\Models\MeterReading;
 use App\Models\MonthlyBill;
 use App\Models\Setting;
 use App\Services\BillingService;
+use App\Services\BillingTolerance;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -178,7 +179,6 @@ class MeterReadingController extends Controller
 
         $settings = Setting::first();
         $batasTagihan = (int) ($settings?->batas_tagihan ?? 27);
-        $toleransi = (int) ($settings?->toleransi_tunggakan ?? 0);
 
         $recordedAt = Carbon::create($tahun, $bulan, 1)
             ->setDay(min($batasTagihan, Carbon::create($tahun, $bulan, 1)->daysInMonth))
@@ -202,6 +202,24 @@ class MeterReadingController extends Controller
         });
 
         $suspended = false;
+
+        /*
+         * Batas tagihan menunggak sebelum sambungan diputus.
+         *
+         * Nilai ini punya satuan yang BERBEDA dari `toleransi_tunggakan`
+         * yang dipakai di tempat lain: yang di sini adalah JUMLAH TAGIHAN,
+         * bukan tanggal dalam bulan dan bukan jumlah hari. Semuanya dulu
+         * dibaca dari satu kolom yang sama, sehingga admin yang ingin
+         * menunda generate ke tanggal 20 ikut mengubah batas tagihan yang
+         * boleh menunggak.
+         *
+         * `BillingTolerance::unpaidBillLimit()` memakai kolom terpisah
+         * (`billing_unpaid_limit`) dan kembali ke nilai lama bila kolom itu
+         * kosong -- jadi hasil angkannya sama dengan sebelumnya untuk
+         * semua lokasi yang belum mengisi kolom baru.
+         */
+        $toleransi = app(BillingTolerance::class)->unpaidBillLimit();
+
         if ($toleransi > 0) {
             $unpaidCount = MonthlyBill::where('customer_id', $result['customer']->id)
                 ->where('status', 'unpaid')

@@ -7,10 +7,10 @@ use App\Models\InstallationTicket;
 use App\Models\MonthlyBill;
 use App\Models\Setting;
 use App\Models\Transaction;
+use App\Services\TenantCache;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -27,6 +27,8 @@ class DashboardController extends Controller
 
     private const YEARS_CACHE_TTL = 3600; // 1 jam
 
+    public function __construct(private TenantCache $cache) {}
+
     public function statistics(Request $request)
     {
         $now = now();
@@ -34,8 +36,11 @@ class DashboardController extends Controller
         $month = (int) $request->query('month', $now->month);
         $todayYmd = $now->toDateString();
 
-        // â”€â”€â”€ CACHE 1: stat-global (independent of year/month) â”€â”€â”€
-        $statsGlobal = Cache::remember(
+        // ─── CACHE 1: stat-global (independent of year/month) ───
+        //
+        // Kunci lewat `TenantCache`: tanpa prefiks lokasi, lokasi B membaca
+        // statistik lokasi A dari cache yang sama.
+        $statsGlobal = $this->cache->remember(
             'dashboard:stats:global:'.$todayYmd,
             self::STATS_CACHE_TTL,
             function () {
@@ -70,8 +75,8 @@ class DashboardController extends Controller
             }
         );
 
-        // â”€â”€â”€ CACHE 2: finance data (per year+month) â”€â”€â”€
-        $financeData = Cache::remember(
+        // ─── CACHE 2: finance data (per year+month) ───
+        $financeData = $this->cache->remember(
             "dashboard:finance:{$year}:{$month}",
             self::FINANCE_CACHE_TTL,
             function () use ($year, $month) {
@@ -138,8 +143,8 @@ class DashboardController extends Controller
             }
         );
 
-        // â”€â”€â”€ CACHE 3: available_years (jarang berubah) â”€â”€â”€
-        $availableYears = Cache::remember(
+        // ─── CACHE 3: available_years (jarang berubah) ───
+        $availableYears = $this->cache->remember(
             'dashboard:available_years',
             self::YEARS_CACHE_TTL,
             function () {
@@ -432,37 +437,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function getNotification()
-    {
-        $userId = auth()->id();
-        $dismissed = Cache::get('overdue_gen_dismissed_'.$userId, false);
-
-        if ($dismissed) {
-            return response()->json([
-                'success' => true,
-                'data' => null,
-            ]);
-        }
-
-        $notification = Cache::get('overdue_gen_notification');
-
-        return response()->json([
-            'success' => true,
-            'data' => $notification,
-        ]);
-    }
-
-    public function dismissNotification()
-    {
-        $userId = auth()->id();
-        Cache::put('overdue_gen_dismissed_'.$userId, true, now()->addDays(7));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Notifikasi ditutup',
-        ]);
-    }
-
     /**
      * Pra-cek apakah hari ini adalah tanggal generate piutang.
      *
@@ -556,19 +530,31 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 3) Idempotent per (bulan, user). Pertama kali buka dashboard
-        //    pada bulan ini & user ini â†’ execute. Berikutnya â†’ skip.
-        $runCacheKey = 'auto_gen_overdue_'.$todayYm.'_'.$userId;
-        $alreadyRan = Cache::get($runCacheKey, false);
+        // 3) Idempotent per (bulan, lokasi).
+        //
+        //    Kuncinya lewat `TenantCache` sehingga tidak lagi milik user.
+        //    Versi lama memakai `auto_gen_overdue_{bulan}_{userId}`: karena
+        //    seeder demo memakai email yang sama di semua lokasi, `admin@gmail.com`
+        //    punya id 1 di setiap database. Lokasi kedua yang membuka dashboard
+        //    akan membaca flag milik lokasi pertama dan SKIP generate
+        //    tunggakannya sendiri -- tanpa error, hanya tanpa jurnal piutang.
+        //
+        //    Kunci juga tidak lagi menyertakan user: generate tunggakan
+        //    menulis ke tabel `transactions` yang sifatnya GLOBAL per lokasi,
+        //    bukan milik akun yang|time executing. Kalau dua admin login di
+        //    tanggal yang sama, keduanya akan menjalankan proses atas nama
+        //    lokasi yang sama.
+        $runCacheKey = 'auto_gen_overdue_'.$todayYm;
+        $alreadyRan = $this->cache->flagGet($runCacheKey, false);
 
         if ($alreadyRan) {
             // Ambil hasil terakhir dari cache notifikasi (kalau ada).
-            $lastNotif = Cache::get('overdue_gen_notification');
+            $lastNotif = $this->cache->flagGet('overdue_gen_run_summary');
 
             return response()->json([
                 'success' => true,
                 'ran' => false,
-                'reason' => 'Generate sudah pernah dijalankan bulan ini untuk akun Anda.',
+                'reason' => 'Generate sudah pernah dijalankan bulan ini untuk lokasi ini.',
                 'scheduled_day' => $scheduledDay,
                 'today_day' => $todayDay,
                 'date' => $todayYmd,
@@ -598,11 +584,17 @@ class DashboardController extends Controller
 
         $duration = (int) ((microtime(true) - $start) * 1000);
 
-        // Tandai sudah pernah dijalankan untuk (bulan, user) selama 35 hari.
-        Cache::put($runCacheKey, true, now()->addDays(35));
+        // Tandai sudah pernah dijalankan untuk lokasi ini selama 35 hari.
+        // Pakai kunci FLAG (tanpa versi): bump cache yang baru saja
+        // dipanggil di bawah harus tidak ikut menggeser penanda ini.
+        $this->cache->flagPut($runCacheKey, true, now()->addDays(35));
 
         // Reset flag dismiss notifikasi supaya pop up baru bisa muncul.
-        Cache::forget('overdue_gen_dismissed_'.$userId);
+        $this->cache->flagForget('overdue_gen_dismissed_'.$userId);
+
+        // Statistik dashboard sudah basi: generate ini menambah piutang,
+        // sehingga angka tunggakan dan pendapatan berubah.
+        $this->cache->bump();
 
         // Susun payload untuk pop up frontend. Hitung ringkasan dari DB
         // agar frontend tidak perlu parsing output Artisan.

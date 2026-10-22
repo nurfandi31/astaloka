@@ -18,14 +18,30 @@ import { useUiStore } from '@/stores/uiStore'
  * header lokasi justru akan membuat frontend pusat ikut mencoba resolve lokasi.
  */
 
+/*
+ * Basis API panel pusat.
+ *
+ * Bentuknya sama dengan `utils/axios.js`, dan `VITE_BACKEND_URL` juga
+ * SENGAJA TIDAK dipakai di sini.
+ *
+ * Untuk panel pusat hasilnya kebetulan sama -- host pusat memang yang
+ * benar. Tapi bukan karena nilai itu dibaca: kalau dibiarkan, begitu panel
+ * dibuka lewat `localhost:5173`, base URL akan memakai host backend yang
+ * tercatat di `.env`, dan dua nilai itu bisa berbeda tanpa ada yang
+ * memberitahu.
+ *
+ * `ResolveTenant` sudah memaksa path `api/central/*` ke database pusat
+ * apa pun host-nya, jadi ini bukan celah keamanan -- tapi tetap sumber
+ * bug yang mahal: respons 404 dari host yang salah jauh lebih sulit ditebak
+ * penyebabnya daripada "salah subdomain".
+ */
 const baseURL = (() => {
   if (import.meta.env.VITE_API_BASE_URL)
     return `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')}/api`
-  if (import.meta.env.VITE_BACKEND_URL)
-    return `${import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '')}/api`
   if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location
-    return `${protocol}//${hostname}/api`
+    const { protocol, hostname, port } = window.location
+    const asal = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`
+    return `${asal}/api`
   }
   return '/api'
 })()
@@ -48,10 +64,26 @@ export const CENTRAL_TOKEN_KEY = 'central_token'
 export const CENTRAL_EXPIRES_KEY = 'central_expires_at'
 export const CENTRAL_USER_KEY = 'central_user'
 
+/*
+ * `config.silentLoading` -- request yang TIDAK boleh menyentuh spinner global.
+ *
+ * Sama seperti di `utils/axios.js`: `uiStore.loading` juga menggerakkan
+ * progress bar di `App.vue`, dan panel pusat membacanya sebagai
+ * `v-if="loading"` di tabel lokasi/tagihan. Polling latar di
+ * `composables/useAutoRefresh.js` harus lewat tanpa menaikkan spinner, atau
+ * chrome akan berkedip sendiri tiap 30 detik.
+ *
+ * Penanda harus dibaca simetris di kedua interceptor: kalau request tidak
+ * menaikkan `activeRequests`, response juga tidak boleh menurunkannya --
+ * kalau tidak, penghitungnya tidak pernah balik ke 0 dan progress bar macet.
+ */
+const isSilent = (config) => config?.silentLoading === true
+
 centralApi.interceptors.request.use(
   (config) => {
-    const uiStore = useUiStore()
-    uiStore.setLoading(true)
+    if (!isSilent(config)) {
+      useUiStore().setLoading(true)
+    }
 
     const token = localStorage.getItem(CENTRAL_TOKEN_KEY)
     if (token) {
@@ -61,18 +93,24 @@ centralApi.interceptors.request.use(
     return config
   },
   (error) => {
-    useUiStore().setLoading(false)
+    if (!isSilent(error.config)) {
+      useUiStore().setLoading(false)
+    }
     return Promise.reject(error)
   },
 )
 
 centralApi.interceptors.response.use(
   (response) => {
-    useUiStore().setLoading(false)
+    if (!isSilent(response.config)) {
+      useUiStore().setLoading(false)
+    }
     return response
   },
   (error) => {
-    useUiStore().setLoading(false)
+    if (!isSilent(error.config)) {
+      useUiStore().setLoading(false)
+    }
 
     const status = error.response?.status
 

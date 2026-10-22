@@ -117,27 +117,6 @@ class AuditLogger
         return $changes;
     }
 
-    /**
-     * Daftar aksi yang tersedia untuk filter.
-     *
-     * Berasal dari data yang sudah tercatat, bukan dari konstanta di kode.
-     */
-    public function availableActions(): array
-    {
-        try {
-            return AuditLog::query()
-                ->distinctActions()
-                ->pluck('action')
-                ->sort()
-                ->values()
-                ->all();
-        } catch (Throwable $e) {
-            report($e);
-
-            return [];
-        }
-    }
-
     /* ============================================================
      | PEKERJAAN INTERNAL
      |============================================================

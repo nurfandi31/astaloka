@@ -10,23 +10,20 @@ use Illuminate\Support\Facades\DB;
 /**
  * Hapus booking migrasi pusat yang bocor ke database lokasi.
  *
- * Kapan perlu dijalankan: hanya kalau folder `database/migrations/central/`
- * pernah didaftarkan lewat `loadMigrationsFrom()`. Perintah itu sudah dihapus dari `AppServiceProvider`, tapi
- * database yang pernah terdampak masih menyimpan baris "sudah jalan" untuk
- * migrasi yang tidak pernah jalan di sana.
+ * Kapan perlu dijalankan: kalau folder migrasi pusat pernah dipindai
+ * bersama database lokasi. Perintah ini hanya menghapus CATATAN, tidak
+ * menyentuh tabel dan tidak menyentuh data -- jadi aman dijalankan pada
+ * database yang berisi data operasional, karena isinya murni bookkeeping.
  *
- * Akibatnya kalau nanti `tenants` atau `audit_logs` perlu ada di database
- * lokasi (mis. saat menambah fitur), `php artisan migrate` akan
- * melewatkannya tanpa pesan apa pun -- karena catatannya sudah ada.
+ * Yang dipulihkan CATATAN saja, bukan tabelnya. Tabelnya memang tidak
+ * pernah salah tempat: migrasi pusat memakai `Schema::connection('central')`,
+ * jadi selalu membuat tabelnya di pusat. Yang bocor hanya baris "sudah
+ * jalankan" di tabel `migrations` lokasi -- dan baris itulah yang membuat
+ * provisioning berikutnya melompati migrasi yang tidak pernah jalan.
  *
- * Perintah ini hanya menghapus CATATAN. Tidak menyentuh tabel, tidak
- * menyentuh data. Aman dijalankan pada database yang berisi data
- * operasional, karena isinya murni bookkeeping.
- *
- * Baris yang dihapus hanya yang namanya cocok dengan pola migrasi pusat
- * (`YYYY_MM_DD_*` di folder central). Baris lain -- termasuk 66 migrasi
- * lokasi yang sudah berjalan -- tidak tersentuh, dan jumlah yang
- * terhapus selalu dicetak supaya bisa dibandingkan dengan `migrate:status`.
+ * Aman dijalankan berulang: baris yang dihapus hanya yang namanya cocok
+ * dengan pola migrasi pusat, dan jumlahnya selalu dicetak supaya bisa
+ * dibandingkan dengan `migrate:status`.
  */
 class CleanCentralMigrationLog extends Command
 {
@@ -53,7 +50,9 @@ class CleanCentralMigrationLog extends Command
         // Nama file migrasi pusat, diambil dari foldernya langsung --
         // bukan daftar yang ditulis manual di sini, supaya perintah ini
         // tidak pernah usang kalau migrasi pusat baru ditambahkan.
-        $centralMigrations = collect(\glob(database_path('migrations/central/*.php')))
+        $centralMigrations = collect(\glob(base_path(
+            (string) config('tenancy.central_migrations_path', 'database/migrations_central').'/*.php'
+        )))
             ->map(fn (string $f) => basename($f, '.php'))
             ->all();
 
@@ -121,8 +120,7 @@ class CleanCentralMigrationLog extends Command
         $this->info("Total {$totalTerhapus} baris booking dibersihkan.");
 
         if (! $this->option('dry-run')) {
-            $this->line('Jalankan `php artisan migrate --database='
-                .config('tenancy.central_connection').' --path=database/migrations/central` untuk memastikan database pusat lengkap.');
+            $this->line('Jalankan `php artisan tenancy:migrate-central` untuk memastikan database pusat lengkap.');
         }
 
         return self::SUCCESS;

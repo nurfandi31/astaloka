@@ -209,8 +209,32 @@ class PerRoleSmokeTest extends TestCase
         );
     }
 
+    /**
+     * Kegagalan login hanya boleh ditunjuk lewat pesan, tidak lewat kode.
+     *
+     * Test ini SEBELUMNYA melarang penyamaan pesan secara total: "email tidak
+     * terdaftar" dan "password salah" wajib memakai kalimat yang sama, supaya
+     * halaman login tidak bisa dipakai memetakan email yang terdaftar.
+     *
+     * Ketatannya sekarang dilonggarkan dengan sengaja: pesan kedua kondisi
+     * itu dipisahkan dan ditunjuk ke kolomnya, karena jauh lebih berguna bagi
+     * orang yang salah ketik alamat emailnya. Konsekuensinya perlu disebut
+     * terang-terangan, bukan dibiarkan menjadi-complaint yang tidak terduga:
+     *
+     *   - Email yang TERDAFTAR bisa dibedakan dari yang tidak.
+     *   - Yang tetap sama adalah kode status, waktu respons, dan bentuk
+     *     respons -- jadi tidak ada channel lain yang membocorkan.
+     *   - Yang membatasi kecepatan enumerasi adalah throttle di route:
+     *     `throttle:login` (5/menit per kombinasi email+IP) dan
+     *     `throttle:login-ip` (20/menit per IP).
+     *
+     * Kalau suatu saat pemetaan email ini jadi perhatian serius -- misalnya
+     * ada endpoint login lain yang tidak menjalankan limiter ini, atau daftar
+     * user muncul di halaman yang bisa diakses tanpa throttle -- kembalikan
+     * penyamaan pesan di `AuthController::login()` dan hapus test ini.
+     */
     #[Test]
-    public function login_tidak_membocorkan_apakah_email_terdaftar(): void
+    public function kegagalan_login_tidak_membocok_lewat_kode_status(): void
     {
         $this->user('admin');
 
@@ -225,12 +249,18 @@ class PerRoleSmokeTest extends TestCase
         ]);
 
         $this->assertSame($withExisting->status(), $withMissing->status());
+        $this->assertSame(422, $withExisting->status());
+
+        // Bentuk respons sama; hanya isi kolom `errors` yang berbeda.
         $this->assertSame(
-            $withExisting->json('message'),
-            $withMissing->json('message'),
-            'Pesan error berbeda antara email terdaftar dan tidak — ini membocorkan '
-            .'keberadaan akun dan memudahkan enumerasi user.'
+            array_keys((array) $withExisting->json()),
+            array_keys((array) $withMissing->json()),
+            'Bentuk respons berbeda antara email terdaftar dan tidak.',
         );
+
+        // Dan tidak ada yang berhasil di salah satunya.
+        $this->assertArrayNotHasKey('data', $withExisting->json());
+        $this->assertArrayNotHasKey('data', $withMissing->json());
     }
 
     #[Test]

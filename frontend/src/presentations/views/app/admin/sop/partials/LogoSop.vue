@@ -167,7 +167,7 @@
         size="md"
         @click="onSave"
         icon="save"
-        class="w-full! md:w-auto! rounded-xl! px-8! shadow-lg! shadow-indigo-100!"
+        class="w-full! md:w-auto! rounded-xl! px-8! shadow-lg! shadow-slate-200!"
       >
         Simpan Logo
       </BaseButton>

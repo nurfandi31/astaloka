@@ -83,8 +83,20 @@ _Sesuaikan konfigurasi database di `.env` (DB_DATABASE, DB_USERNAME, DB_PASSWORD
 **Buat database** sesuai `DB_DATABASE` di MySQL, lalu jalankan:
 
 ```bash
-php artisan migrate --seed
+# 1. Skema PUSAT (tenants, user superadmin, invoice, audit)
+php artisan tenancy:migrate-central --seed
+
+# 2. Skema LOKASI untuk database yang aktif di DB_DATABASE
+php artisan migrate --force --path=database/migrations_tenant
 ```
+
+Kedua perintah wajib menyebut jalannya, dan itu disengaja. Skema pusat dan
+skema lokasi dipisah ke dua folder yang tidak berbagi file
+(`database/migrations_central/` dan `database/migrations_tenant/`), jadi
+folder default Migrator `database/migrations/` sengaja dibiarkan kosong --
+`php artisan migrate` tanpa `--path` tidak lagi menjalankan apa pun, bukan
+lupa. Jalur foldernya dibaca dari `migrations_path` dan
+`central_migrations_path` di `backend/config/tenancy.php`.
 
 ### 4. Setup Frontend (Vue.js)
 
@@ -96,20 +108,48 @@ pnpm install
 cp .env.example .env
 ```
 
-**Penting:** Edit `frontend/.env` dan sesuaikan `VITE_BACKEND_URL` dengan path folder Anda.
-Format: `http://localhost/<nama-folder-project>/backend/public`.
+**Penting:** Edit `frontend/.env` dan sesuaikan `VITE_BACKEND_URL` dengan
+vhost Laragon Anda:
 
-Contoh jika folder Anda bernama `ASTALOKA-v2`:
 ```env
-VITE_BACKEND_URL=http://localhost/ASTALOKA-v2/backend/public
+VITE_BACKEND_URL=http://astaloka.test
 ```
 
-Contoh jika folder Anda bernama `ASTALOKA`:
-```env
-VITE_BACKEND_URL=http://localhost/ASTALOKA/backend/public
+Nilai ini **hanya** jadi target proxy Vite. Base URL axios sengaja
+`VITE_API_BASE_URL=` (kosong) — kalau diisi, SPA yang dibuka lewat
+`demo.astaloka.test:5173` akan fetching ke host pusat dan identitas
+lokasi ikut hilang.
+
+---
+
+## 🏷️ Mengakses Lokasi (Tenant)
+
+Setiap lokasi punya subdomain sendiri, sama seperti produksi:
+
+| URL                              | Dilayani                |
+|----------------------------------|-------------------------|
+| `http://astaloka.test:5173`      | Panel pusat             |
+| `http://<slug>.astaloka.test:5173` | Aplikasi lokasi       |
+
+Contoh: `http://demo.astaloka.test:5173`
+
+**Subdomain harus terdaftar di hosts file Windows.** Laragon di mesin ini
+tidak memakai dnsmasq, jadi setiap subdomain dipetakan manual. Untuk
+menambah lokasi baru, jalankan (klik kanan → *Run as administrator*):
+
+```bat
+tools\tambah-host-tenant.bat lokasi2 lokasi3
 ```
 
-_Nama folder project tidak harus sama dengan aslinya — cukup sesuaikan `VITE_BACKEND_URL` di `.env`._
+Lalu ensure `tenants.domain` terisi (`php artisan tenancy:make <slug>
+--domain=<slug>.astaloka.test`). Tanpa itu, subdomain tetap membuka
+halaman pusat karena `TenantResolver` tidak punya yang dicocokkan.
+
+> **Jangan isi `TENANCY_FRONTEND_URL` dengan `http://localhost:5173`
+> saat development.** Nilai itu membuang subdomain yang dipakai petugas,
+> sehingga backend tidak bisa mencocokkan lokasi dan `/api/branding`
+> membalas branding bawaan. Pakai `TENANCY_FRONTEND_URL_TEMPLATE=http://{host}:5173`
+> (sudah terisi di `.env.example`) — nilainya kosongkan di produksi.
 
 ---
 
@@ -131,6 +171,49 @@ Jalankan dev server Vite:
 pnpm run dev
 ```
 
+### 🐳 Docker
+
+Untuk menjalankan lewat Docker (build frontend sudah termasuk di dalam image):
+
+```bash
+docker compose up --build
+```
+
+Aplikasi tersedia di `http://localhost:8000`.
+
+> **Penting:** di mode development (tanpa Docker), jalankan **dua** Terminal --
+> `php artisan serve` untuk backend dan `pnpm run dev` untuk Vite. Backend saja
+> tidak cukup: `/login`, `/central/login`, dan halaman SPA lainnya dilayani
+> oleh Vite, bukan oleh Laravel. Tanpa dev server Vite, semua path itu
+> berakhir 404 karena tidak ada route Laravel untuk path tersebut.
+
+### 🧪 Test Backend
+
+```bash
+cd backend
+php artisan test
+```
+
+> [!WARNING]
+> **Jangan menjalankan `php artisan test` di dua proses sekaligus.** Semua test
+> berbagi satu database (`astaloka_testing`), dan `RefreshDatabase` menjalankan
+> `migrate:fresh` -- jadi dua proses yang jalan bersamaan akan saling
+> menghapus tabel dan menghasilkan puluhan kegagalan yang sebenarnya bukan
+> bug. Gejalanya: `Table 'astaloka_testing.X' doesn't exist` atau
+> `Table 'X' already exists`.
+>
+> Kalau `astaloka_testing` sedang dipakai proses lain di mesin yang sama,
+> jalankan suite-nya dengan nama database sendiri lewat variabel lingkungan:
+>
+> ```bash
+> $env:DB_DATABASE='astaloka_testing_iso'
+> $env:TENANCY_CENTRAL_DATABASE='astaloka_testing_iso_central'
+> php artisan test
+> ```
+>
+> Nama database wajib mengandung `testing` -- pengaman di
+> `tests/TestCase.php` menolak test yang menunjuk database operasional.
+
 ### 🔐 Akun Default (Hasil Seeder)
 
 | Role      | Email                       | Password |
@@ -141,6 +224,50 @@ pnpm run dev
 | Pelanggan | pelanggan@ASTALOKA.test     | password |
 
 > Password default bisa berbeda — cek `database/seeders/UserSeeder.php` untuk memastikan.
+
+### 🏢 Akun Demo per Lokasi Tenant
+
+Setiap lokasi yang **baru didaftarkan** — lewat panel pusat (`POST /api/central/locations`)
+atau `php artisan tenancy:make <slug>` — otomatis mendapat satu akun contoh untuk
+setiap role, di database lokasi itu sendiri:
+
+| Role      | Email                | Password |
+|-----------|----------------------|----------|
+| Admin     | admin@gmail.com      | password |
+| Pelanggan | pelanggan@gmail.com  | password |
+| Surveyor  | surveyor@gmail.com   | password |
+| Teknisi   | teknisi@gmail.com    | password |
+
+Jadi setiap tenant baru bisa langsung dicoba keempat role-nya tanpa perlu
+menambah akun manual.
+
+Lokasi yang sudah ada sebelumnya (dibuat sebelum fitur ini, atau dengan
+`--skip-migrate`) bisa ditambahkan belakangan:
+
+```bash
+php artisan tenancy:make-demo-users            # semua lokasi aktif
+php artisan tenancy:make-demo-users <slug>     # satu lokasi
+php artisan tenancy:make-demo-users <slug> --list
+```
+
+> [!WARNING]
+> **Matikan di produksi:** `TENANCY_DEMO_USERS=false` di `.env`.
+> Password `password` yang aktif di setiap lokasi produksi bukan sandaran yang
+> layak. Sakelar ini hanya berlaku untuk lokasi yang dibuat **sesudah**
+> dimatikan — akun yang sudah terlanjur ada tidak ikut terhapus, jadi hapus
+> manual lewat `php artisan tenancy:make-user` / hapus barisnya dari
+> `users` di database lokasi tersebut.
+
+> [!NOTE]
+> Akun demo **tidak pernah ikut** `tenancy:reseed-master`. Perintah itu
+> dijalankan ulang untuk semua lokasi sebagai pemeliharaan rutin, dan kalau
+> akun demo ikut di dalamnya, setiap pemanggilan akan mengembalikan password
+> setiap akun demo ke `password` — membatalkan password yang sudah diganti
+> pemilik lokasi. Sebaliknya, menjalankan `tenancy:make-demo-users` berulang
+> aman: akun yang sudah ada tidak pernah disentuh.
+
+Email dan passwordnya diatur di `config/tenancy.php` → `demo_users`
+(`TENANCY_DEMO_USERS_PASSWORD` untuk mengganti passwordnya).
 
 ---
 

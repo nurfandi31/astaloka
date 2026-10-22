@@ -1,181 +1,244 @@
 <template>
-  <div class="lokasi-page">
-    <div class="lokasi-toolbar">
-      <div class="lokasi-toolbar__search">
-        <font-awesome-icon icon="magnifying-glass" />
-        <input v-model="searchQuery" type="text" placeholder="Cari nama, slug, atau domain..." />
-      </div>
+  <div class="lokasi-wrap">
+    <!--
+      Tombol "Tambah Lokasi" DI LUAR kartu tabel, di baris sendiri di atasnya.
 
-      <div class="lokasi-toolbar__filters">
-        <select v-model="statusFilter" class="lokasi-filter">
-          <option value="all">Semua Status</option>
-          <option value="active">Aktif</option>
-          <option value="inactive">Nonaktif</option>
-        </select>
+      Alasannya bukan sekadar tata letak. `DataTable` sudah membawa dua hal
+      di dalam toolbar-nya: "Tampilkan ... data" di kiri dan kotak pencarian di
+      kanan. Menitipkan tombol tambah lewat slot `search-actions` pernah
+      dicoba -- hasilnya tombol duduk di dalam kartu, menempel pada kontrol
+      yang isinya tidak terkait (menampilkan jumlah baris), sehingga tombol
+      utama halaman terlihat seperti bagian dari kelompok angka itu.
 
-        <router-link to="/central/lokasi/tambah" class="lokasi-add">
-          <font-awesome-icon icon="plus" />
-          Tambah Lokasi
-        </router-link>
-      </div>
+      Yang dilakukan di sini: tombol diangkat ke luar, jadi kartu tabel
+      kembali murni data, dan aksinya berdiri sendiri di tempat orang mengira
+      akan mencari "tambah" -- pojok kanan, di atas tabel.
+
+      Baris ini `justify-content: flex-end` karena memang tidak ada apa pun di
+      sebelah kirinya: aksi utama halaman dan kontrol utama halaman sama-sama
+      berada di ujung kanan.
+
+      Tombolnya memakai ukuran STANDAR (`BaseButton` tanpa `size="sm"`), bukan
+      ukuran kecil. Alasannya: "Tambah Lokasi" adalah aksi utama halaman ini --
+      satu-satunya cara membuat baris baru -- dan `sm` di sini menjadikannya
+      setipis tombol filter di dalam toolbar tabel, padahal keduanya tidak
+      sekelas: yang satu membuat data, yang cuma memilih apa yang tampil.
+      Warna biru gradien + bayangannya sudah sama persis dengan tombol utama
+      di halaman panel pusat lain, jadi yang membedakan cuma ukurannya -- dan
+      itu memang seharusnya berbeda.
+    -->
+    <div class="lokasi-topbar">
+      <BaseButton
+        to="/central/lokasi/tambah"
+        variant="primary-gradient"
+        icon="plus"
+        class="lokasi-add!"
+      >
+        Tambah Lokasi
+      </BaseButton>
     </div>
 
-    <div class="lokasi-table-wrap">
-      <table class="lokasi-table">
-        <thead>
-          <tr>
-            <th>Lokasi</th>
-            <th>Database</th>
-            <th>Domain</th>
-            <th class="text-right">Tunggakan</th>
-            <th>Berakhir</th>
-            <th class="text-center">Status</th>
-            <th class="text-right">Aksi</th>
-          </tr>
-        </thead>
+    <DataTable
+      v-model="searchQuery"
+      :data="filteredLocations"
+      :columns="tableColumns"
+      title=""
+      v-model:current-page="currentPage"
+      v-model:per-page="perPage"
+      :total-entries="filteredLocations.length"
+      search-placeholder="Cari nama, slug, atau domain..."
+      :loading="loading"
+      empty-title="Lokasi Tidak Ditemukan"
+      empty-message="Mohon cek kembali kata kunci pencarian Anda atau daftarkan lokasi baru."
+      empty-icon="location-dot"
+      class="lokasi-table"
+    >
+      <template #column-lokasi="{ row }">
+        <div class="flex flex-col">
+          <span class="text-[13px]! font-bold! text-slate-800!">{{ row.label }}</span>
+          <span class="font-mono! text-[11px]! text-slate-400!">{{ row.slug }}</span>
+        </div>
+      </template>
 
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="7" class="lokasi-state">
-              <font-awesome-icon icon="spinner" spin />
-              <span>Memuat daftar lokasi...</span>
-            </td>
-          </tr>
+      <template #column-database="{ row }">
+        <span class="font-mono! text-slate-600! text-[12px]!">{{ row.database }}</span>
+        <font-awesome-icon
+          v-if="row.database_ada"
+          icon="circle-check"
+          class="ml-1.5! text-emerald-500!"
+          title="Database tersedia"
+        />
+        <font-awesome-icon
+          v-else
+          icon="circle-exclamation"
+          class="ml-1.5! text-amber-500!"
+          title="Database tidak ditemukan di server"
+        />
+      </template>
 
-          <tr v-else-if="filteredLocations.length === 0">
-            <td colspan="7" class="lokasi-state lokasi-state--empty">
-              <font-awesome-icon icon="location-dot" class="lokasi-state__icon" />
-              <p>
-                {{
-                  searchQuery || statusFilter !== 'all'
-                    ? 'Tidak ada lokasi yang cocok dengan pencarian.'
-                    : 'Belum ada lokasi terdaftar.'
-                }}
-              </p>
-              <router-link
-                v-if="!searchQuery && statusFilter === 'all'"
-                to="/central/lokasi/tambah"
-                class="lokasi-state__cta"
-              >
-                Daftarkan Lokasi Pertama
-              </router-link>
-            </td>
-          </tr>
+      <template #column-domain="{ row }">
+        <span class="font-mono! text-slate-600! text-[12px]!">{{ row.domain || '—' }}</span>
+      </template>
 
-          <tr v-for="row in filteredLocations" v-else :key="row.id" class="lokasi-row">
-            <td>
-              <div class="lokasi-cell">
-                <p class="lokasi-cell__name">{{ row.label }}</p>
-                <p class="lokasi-cell__slug">{{ row.slug }}</p>
-              </div>
-            </td>
-            <td>
-              <span class="lokasi-mono">{{ row.database }}</span>
-              <font-awesome-icon
-                v-if="row.database_ada"
-                icon="circle-check"
-                class="lokasi-db-ok"
-                title="Database tersedia"
-              />
-              <font-awesome-icon
-                v-else
-                icon="circle-exclamation"
-                class="lokasi-db-missing"
-                title="Database tidak ditemukan di server"
-              />
-            </td>
-            <td>
-              <span class="lokasi-mono">{{ row.domain || '—' }}</span>
-            </td>
-            <td class="text-right">
-              <span
-                v-if="(row.tagihan_belum_lunas || 0) > 0"
-                class="lokasi-badge lokasi-badge--danger"
-              >
-                {{ row.tagihan_belum_lunas }} · {{ formatRupiah(row.total_tagihan) }}
-              </span>
-              <span v-else class="lokasi-muted">Lunas</span>
-            </td>
-            <td>
-              <span class="lokasi-mono">{{ row.tgl_berakhir || '∞' }}</span>
-            </td>
-            <td class="text-center">
-              <span
-                class="lokasi-badge"
-                :class="row.is_active ? 'lokasi-badge--success' : 'lokasi-badge--muted'"
-              >
-                {{ row.is_active ? 'Aktif' : 'Nonaktif' }}
-              </span>
-            </td>
-            <td class="text-right">
-              <div class="lokasi-actions">
-                <button type="button" title="Lihat detail" @click="goToDetail(row)">
-                  <font-awesome-icon icon="eye" />
-                </button>
-                <button type="button" title="Ubah" @click="goToEdit(row)">
-                  <font-awesome-icon icon="pen" />
-                </button>
-                <button
-                  type="button"
-                  title="Nonaktifkan"
-                  class="lokasi-actions__danger"
-                  @click="handleToggleActive(row)"
-                >
-                  <font-awesome-icon :icon="row.is_active ? 'ban' : 'rotate-left'" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <template #column-tagihan="{ row }">
+        <span
+          v-if="(row.tagihan_belum_lunas || 0) > 0"
+          class="inline-block! px-2! py-0.5! rounded-full! text-[10px]! font-extrabold! uppercase! tracking-wide! bg-rose-50! text-rose-600!"
+        >
+          {{ row.tagihan_belum_lunas }} · {{ formatRupiah(row.total_tagihan) }}
+        </span>
+        <span v-else class="text-[12px]! font-bold! text-emerald-600!">Lunas</span>
+      </template>
+
+      <template #column-berakhir="{ row }">
+        <span class="font-mono! text-slate-600! text-[12px]!">{{ row.tgl_berakhir || '∞' }}</span>
+      </template>
+
+      <template #column-status="{ row }">
+        <span
+          class="inline-block! px-2! py-0.5! rounded-full! text-[10px]! font-extrabold! uppercase! tracking-wide!"
+          :class="
+            row.is_active ? 'bg-emerald-50! text-emerald-600!' : 'bg-slate-100! text-slate-500!'
+          "
+        >
+          {{ row.is_active ? 'Aktif' : 'Nonaktif' }}
+        </span>
+      </template>
+
+      <template #column-aksi="{ row }">
+        <div class="flex items-center justify-end gap-2!">
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            @click="goToDetail(row)"
+            class="w-8! h-8! p-0! rounded-lg! border! border-slate-100! hover:border-blue-200! hover:bg-blue-50! text-slate-600! hover:text-blue-600! shadow-sm!"
+            title="Lihat detail"
+            icon="eye"
+          />
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            @click="goToEdit(row)"
+            class="w-8! h-8! p-0! rounded-lg! border! border-slate-100! hover:border-blue-200! hover:bg-blue-50! text-slate-600! hover:text-blue-600! shadow-sm!"
+            title="Ubah"
+            icon="pen"
+          />
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            @click="handleToggleActive(row)"
+            class="w-8! h-8! p-0! rounded-lg! border! border-slate-100! hover:border-red-200! hover:bg-red-50! text-slate-600! hover:text-red-600! shadow-sm!"
+            :title="row.is_active ? 'Nonaktifkan' : 'Aktifkan kembali'"
+            :icon="row.is_active ? 'ban' : 'rotate-left'"
+          />
+        </div>
+      </template>
+    </DataTable>
+
+    <!--
+      EmptyState bawaan DataTable punya tombol "Daftarkan Lokasi Pertama"
+      yang hanya relevan saat tabel benar-benar kosong, bukan saat hasil
+      pencarian tidak cocok. `DataTable` tidak menerima slot isi, jadi pemicunya
+      ditiru di luar -- dan hanya saat tabel benar-benar kosong.
+    -->
+    <div v-if="!loading && locations.length === 0" class="lokasi-first">
+      <router-link to="/central/lokasi/tambah" class="lokasi-first__cta">
+        <font-awesome-icon icon="plus" />
+        Daftarkan Lokasi Pertama
+      </router-link>
     </div>
-
-    <p v-if="!loading && filteredLocations.length > 0" class="lokasi-count">
-      Menampilkan {{ filteredLocations.length }} dari {{ locations.length }} lokasi
-    </p>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MySwal, showErrorToast, showSuccessToast } from '@/utils/swal'
 import { useUiStore } from '@/stores/uiStore'
 import { locationService } from '@/services/central.service'
+import { formatRupiah } from '@/utils/format'
+import DataTable from '@/presentations/components/ui/DataTable.vue'
+import BaseButton from '@/presentations/components/ui/BaseButton.vue'
 
 const router = useRouter()
 const uiStore = useUiStore()
 
 const loading = computed(() => uiStore.loading)
 const locations = ref([])
-const searchQuery = ref('')
-const statusFilter = ref('all')
 
+/*
+ * State pagination & pencarian disamakan dengan `usePelanggan` supaya tabel
+ * ini berperilaku sama persis dengan Data Pelanggan: kotak "Tampilkan
+ * 10/25/50/100 data" di kiri, search di kanan, pagination di kaki kartu.
+ *
+ * Backend `/central/lokasi` BELUM berpaginasi -- `LocationController::index`
+ * selalu `get()` seluruh tabel. Karena itu `serverSide` tidak diaktifkan dan
+ * pemotongan halaman dikerjakan di sisi peramban oleh `DataTable` sendiri.
+ * Mengaktifkannya tanpa mengubah backend akan membuat "Showing 1 to 10 of 500"
+ * padahal isinya hanya satu halaman server -- angka yang lebih parah bohongnya
+ * daripada tidak ada pagination sama sekali.
+ *
+ * Kalau nanti daftarnya tumbuh sampai ratusan tenant, yang perlu ditambahkan
+ * `paginate()` + `search` di `LocationController::index` dan menyalakan prop
+ * `server-side` di sini. Pagination peramban sudah cukup untuk sekarang.
+ */
+const searchQuery = ref('')
+const currentPage = ref(1)
+const perPage = ref(10)
+
+const tableColumns = [
+  { key: 'lokasi', title: 'Lokasi' },
+  { key: 'database', title: 'Database' },
+  { key: 'domain', title: 'Domain' },
+  { key: 'tagihan', title: 'Tunggakan', thClass: 'text-right!', tdClass: 'text-right!' },
+  { key: 'berakhir', title: 'Berakhir' },
+  { key: 'status', title: 'Status', thClass: 'text-center!', tdClass: 'text-center!' },
+  { key: 'aksi', title: 'Aksi', thClass: 'text-right!', tdClass: 'text-right!' },
+]
+
+/*
+ * Tidak ada filter status di halaman ini.
+ *
+ * Alasannya bukan kesederhanaan tampilan: select status hanya mengulang kolom
+ * Status yang sudah ada di tabel, tapi menyingkirkan baris tanpa jejak alasan --
+ * hasilnya daftar terlihat lebih pendek tanpa penjelasan, dan orang tetap
+ * harus menggulir untuk mencari siapa yang nonaktif karena select-nya hilang.
+ *
+ * Daftar menampilkan seluruh lokasi apa adanya. Kalau sebuah lokasi
+ * dinonaktifkan, efeknya sudah terlihat di kolom Status; menyembunyikannya
+ * dari daftar bukan menambah kejelasan, hanya membuat orang mencari-cari.
+ */
 const filteredLocations = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
 
-  return locations.value.filter((row) => {
-    if (statusFilter.value === 'active' && !row.is_active) return false
-    if (statusFilter.value === 'inactive' && row.is_active) return false
+  if (!keyword) return locations.value
 
-    if (!keyword) return true
-
-    return (
+  return locations.value.filter(
+    (row) =>
       row.label?.toLowerCase().includes(keyword) ||
       row.nama?.toLowerCase().includes(keyword) ||
       row.slug?.toLowerCase().includes(keyword) ||
       row.domain?.toLowerCase().includes(keyword) ||
-      row.database?.toLowerCase().includes(keyword)
-    )
-  })
+      row.database?.toLowerCase().includes(keyword),
+  )
 })
 
-const formatRupiah = (value) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0))
+/*
+ * Mengganti kata kunci atau ukuran halaman mengembalikan ke halaman 1.
+ *
+ * Tanpa ini: sedang di halaman 3 lalu mengetik kata kunci yang hasilnya cuma 4
+ * baris -- tabel tampil kosong dan pagination menulis "Showing 1 to 0 of
+ * 4", padahal datanya ada. Kembali ke halaman 1 selalu benar karena baris
+ * pertama hasil pencarian pasti ada kalau ada hasil sama sekali.
+ *
+ * `DataTable` tidak melakukan ini sendiri: ia memotong `data` sesuai
+ * `currentPage` tanpa pernah memeriksa apakah halaman itu masih punya isi.
+ * Halaman yang memfilter di sisi peramban (seperti `useDesa`) punya masalah
+ * yang sama dan belum menyelesaikannya.
+ */
+watch([searchQuery, perPage], () => {
+  currentPage.value = 1
+})
 
 const goToDetail = (row) => {
   router.push({ name: 'central-lokasi-detail', params: { id: row.id } })
@@ -231,264 +294,99 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.lokasi-page {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.lokasi-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #f1f5f9;
-  flex-wrap: wrap;
-}
-
-.lokasi-toolbar__search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 14rem;
-}
-
-.lokasi-toolbar__search svg {
-  position: absolute;
-  left: 0.75rem;
-  color: #94a3b8;
-  font-size: 0.82rem;
-  pointer-events: none;
-}
-
-.lokasi-toolbar__search input {
+/*
+ * Lebar maksimum & jarak tepi diambil dari `--central-*` di `CentralLayout.vue`,
+ * sama seperti halaman panel pusat yang lain. `.central-page` di
+ * `central-page.css` sudah punya aturan yang persis sama; ditulis ulang di sini
+ * supaya halaman ini tidak bergantung pada kelas global yang isinya masih
+ * bisa berubah.
+ */
+.lokasi-wrap {
   width: 100%;
-  padding: 0.5rem 0.85rem 0.5rem 2.25rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 9px;
-  font-size: 0.83rem;
-  background: #f8fafc;
-  color: #0f172a;
-  transition: all 0.18s ease;
+  max-width: var(--central-content-max, 1200px);
+  margin-inline: auto;
 }
 
-.lokasi-toolbar__search input:focus {
-  outline: none;
-  border-color: #0284c7;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(11, 122, 158, 0.1);
+/*
+ * Tujuh kolom butuh ruang, dan di layar sempit ruang itu tidak ada.
+ *
+ * 760px bukan angka acak: itu jumlah lebar minimum yang masih membuat
+ * nama lokasi ("Tirto Mulo"), nama database, dan nominal tagihan terbaca
+ * tanpa satu huruf pun terpotong. Di bawah itu, tabel menyusut ke 360px --
+ * tiap kolom jadi ~50px, dan yang tersisa hanya satu huruf per kolom.
+ *
+ * `min-width` lebih baik daripada menyembunyikan kolom. Kolom yang
+ * disembunyikan hilang tanpa jejak, jadi admin tidak tahu ada data yang
+ * tidak ditampilkan; kolom yang tergulir masih bisa dibaca, dan bilah
+ * gulir di bawah tabel memberi petunjuk bahwa masih ada isi di sebelah
+ * kanan.
+ *
+ * Angka ini tidak dipakai tabel lain: `DataTable` sengaja tidak memberi
+ * default, karena tabel tiga kolom di layar 360px akan ikut tergulir
+ * tanpa alasan.
+ */
+.lokasi-table :deep(table) {
+  min-width: 760px;
 }
 
-.lokasi-toolbar__filters {
+/*
+ * Baris tombol tambah, di atas kartu tabel.
+ *
+ * Jarak ke bawah `0.85rem` bukan `1rem`: kartu tabel punya border sendiri, dan
+ * jarak yang persis sama dengan jarak antar-kartu di halaman lain membuat
+ * tombol terbaca sebagai kepala kartu kedua yang tidak pernah berisi.
+ */
+.lokasi-topbar {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-bottom: 0.85rem;
 }
 
-.lokasi-filter {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 9px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #475569;
-  background: #fff;
+/*
+ * `DataTable` sudah punya kartu sendiri (putih, rounded-xl, shadow-sm), jadi
+ * tidak perlu dibungkus kartu kedua. Yang perlu disamakan cuma bayangan kartu
+ * supaya halaman ini tidak terlihat lebih datar dari dashboard, tagihan, dan
+ * struktur akun yang semuanya memakai `--central-shadow-card`.
+ */
+.lokasi-table :deep(.shadow-sm) {
+  box-shadow: var(--central-shadow-card);
 }
 
 .lokasi-add {
+  white-space: nowrap;
+}
+
+/*
+ * "Daftarkan Lokasi Pertama" muncul DI BAWAH kartu, bukan di dalam kartu.
+ *
+ * `EmptyState` punya slot untuk aksi, tapi `DataTable` tidak meneruskan slot
+ * itu ke bawah -- jadi tombolnya tidak bisa masuk ke dalam kartu. Taruh di
+ * bawah adalah pilihan yang sengaja: kalau tombol ini masuk ke dalam baris
+ * kosong yang sama dengan tabel, ia akan terlihat seperti baris data yang
+ * salah ketik, bukan seperti ajakan membuat data pertama.
+ */
+.lokasi-first {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0 0;
+}
+
+.lokasi-first__cta {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.55rem 0.95rem;
+  padding: 0.55rem 1rem;
   border-radius: 9px;
-  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  background: var(--color-primary, #0ea5e9);
   color: #fff;
   font-size: 0.8rem;
   font-weight: 700;
   text-decoration: none;
-  white-space: nowrap;
-  box-shadow: 0 6px 14px -6px rgba(14, 165, 233, 0.7);
+  box-shadow: var(--central-shadow-btn-primary);
 }
 
-.lokasi-add:hover {
+.lokasi-first__cta:hover {
   filter: brightness(1.08);
-}
-
-.lokasi-table-wrap {
-  overflow-x: auto;
-}
-
-.lokasi-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.lokasi-table th {
-  text-align: left;
-  padding: 0.65rem 1.25rem;
-  font-size: 0.66rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #94a3b8;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  white-space: nowrap;
-}
-
-.lokasi-table td {
-  padding: 0.8rem 1.25rem;
-  font-size: 0.82rem;
-  color: #475569;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.lokasi-row:last-child td {
-  border-bottom: none;
-}
-
-.lokasi-row:hover {
-  background: #f8fafc;
-}
-
-.lokasi-cell__name {
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.lokasi-cell__slug {
-  font-family: ui-monospace, monospace;
-  font-size: 0.7rem;
-  color: #94a3b8;
-  margin: 0.15rem 0 0;
-}
-
-.lokasi-mono {
-  font-family: ui-monospace, monospace;
-  font-size: 0.75rem;
-  color: #64748b;
-}
-
-.lokasi-db-ok {
-  color: #10b981;
-  font-size: 0.75rem;
-  margin-left: 0.35rem;
-}
-
-.lokasi-db-missing {
-  color: #f59e0b;
-  font-size: 0.75rem;
-  margin-left: 0.35rem;
-}
-
-.lokasi-badge {
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.66rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
-.lokasi-badge--success {
-  background: #ecfdf5;
-  color: #059669;
-}
-.lokasi-badge--danger {
-  background: #fef2f2;
-  color: #dc2626;
-}
-.lokasi-badge--muted {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.lokasi-muted {
-  color: #10b981;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.text-right {
-  text-align: right;
-}
-.text-center {
-  text-align: center;
-}
-
-.lokasi-actions {
-  display: inline-flex;
-  gap: 0.3rem;
-  justify-content: flex-end;
-}
-
-.lokasi-actions button {
-  width: 1.9rem;
-  height: 1.9rem;
-  border-radius: 7px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.78rem;
-  transition: all 0.16s ease;
-}
-
-.lokasi-actions button:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #cbd5e1;
-}
-
-.lokasi-actions__danger:hover {
-  background: #fef2f2 !important;
-  color: #dc2626 !important;
-  border-color: color-mix(in srgb, var(--color-danger, #ef4444) 30%, transparent) !important;
-}
-
-.lokasi-state {
-  padding: 2.5rem 1.5rem;
-  text-align: center;
-  color: #94a3b8;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.lokasi-state svg {
-  color: #0ea5e9;
-}
-
-.lokasi-state__icon {
-  font-size: 1.8rem;
-  color: #cbd5e1;
-}
-
-.lokasi-state__cta {
-  display: inline-block;
-  margin-top: 0.6rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  background: #0284c7;
-  color: #fff;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.lokasi-count {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid #f1f5f9;
-  font-size: 0.73rem;
-  color: #94a3b8;
-  margin: 0;
 }
 </style>

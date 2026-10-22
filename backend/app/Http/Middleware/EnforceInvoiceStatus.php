@@ -3,12 +3,13 @@
 namespace App\Http\Middleware;
 
 use App\Models\Central\Tenant;
+use App\Services\InvoiceGate;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Blokir akses aplikasi lokasi yang tagihan langganannya lewat jatuh tempo.
+ * Blokir akses aplikasi lokasi yang masih punya tagihan langganan.
  *
  * Meniru `IdentifyTenant` di SIDBM, dengan satu perbedaan penting: blokir
  * terjadi di level RESPONSE, bukan dengan mencabut token.
@@ -26,9 +27,14 @@ use Symfony\Component\HttpFoundation\Response;
  * dibalas 402 beserta rincian tagihannya. Efeknya sama untuk pengguna --
  * aplikasi tidak bisa dipakai -- tapi status lunas langsung memulihkan akses
  * tanpa perlu login ulang, dan user selalu bisa melihat tagihannya.
+ *
+ * Syarat pemblokiran TIDAK ditulis di sini: semuanya lewat {@see InvoiceGate}
+ * supaya aturan yang sama berlaku di login, middleware ini, dan popup.
  */
 class EnforceInvoiceStatus
 {
+    public function __construct(private InvoiceGate $gate) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $tenant = $request->attributes->get('tenant');
@@ -44,30 +50,22 @@ class EnforceInvoiceStatus
             return $next($request);
         }
 
-        // Tagihan yang belum jatuh tempo TIDAK memblokir. Yang memblokir hanya
-        // invoice yang sudah lewat deadline -- supaya lokasi tetap bisa dipakai
-        // dan membayar, bukan terkunci sejak hari tagihan dibuat.
-        $terlambat = $tenant->unpaidInvoices()
-            ->get()
-            ->filter(fn ($inv) => $inv->isOverdue());
+        $blocking = $this->gate->blocking($tenant);
 
-        if ($terlambat->isEmpty()) {
+        if ($blocking->isEmpty()) {
             return $next($request);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Tagihan langganan ASTALOKA untuk lokasi ini belum lunas. '
-                .'Akses aplikasi dinonaktifkan sementara. '
-                .'Silakan lakukan pembayaran kepada ASTA BRATA TEKNOLOGI.',
-            'code' => 'INVOICE_OVERDUE',
-            'invoices' => $terlambat->map(fn ($inv) => [
-                'nomor' => $inv->nomor,
-                'jumlah' => (float) $inv->jumlah,
-                'tgl_invoice' => $inv->tgl_invoice?->toDateString(),
-                'deadline' => $inv->deadline()->toDateString(),
-                'telat' => $inv->daysRemaining(),
-            ])->values(),
+            'message' => $this->gate->message($blocking),
+            'code' => 'INVOICE_UNPAID',
+            // Kode lama tetap disertakan supaya klien yang sudah ditulis
+            // terhadap `INVOICE_OVERDUE` tidak ikut mati. Tidak ada yang
+            // memakainya di frontend saat ini, tapi mengubah nilai enum
+            // tanpa alasan adalah jenis perubahan yang mahal nanti.
+            'legacy_code' => 'INVOICE_OVERDUE',
+            'tagihan' => $this->gate->payload($tenant),
         ], 402);
     }
 

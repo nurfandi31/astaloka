@@ -189,7 +189,7 @@
 
           <div class="mt-8! md:mt-10! space-y-4!">
             <BaseButton
-              variant="primary-gradient"
+              variant="secondary"
               block
               size="lg"
               class="submit-btn h-12! md:h-14!"

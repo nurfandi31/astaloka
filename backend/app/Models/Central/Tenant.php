@@ -30,6 +30,13 @@ class Tenant extends Model
         'slug',
         'nama',
         'nama_lembaga',
+        'sektor',
+        'bidang_usaha',
+        'deskripsi_usaha',
+        'judul_login',
+        'sub_judul_login',
+        'deskripsi_login',
+        'warna_utama',
         'database',
         'db_username',
         'db_password',
@@ -45,7 +52,6 @@ class Tenant extends Model
         'tgl_pakai',
         'tgl_berakhir',
         'is_active',
-        'max_users',
     ];
 
     protected function casts(): array
@@ -55,13 +61,31 @@ class Tenant extends Model
             'tgl_pakai' => 'date',
             'tgl_berakhir' => 'date',
             'is_active' => 'boolean',
-            'max_users' => 'integer',
         ];
     }
 
     public function invoices(): HasMany
     {
         return $this->hasMany(TenantInvoice::class, 'tenant_id');
+    }
+
+    /**
+     * Domain custom milik lokasi ini.
+     *
+     * Berdampingan dengan kolom `domain` / `domain_alternatif` di atas, bukan
+     * menggantikannya. Lokasi yang hanya punya domain di kolom lama tetap
+     * terbaca -- kolom lama tidak dihapus dan masih dipakai sebagai cadangan
+     * di TenantResolver::fromHost().
+     */
+    public function domains(): HasMany
+    {
+        return $this->hasMany(TenantDomain::class, 'tenant_id');
+    }
+
+    /** Domain aktif saja -- yang dipakai saat resolusi request. */
+    public function activeDomains(): HasMany
+    {
+        return $this->domains()->where('is_active', true);
     }
 
     /** Invoice yang belum dibayar. */
@@ -95,23 +119,6 @@ class Tenant extends Model
         ];
     }
 
-    /**
-     * Apakah host request ini milik lokasi ini. Host kosong berarti lokasi
-     * tidak punya domain khusus dan hanya bisa diakses lewat slug.
-     */
-    public function matchesHost(string $host): bool
-    {
-        $host = strtolower(trim($host));
-
-        foreach (array_filter([$this->domain, $this->domain_alternatif]) as $d) {
-            if (strtolower(trim($d)) === $host) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /** Database lokasi sudah ada di MySQL? */
     public function databaseExists(): bool
     {
@@ -134,5 +141,76 @@ class Tenant extends Model
     public function label(): string
     {
         return $this->nama_lembaga ?: $this->nama;
+    }
+
+    /* ================================================================
+     | PROFIL USAHA
+     |
+     | Ditambahkan 2026-10-15 bersama redesign dashboard pusat. Dashboard
+     | yang baru menjawab "lokasi ini usaha apa", dan sampai kolom ini ada
+     | jawabannya tidak tersimpan di mana pun -- lihat docblock migration
+     | `add_business_profile_to_tenants_table`.
+     *============================================================
+     */
+    /**
+     * Daftar sektor yang bisa dipilih, untuk form tenant.
+     *
+     * Daftar tertutup di backend, bukan teks bebas di form. Alasannya sektor
+     * dipakai untuk MENGELOMPOKKAN: dashboard menjumlahkan tagihan per sektor,
+     * dan itu hanya benar kalau semua lokasi menulis kelompok yang sama. Kalau
+     * admin bebas mengetik, akan ada "Air Bersih", "Air Bersih ", "air bersih",
+     * dan "PDAM" -- empat nama untuk satu kelompok, dan setiap dashboard
+     * menjumlahkannya sebagai empat kelompok yang berbeda.
+     *
+     * Nilai ini disimpan apa adanya (tanpa normalisasi), jadi daftar ini juga
+     * berfungsi sebagai sumber kebenaran untuk data yang sudah terlanjur
+     * tersimpan. Migration tidak boleh mengubah daftar ini tanpa sekaligus
+     * memperbarui baris yang memakai nilai lama.
+     *
+     * Sektornya sengaja pendek, bukan daftar panjang. Dengan empat sektor,
+     * hampir setiap lokasi pasti punya satu. Daftar panjang justru hampir
+     * selalu menyisakan "lainnya" sebagai jawaban paling sering.
+     */
+    public const SEKTOR = [
+        'Air Bersih',
+        'Sanitasi',
+        'Koperasi & Utilities',
+        'Lainnya',
+    ];
+
+    /**
+     * Sector key valid, untuk validasi request.
+     * Dipakai sebagai rule `in:` di controller. Nilai diambil dari konstanta
+     * yang sama supaya daftar yang divalidasi dan daftar yang ditawarkan form
+     * tidak bisa berbeda -- kalau berbeda, form bisa menawarkan pilihan yang
+     * selalu ditolak backend.
+     */
+    public static function sektorValid(): array
+    {
+        return self::SEKTOR;
+    }
+
+    /**
+     * Nama usaha yang paling spesifik untuk ditampilkan.
+     *
+     * `bidang_usaha` lebih spesifik dari `nama_lembaga`, tapi tidak selalu
+     * diisi. Urutannya turun dari spesifik ke umum, dan berhenti di nama
+     * tenant sebagai batas bawah -- yang selalu ada.
+     *
+     * Tidak pernah mengembalikan string kosong: pemanggil selalu butuh
+     * sesuatu untuk ditampilkan, dan string kosong membuat judul di pop-up
+     * kehilangan nama yang paling dikenal orang.
+     */
+    public function usahaLabel(): string
+    {
+        foreach ([$this->bidang_usaha, $this->nama_lembaga, $this->nama] as $kandidat) {
+            $kandidat = is_string($kandidat) ? trim($kandidat) : '';
+
+            if ($kandidat !== '') {
+                return $kandidat;
+            }
+        }
+
+        return $this->slug;
     }
 }

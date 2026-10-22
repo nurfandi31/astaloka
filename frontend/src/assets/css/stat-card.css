@@ -29,12 +29,12 @@
 }
 
 .stat-card--instalasi {
-  background: #23bbff !important;
+  background: var(--color-blue-500) !important;
   border: none !important;
 }
 
 .stat-card--instalasi:hover {
-  background: #028ccb !important;
+  background: var(--color-primary-dark) !important;
   transform: translateY(-4px) scale(1.02);
 }
 
@@ -262,7 +262,7 @@
 
 .stat-card--instalasi .stat-card-icon {
   background: #ffffff;
-  color: #23bbff;
+  color: var(--color-blue-500);
 }
 
 .stat-card--pemakaian .stat-card-icon {
