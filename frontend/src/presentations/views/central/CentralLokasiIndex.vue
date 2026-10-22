@@ -76,8 +76,37 @@
         />
       </template>
 
+      <!--
+        Domain diklik langsung membuka halaman web lokasi itu, di tab baru.
+
+        Alasannya: kolom ini satu-satunya tempat di daftar ini yang menunjukkan
+        alamat yang bisa dipakai orang. Kalau hanya teks, admin harus menyalin
+        domain ke papan klip secara manual -- dan salah salin di situ berarti
+        pengunjung mendarat di domain yang bukan miliknya.
+
+        `tenantUrl()` dipakai, bukan `https://` yang ditempel langsung, karena
+        ia sudah satu tempat untuk memutuskan http/https sesuai jenis host-nya:
+        domain development (`.test`, `.local`, IP private) tidak punya
+        sertifikat, dan tautan `https://` ke sana gagal sebelum halaman sempat
+        dimuat. Host yang tidak punya padanan tautan (wildcard `*.x.test`,
+        host tanpa titik seperti `srv01`) tetap tampil sebagai teks biasa --
+        tautan yang selalu gagal hanya mengajari admin bahwa domainnya rusak,
+        padahal yang rusak hanya tautannya.
+      -->
       <template #column-domain="{ row }">
-        <span class="font-mono! text-slate-600! text-[12px]!">{{ row.domain || '—' }}</span>
+        <a
+          v-if="tenantUrl(row.domain)"
+          :href="tenantUrl(row.domain)"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="lokasi-domain"
+        >
+          {{ row.domain }}
+          <font-awesome-icon icon="arrow-up-right-from-square" />
+        </a>
+        <span v-else class="font-mono! text-slate-600! text-[12px]!">
+          {{ row.domain || '—' }}
+        </span>
       </template>
 
       <template #column-tagihan="{ row }">
@@ -157,6 +186,7 @@ import { MySwal, showErrorToast, showSuccessToast } from '@/utils/swal'
 import { useUiStore } from '@/stores/uiStore'
 import { locationService } from '@/services/central.service'
 import { formatRupiah } from '@/utils/format'
+import { tenantUrl } from '@/utils/tenantUrl'
 import DataTable from '@/presentations/components/ui/DataTable.vue'
 import BaseButton from '@/presentations/components/ui/BaseButton.vue'
 
@@ -355,6 +385,35 @@ onMounted(loadData)
 
 .lokasi-add {
   white-space: nowrap;
+}
+
+/*
+ * Tautan domain.
+ *
+ * Font tetap monospace supaya kolom ini terbaca sebagai "host", bukan sebagai
+ * kalimat -- dan supaya tidak melompat ukurannya saat berubah jadi tautan.
+ * Warna biru + garis bawah muncul saat hover, bukan selalu: kolom ini masih
+ * kolom data, dan tautan yang selalu terlihat seperti tombol akan bersaing
+ * dengan kolom Aksi yang memang berisi tombol.
+ */
+.lokasi-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--color-primary-dark, #0284c7);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.lokasi-domain:hover {
+  text-decoration: underline;
+}
+
+.lokasi-domain :deep(svg) {
+  font-size: 0.6rem;
+  opacity: 0.7;
 }
 
 /*
