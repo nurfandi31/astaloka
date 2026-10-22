@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
  * (create_amount_debit / update_amount_debit / delete_amount_debit).
  *
  * Definisi di sini adalah EKSTRAKSI PERSIS dari migrasi
- * database/migrations/2026_06_23_034006_create_amount_table.php.
+ * database/migrations_tenant/2026_06_23_034006_create_amount_table.php.
  * Isi trigger TIDAK boleh diubah di sini -- bila migrasi berubah, ekstrak ulang.
  *
  * Dipakai oleh:

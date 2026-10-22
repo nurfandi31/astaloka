@@ -28,9 +28,11 @@ return new class extends Migration
      * sehingga enum lokasi ikut berubah dan user lokasi kehilangan peran
      * adminnya.
      *
-     * Karena `loadMigrationsFrom()` mendaftarkan folder ini bersama folder
-     * bawaan, migrasi ini ikut terpakai oleh `php artisan migrate` biasa
-     * yang koneksinya bisa saja `tenant`.
+     * Folder `migrations_central/` SENGAJA TIDAK didaftarkan lewat
+     * `loadMigrationsFrom()`, jadi migrasi ini tidak pernah ikut terpakai oleh
+     * `php artisan migrate` biasa yang koneksinya `tenant`. Ia hanya jalan
+     * lewat `tenancy:migrate-central`, yang menyebut `--path` folder ini
+     * secara eksplisit.
      */
     public function up(): void
     {
