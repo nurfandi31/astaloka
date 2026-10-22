@@ -303,7 +303,7 @@ const handleCameraCapture = async (file) => {
     formData.photo = compressed
     photoPreview.value = URL.createObjectURL(compressed)
     photoSource.value = 'camera'
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal memproses foto.')
   } finally {
     uiStore.setLoading(false)
@@ -367,7 +367,7 @@ const submitSurvey = async () => {
     router.push({
       path: `/app/instalasi/status/pasang-baru/${encodeURIComponent(kodeInstalasi)}`,
     })
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal menyimpan survey.')
   } finally {
     isSubmitting.value = false

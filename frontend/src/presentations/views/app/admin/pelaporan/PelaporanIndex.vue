@@ -230,7 +230,9 @@ const fetchMasterFilterPelaporan = async () => {
       tahunOptions.value = listTahun
       selectedTahun.value = String(thnSekarang)
     }
-  } catch (error) {
+  } catch {
+    // Daftar tahun gagal diambil. Select tahun memakai nilai default
+    // sehingga laporan tetap bisa dibuka.
   }
 }
 
@@ -255,7 +257,9 @@ const fetchSubLaporanDinamis = async (fileJenisLaporan) => {
         selectedNamaSubLaporan.value = ''
       }
     }
-  } catch (error) {
+  } catch {
+    // Daftar sub-laporan gagal diambil. Select sub-laporan dikosongkan
+    // supaya pengguna tidak memilih nilai dari daftar yang sudah basi.
   }
 }
 
@@ -321,18 +325,19 @@ const handleExcel = async () => {
     document.body.appendChild(link)
     link.click()
     link.remove()
-  } catch (error) {
+  } catch {
+    // Unduh Excel gagal. Tidak ada file yang perlu dibersihkan karena
+    // object URL baru dibuat setelah request berhasil.
   }
 }
 
 const handleSimpanSaldo = async () => {
   try {
     const payload = getFilterPayload()
-    const res = await pelaporanService.simpanSaldo(payload)
-
-    if (res.success) {
-    }
-  } catch (error) {
+    await pelaporanService.simpanSaldo(payload)
+  } catch {
+    // Simpan saldo gagal. Dibiarkan kosong supaya halaman tetap bisa
+    // dipakai; kegagalan dilaporkan lewat pesan di layar.
   }
 }
 </script>

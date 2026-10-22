@@ -536,7 +536,7 @@ const fetchTickets = async () => {
         if (found) selectedTicket.value = found
       }
     }
-  } catch (err) {
+  } catch {
     Swal.fire('Gagal', 'Tidak dapat memuat daftar tagihan.', 'error')
   } finally {
     loading.value = false

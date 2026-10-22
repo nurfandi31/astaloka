@@ -128,7 +128,9 @@ onMounted(async () => {
       id: item.id,
       text: item.name,
     }))
-  } catch (err) {
+  } catch {
+    // Daftar provinsi gagal diambil. Formulir dibiarkan apa adanya supaya
+    // pengguna bisa ketik atau memilih manual, bukan gagal total.
   }
 })
 
@@ -154,7 +156,9 @@ watch(
         id: item.id,
         text: item.name,
       }))
-    } catch (err) {
+    } catch {
+      // Daftar kabupaten gagal diambil. Select kecamatan/desa dikosongkan
+      // supaya pengguna tidak memilih nilai dari daftar yang sudah basi.
     }
   },
 )
@@ -179,7 +183,9 @@ watch(
         id: item.id,
         text: item.name,
       }))
-    } catch (err) {
+    } catch {
+      // Daftar kecamatan gagal diambil. Select desa dikosongkan supaya
+      // pengguna tidak memilih nilai dari daftar yang sudah basi.
     }
   },
 )
@@ -201,7 +207,9 @@ watch(
         id: item.id,
         text: item.name,
       }))
-    } catch (err) {
+    } catch {
+      // Daftar desa gagal diambil. Select dibiarkan kosong supaya pengguna
+      // tidak memilih nilai dari daftar yang sudah basi.
     }
   },
 )

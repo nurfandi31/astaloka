@@ -362,7 +362,7 @@ const formatDueDate = (dateStr) => {
       'Des',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch (err) {
+  } catch {
     return dateStr
   }
 }
@@ -382,7 +382,7 @@ const getOverdueDays = (dateStr) => {
     if (diffDays > 0) return `Terlambat ${diffDays} hari`
     if (diffDays === 0) return 'Jatuh tempo hari ini'
     return `Tersisa ${Math.abs(diffDays)} hari`
-  } catch (err) {
+  } catch {
     return ''
   }
 }
@@ -401,7 +401,9 @@ const handleOpenDetail = async (row) => {
     } else if (res?.data) {
       selectedBill.value = res.data
     }
-  } catch (err) {
+  } catch {
+    // Detail tagihan gagal diambil. Baris yang diklik tetap ditampilkan
+    // supaya pengguna punya konteks tagihan mana yang gagal.
   } finally {
     detailLoading.value = false
   }

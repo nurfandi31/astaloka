@@ -211,7 +211,7 @@
 
       <ContentCard variant="minimal" padding="normal" hoverable>
         <div class="flex gap-3 items-start">
-          <div class="text-base flex-shrink-0 mt-0.5">â„¹ï¸</div>
+          <div class="text-base flex-shrink-0 mt-0.5">ℹ️</div>
           <div class="text-xs text-slate-600 leading-relaxed">
             <strong>Butuh Bantuan?</strong><br />
             Pastikan nominal sesuai bukti transaksi fisik. Periksa saldo kas sebelum menyimpan.
@@ -478,7 +478,9 @@ const fetchJenisTransaksi = async () => {
         ...items,
       ]
     }
-  } catch (error) {
+  } catch {
+    // Daftar jenis transaksi gagal diambil. Select dibiarkan kosong
+    // supaya pengguna tidak memilih nilai dari daftar yang sudah basi.
   }
 }
 
@@ -488,7 +490,9 @@ const fetchAccounts = async () => {
     if (response.data.success) {
       accounts.value = response.data.data?.accounts || []
     }
-  } catch (error) {
+  } catch {
+    // Daftar akun gagal diambil. Select akun dibiarkan kosong supaya
+    // pengguna tidak memilih akun dari daftar yang sudah basi.
   }
 }
 
@@ -499,7 +503,8 @@ const regenerateAmount = async () => {
       bulan: now.getMonth() + 1,
       tahun: now.getFullYear()
     })
-  } catch (error) {
+  } catch {
+    // Regenerasi nominal gagal. Nilai transaksi tidak diubah.
   }
 }
 
@@ -537,7 +542,9 @@ const fetchTransactions = async (page = 1) => {
         last_page: response.data.data.last_page,
       }
     }
-  } catch (error) {
+  } catch {
+    // Daftar jurnal gagal diambil. Tabel dibiarkan apa adanya supaya
+    // halaman tidak ikut gagal.
   } finally {
     loading.value = false
   }
@@ -556,7 +563,9 @@ const fetchAllTransactions = async () => {
     if (response.data.success) {
       transactions.value = response.data.data.data
     }
-  } catch (error) {
+  } catch {
+    // Daftar jurnal gagal diambil untuk filter sumber dana. Tabel
+    // dibiarkan apa adanya supaya halaman tidak ikut gagal.
   } finally {
     loading.value = false
   }
@@ -585,7 +594,9 @@ const fetchBukuBesar = async () => {
           : null,
       }
     }
-  } catch (error) {
+  } catch {
+    // Saldo buku besar gagal diambil. Kartu saldo dibiarkan apa adanya
+    // supaya halaman tidak ikut gagal.
   }
 }
 
@@ -631,7 +642,7 @@ const fetchSaldoSumberDana = async (kodeAkun) => {
       params: { kode_akun: kodeAkun },
     })
     saldoSumberDana.value = response.data.success ? Number(response.data.data.saldo) || 0 : 0
-  } catch (error) {
+  } catch {
     saldoSumberDana.value = 0
   }
 }

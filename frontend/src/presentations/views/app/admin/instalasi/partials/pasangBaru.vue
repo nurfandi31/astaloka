@@ -545,7 +545,7 @@ const handleCameraCapture = async (file) => {
     installForm.photoPreview = URL.createObjectURL(compressed)
     installForm.photoSource = 'camera'
     uiStore.success('Foto berhasil ditangkap.')
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal memproses foto.')
   } finally {
     uiStore.setLoading(false)
@@ -562,7 +562,7 @@ const onInstallFileChange = async (e) => {
     installForm.photoPreview = URL.createObjectURL(compressedBlob)
     installForm.photoSource = 'gallery'
     uiStore.success('Foto berhasil dipilih.')
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal memproses gambar.')
   } finally {
     uiStore.setLoading(false)

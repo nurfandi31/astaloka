@@ -175,7 +175,9 @@ const fetchBills = async () => {
     if (res.success && res.data) {
       bills.value = res.data.bills || []
     }
-  } catch (err) {
+  } catch {
+    // Daftar tagihan gagal diambil. Tabel dibiarkan apa adanya supaya
+    // halaman tidak ikut gagal.
   } finally {
     isLoading.value = false
   }
@@ -232,7 +234,7 @@ const formatDueDate = (dateStr) => {
       'Des',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch (err) {
+  } catch {
     return dateStr
   }
 }
@@ -255,7 +257,7 @@ const getOverdueDays = (dateStr) => {
     } else {
       return `Tersisa ${Math.abs(diffDays)} hari`
     }
-  } catch (err) {
+  } catch {
     return ''
   }
 }

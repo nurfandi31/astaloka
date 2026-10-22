@@ -282,7 +282,7 @@ const fetchKelasData = async (id) => {
         price: Number(b.price_per_m3),
       }))
     }
-  } catch (error) {
+  } catch {
     Swal.fire('Error', 'Gagal mengambil data paket', 'error')
   }
 }

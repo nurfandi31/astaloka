@@ -212,7 +212,7 @@ watch(
           const detail = detailRes?.data
           if (detail) applyAutofill(detail)
         }
-      } catch (e) {
+      } catch {
         nikExists.value = null
       } finally {
         nikChecking.value = false

@@ -362,7 +362,7 @@ const formatDate = (dateStr) => {
       'Desember',
     ]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-  } catch (err) {
+  } catch {
     return dateStr
   }
 }

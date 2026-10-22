@@ -248,7 +248,7 @@ const fetchData = async () => {
     if (res.success) {
       items.value = res.data
     }
-  } catch (error) {
+  } catch {
     Swal.fire('Error', 'Gagal mengambil data paket', 'error')
   } finally {
     loading.value = false

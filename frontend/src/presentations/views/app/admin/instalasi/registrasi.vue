@@ -783,9 +783,9 @@ const fetchCustomers = async (search = '') => {
     })
 
     customerOptions.value = customers
-    if (import.meta.env.DEV) {
-    }
-  } catch (err) {
+  } catch {
+    // Daftar pelanggan gagal diambil. Select dibiarkan kosong supaya
+    // pengguna tidak memilih pelanggan dari daftar yang sudah basi.
   }
 }
 
@@ -794,7 +794,9 @@ const fetchPackages = async () => {
   try {
     const res = await api.get('/installation-packages')
     packages.value = res.data?.data || res.data || []
-  } catch (err) {
+  } catch {
+    // Daftar paket gagal diambil. Select paket dibiarkan kosong supaya
+    // pengguna tidak memilih paket yang sudah tidak berlaku.
   }
 }
 
@@ -803,7 +805,7 @@ const fetchCaterUsers = async () => {
   try {
     const res = await api.get('/users?role=teknisi')
     caterUsers.value = res.data?.data || res.data || []
-  } catch (err) {
+  } catch {
     caterUsers.value = []
   }
 }
@@ -834,7 +836,9 @@ const fetchVillages = async () => {
   try {
     const res = await api.get('/villages')
     villageOptions.value = res.data?.data || res.data || []
-  } catch (err) {
+  } catch {
+    // Daftar desa gagal diambil. Select desa dibiarkan kosong supaya
+    // pengguna tidak memilih nilai dari daftar yang sudah basi.
   }
 }
 
@@ -848,7 +852,7 @@ const fetchPaymentMode = async () => {
       const raw = res.data.data?.status_pembayaran
       isMustFullyPaid.value = raw === true || raw === 1 || raw === '1'
     }
-  } catch (err) {
+  } catch {
     isMustFullyPaid.value = false
   }
 }
@@ -859,7 +863,9 @@ const fetchPasangBaruMode = async () => {
     const pb = res?.data?.pasangBaru?.statusPembayaran
     if (pb === undefined || pb === null) return
     isMustFullyPaid.value = pb === true || pb === 1 || pb === '1'
-  } catch (err) {
+  } catch {
+    // Status pasang-baru gagal dibaca. Default (tidak wajib bayar penuh)
+    // dipakai supaya form tetap bisa dibuka.
   }
 }
 

@@ -119,7 +119,7 @@ const checkExisting = async () => {
       alreadySaved.value = !!response.data.exists
       savedCount.value = response.data.count || 0
     }
-  } catch (err) {
+  } catch {
     alreadySaved.value = false
     savedCount.value = 0
   } finally {
@@ -140,7 +140,9 @@ const tampilkanDaftarAkun = async () => {
       await daftarAkunRef.value.fetchAccounts()
     }
     showTable.value = true
-  } catch (err) {
+  } catch {
+    // Daftar akun e-budgeting gagal diambil. Tabel disembunyikan supaya
+    // pengguna tidak melihat tabel kosong yang mengesankan sudah ada data.
   } finally {
     loading.value = false
   }
@@ -167,7 +169,9 @@ const simpanAnggaran = async () => {
     alreadySaved.value = true
     savedCount.value = items.length
     toastVisible.value = true
-  } catch (err) {
+  } catch {
+    // Simpan e-budgeting gagal. Toast tidak ditampilkan supaya tidak
+    // menggoda pengguna mengira data sudah tersimpan.
   } finally {
     saving.value = false
   }

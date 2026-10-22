@@ -684,7 +684,9 @@ const fetchStats = async () => {
       stats.done = stats.total - stats.pending
       stats.percentage = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0
     }
-  } catch (error) {
+  } catch {
+    // Ringkasan pemakaian gagal diambil. Angka dibiarkan apa adanya
+    // supaya kartu statistik tidak menampilkan nol yang menyesatkan.
   } finally {
     stats.loading = false
   }
@@ -722,7 +724,9 @@ const fetchResults = async () => {
     if (res.data && res.data.success) {
       resultsData.value = res.data.data
     }
-  } catch (error) {
+  } catch {
+    // Daftar hasil pemakaian gagal diambil. Tabel dibiarkan apa adanya
+    // supaya halaman tidak ikut gagal.
   } finally {
     loadingResults.value = false
   }

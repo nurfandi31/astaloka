@@ -313,7 +313,9 @@ const fetchData = async () => {
         }
       })
     }
-  } catch (error) {
+  } catch {
+    // Daftar pemakaian gagal diambil. Tabel dibiarkan apa adanya supaya
+    // halaman tidak ikut gagal.
   } finally {
     isLoading.value = false
   }

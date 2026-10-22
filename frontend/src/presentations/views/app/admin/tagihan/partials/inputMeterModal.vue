@@ -371,7 +371,7 @@ const openLiveCamera = async () => {
     if (videoRef.value) {
       videoRef.value.srcObject = stream
     }
-  } catch (err) {
+  } catch {
     isCameraOpen.value = false
     MySwal.fire({
       icon: 'error',
@@ -396,7 +396,7 @@ const toggleCamera = async () => {
     if (videoRef.value) {
       videoRef.value.srcObject = stream
     }
-  } catch (err) {
+  } catch {
     MySwal.fire({
       icon: 'warning',
       title: 'Tukar Kamera Gagal',
@@ -522,7 +522,7 @@ const openScanCamera = async () => {
       scanVideoRef.value.srcObject = stream
       scanVideoRef.value.onloadedmetadata = () => startAutoScan()
     }
-  } catch (err) {
+  } catch {
     isScanCameraOpen.value = false
     MySwal.fire({
       icon: 'error',
@@ -619,7 +619,7 @@ const scanMeterFromPhoto = async (dataUrl) => {
     }
     meterAkhir.value = digits
     ocrStatus.value = 'ok'
-  } catch (err) {
+  } catch {
     ocrStatus.value = 'fail'
   } finally {
     isScanning.value = false
