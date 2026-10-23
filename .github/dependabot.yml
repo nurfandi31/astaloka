@@ -1,0 +1,52 @@
+version: 2
+
+updates:
+  # Dependency PHP. Ini yang membawa 52 CVE yang baru saja ditutup --
+  # tanpa ini, celah yang sama masuk lagi begitu ada rilis fix berikutnya.
+  - package-ecosystem: composer
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Jakarta
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(composer)"
+    labels:
+      - dependencies
+      - security
+
+  # Dependency frontend.
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Jakarta
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(frontend)"
+    labels:
+      - dependencies
+
+  # Dependency action GitHub Actions.
+  #
+  # `uses:` di workflow saat ini memakai tag mutable (`actions/checkout@v7`),
+  # bukan SHA. Tag bisa dipindahkan ke commit lain -- itu supply-chain
+  # risk. Dependabot di sini tidak memindahkan ke SHA, tapi minimal membuat
+  # pergerakan tag terlihat di PR, jadi tidak diam-diam berubah.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Jakarta
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(actions)"
+    labels:
+      - dependencies
+      - security
