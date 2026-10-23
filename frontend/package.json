@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@primeuix/themes": "^2.0.3",
+    "@primeuix/themes": "^3.0.1",
     "@vitejs/plugin-vue": "^6.0.4",
     "@vue/test-utils": "^2.5.1",
     "eslint": "^10.0.2",
