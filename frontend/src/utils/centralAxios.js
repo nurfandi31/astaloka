@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useUiStore } from '@/stores/uiStore'
+import { apiBase } from '@/utils/apiBase'
 
 /**
  * Axios KHUSUS panel pusat (ASTA BRATA).
@@ -34,17 +35,16 @@ import { useUiStore } from '@/stores/uiStore'
  * apa pun host-nya, jadi ini bukan celah keamanan -- tapi tetap sumber
  * bug yang mahal: respons 404 dari host yang salah jauh lebih sulit ditebak
  * penyebabnya daripada "salah subdomain".
+ *
+ * Perhitungannya memakai `utils/apiBase.js`, sama dengan `utils/axios.js`.
+ * Sebelumnya file ini menambahkan `/api` ke `VITE_API_BASE_URL` sedangkan
+ * `utils/axios.js` tidak -- jadi panel pusat dan aplikasi lokasi menembak
+ * dua basis URL yang berbeda dari nilai yang sama. Di produksi
+ * `VITE_API_BASE_URL` sudah berakhiran `/api`, sehingga hasilnya
+ * `https://astaloka.siupk.com/api/api` dan seluruh request panel pusat
+ * dibalas 404.
  */
-const baseURL = (() => {
-  if (import.meta.env.VITE_API_BASE_URL)
-    return `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')}/api`
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname, port } = window.location
-    const asal = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`
-    return `${asal}/api`
-  }
-  return '/api'
-})()
+const baseURL = apiBase()
 
 const centralApi = axios.create({
   baseURL,

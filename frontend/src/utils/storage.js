@@ -27,7 +27,14 @@
  * Dan `VITE_API_BASE_URL` tetap dipakai kalau diisi, karena itu override
  * eksplisit -- kalau memang backend ada di mesin lain, memaksa semua
  * request kesana memang itu yang diinginkan.
+ *
+ * Perhitungannya memakai `utils/apiBase.js`, supaya bentuk basis URL sama
+ * dengan yang dipakai axios. Sebelumnya file ini menambahkan `/api` sendiri
+ * sementara `utils/axios.js` tidak -- jadi satu nilai `VITE_API_BASE_URL`
+ * menghasilkan dua basis URL berbeda, dan `.../api/api` muncul di produksi.
  */
+
+import { apiBase, apiOrigin } from '@/utils/apiBase'
 
 /**
  * Basis API absolut.
@@ -37,22 +44,7 @@
  * selama satu mesin, dan langsung rusak begitu SPA dibuka lewat nama host
  * lain -- persis kondisi panel pusat dan subdomain lokasi.
  */
-function detectApiBase() {
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') + '/api'
-  }
-
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname, port } = window.location
-    const asal = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`
-
-    return `${asal}/api`
-  }
-
-  return '/api'
-}
-
-export const API_BASE = detectApiBase()
+export const API_BASE = apiBase()
 
 /**
  * Origin backend tanpa suffix `/api`.
@@ -61,13 +53,7 @@ export const API_BASE = detectApiBase()
  * berbeda port dari SPA, jadi port ikut dibawa -- kecuali saat portnya port
  * default HTTP, yang tidak perlu ditulis ulang.
  */
-export const API_ORIGIN = (() => {
-  try {
-    return new URL(API_BASE).origin
-  } catch {
-    return API_BASE.replace(/\/api\/?$/, '').replace(/\/$/, '')
-  }
-})()
+export const API_ORIGIN = apiOrigin()
 
 /**
  * URL absolut untuk sebuah file di backend.

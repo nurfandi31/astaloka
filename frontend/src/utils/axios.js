@@ -2,6 +2,7 @@ import axios from 'axios'
 import { useUiStore } from '@/stores/uiStore'
 import { showInvoiceLockModal } from '@/composables/useInvoiceLock'
 import { tenantSlugAktif } from '@/utils/tenantSlug'
+import { apiBase } from '@/utils/apiBase'
 
 /*
  * Basis API.
@@ -15,24 +16,17 @@ import { tenantSlugAktif } from '@/utils/tenantSlug'
  * host pusat, tanpa subdomain. Identitas lokasi hilang, `X-Tenant-Slug`
  * jadi satu-satunya pembawa, dan branding kembali ke bawaan.
  *
- * Dua file ini punya urutan yang sama dan sengaja tidak diimpor dari satu
- * sama lain. Axios memakai base URL untuk request, `utils/storage.js` untuk
- * URL file -- bentuknya sama tapi tidak boleh berubah satu tanpa yang lain
- * tanpa sengaja.
+ * Perhitungannya DIPINDAH ke `utils/apiBase.js`, supaya bentuk basis URL
+ * sama di semua file. Sebelumnya file ini memakai nilainya apa adanya,
+ * sementara `utils/storage.js` dan `utils/centralAxios.js` menambahkan
+ * `/api` lagi -- sehingga satu nilai `VITE_API_BASE_URL` menghasilkan dua
+ * basis URL berbeda, dan `.../api/api` muncul di produksi.
  *
  * Port ikut dibawa karena di development Vite (:5173) berbeda dari
  * backend (port 80) dan proxy meneruskannya. Di produksi keduanya sama,
  * jadi `port` kosong dan URL-nya bersih.
  */
-const baseURL = (() => {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname, port } = window.location
-    const asal = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`
-    return `${asal}/api`
-  }
-  return '/api'
-})()
+const baseURL = apiBase()
 
 const axiosInstance = axios.create({
   baseURL,

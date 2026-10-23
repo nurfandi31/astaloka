@@ -5,12 +5,16 @@ services:
       args:
         user: sam
         uid: 1000
-        # Konteks build ada di ./backend, tapi frontend berada di ./frontend
-        # -- satu folder di atas, jadi di luar konteks. Tanpa arg ini
-        # Dockerfile tidak bisa menyalin apa pun untuk `pnpm build`, dan
-        # hasilnya: image tanpa index.html, sehingga semua halaman Vue
-        # Router berakhir 404.
-        frontend_dir: /var/www/frontend
+        # Folder frontend, relatif terhadap KONTEKS build (`./`).
+        #
+        # Nilai sebelumnya `/var/www/frontend` salah: sumber `COPY` selalu
+        # relatif terhadap konteks, jadi leading `/` dibuang dan yang dicari
+        # adalah `<konteks>/var/www/frontend/package.json` -- folder yang tidak
+        # ada. Build gagal dengan "package.json: not found".
+        #
+        # Yang benar adalah `frontend`, karena konteks build adalah repo root
+        # dan frontend ada tepat di `./frontend`.
+        frontend_dir: frontend
       context: ./
       dockerfile: backend/docker/Dockerfile
     image: astaloka-app
@@ -42,6 +46,27 @@ services:
       - ./backend/storage:/var/www/storage
       - ./backend/vendor:/var/www/vendor
       - ./backend/.env:/var/www/.env
+      #
+      # `artisan` DAN `composer.json` WAJIB ikut mount.
+      #
+      # Tanpa keduanya, `php artisan ...` di dalam container MUSTAHIL: yang
+      # ada di `/var/www` cuma folder-folder di atas, dan tidak ada satu pun
+      # file `artisan` di sana. Perintah yang butuh Laravel tidak akan
+      # "gagal dengan pesan", tapi tidak akan jalan sama sekali -- dan
+      # `docker exec ... php artisan` keluar dengan error yang tidak menyebut
+      # file yang hilang.
+      #
+      # `composer.json` perlu ikut karena `composer install` di dalam
+      # container membaca manifest itu. `composer.lock` ikut sertanya, kalau
+      # tidak, `composer install` resolving versi sendiri dan bisa memasang
+      # dependency yang berbeda dari yang diuji.
+      #
+      # Keduanya file tunggal, bukan folder: `artisan` di host adalah file
+      # executable, dan me-mount folder `backend/` utuh akan menimpa
+      # `/var/www` -- termasuk `public/` yang isinya sudah disinkronkan.
+      - ./backend/artisan:/var/www/artisan:ro
+      - ./backend/composer.json:/var/www/composer.json:ro
+      - ./backend/composer.lock:/var/www/composer.lock:ro
       #
       # `public/` DI-mount dengan alasan yang berlawanan: hasil build
       # frontend di-sync ke sini oleh `docker/entrypoint.sh`, dan nginx

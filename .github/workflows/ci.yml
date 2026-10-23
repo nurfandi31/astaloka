@@ -28,7 +28,13 @@ jobs:
       - name: Build (catches case-sensitive import breakage)
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: https://astaloka.siupk.com/api
+          # Dikosongkan, sama seperti di `deploy.yml`.
+          #
+          # `VITE_API_BASE_URL` yang mengunci satu host backend membuat
+          # seluruh request dari subdomain lokasi ikut ke host pusat, dan
+          # di produksi `TenantResolver::slugAllowed()` mengembalikan false
+          # -- jadi backend tidak punya cara lain mengenali tenant.
+          VITE_API_BASE_URL: ''
         run: pnpm run build
 
   backend:

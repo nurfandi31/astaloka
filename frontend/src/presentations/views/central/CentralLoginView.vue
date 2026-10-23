@@ -250,6 +250,7 @@ import { MySwal } from '@/utils/swal'
 import { centralAuthService } from '@/services/central.service'
 import { petakanFieldError, PESAN_TERLAMBAT } from '@/composables/useLoginError'
 import { isCentralSessionValid, clearCentralSession } from '@/utils/centralAxios'
+import { apiOrigin } from '@/utils/apiBase'
 import '@/assets/css/central-login.css'
 
 const router = useRouter()
@@ -280,8 +281,10 @@ const currentYear = new Date().getFullYear()
 */
 const landingUrl = (() => {
   if (import.meta.env.VITE_API_BASE_URL) {
-    // Buang suffix `/api` -- yang kita butuhkan root backend, bukan basis API.
-    return import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '') + '/'
+    // Root backend, tanpa suffix `/api` -- yang kita butuhkan halaman depan,
+    // bukan basis API. `apiOrigin()` sudah membuang satu suffix `/api`,
+    // jadi nilai yang sudah berbentuk `.../api` tidak jadi `.../api/api`.
+    return `${apiOrigin()}/`
   }
 
   // Tanpa konfigurasi, andalkan origin sendiri. Di produksi ini root backend;

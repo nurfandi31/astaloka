@@ -32,11 +32,63 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: https://astaloka.siupk.com/api
+          # DIKOSONGKAN, dan itu disengaja.
+          #
+          # `VITE_API_BASE_URL` adalah OVERRIDE absolut. Kalau diisi, seluruh
+          # request SPA -- termasuk yang dibuka lewat subdomain lokasi --
+          # dikirim ke satu host yang sama, dan identitas lokasi hilang:
+          # di produksi `TenantResolver::slugAllowed()` mengembalikan false,
+          # jadi backend HANYA bisa mengenali tenant dari header Host.
+          # Request yang terkirim ke host pusat akan terbaca sebagai "host
+          # pusat" -- panel pusat ikut memakai database lokasi, dan branding
+          # di setiap subdomain jadi branding bawaan.
+          #
+          # Kosong = axios memakai origin sendiri (`window.location`), jadi
+          # subdomain yang sedang dibuka ikut terbawa. Ini satu-satunya cara
+          # satu bundle bisa melayani panel pusat DAN semua lokasi.
+          #
+          # Lihat juga `backend/docker/Dockerfile` (ARG VITE_API_BASE_URL="")
+          # dan `frontend/.env.example`.
+          VITE_API_BASE_URL: ''
         run: pnpm run build
 
       - name: Guard production API URL in bundle
-        run: grep -rq "astaloka.siupk.com/api" frontend/dist || { echo "::error::VITE_API_BASE_URL missing from built bundle"; exit 1; }
+        run: |
+          # Bundle TIDAK BOLEH mengunci satu host backend.
+          #
+          # `VITE_API_BASE_URL` sengaja dikosongkan supaya axios memakai
+          # origin sendiri (`window.location`). Kalau bundle mengunci host
+          # pusat, seluruh request dari subdomain lokasi ikut dikirim ke
+          # host pusat -- dan karena di produksi `slugAllowed()` false,
+          # backend tidak punya cara lain untuk mengenali tenant. Gejalanya:
+          # branding tiap subdomain jadi branding bawaan.
+          #
+          # Yang dicek di sini adalah kebalikannya: host production TIDAK
+          # boleh ada di bundle sebagai basis API.
+          if grep -rq "astaloka\.siupk\.com" frontend/dist; then
+            echo "::error::bundle mengunci host backend -- VITE_API_BASE_URL harus kosong di produksi"
+            echo "       (subtitle: agar subdomain lokasi ikut membawa identitas tenant lewat header Host)"
+            grep -rqo "https\?://[a-zA-Z0-9.:/_-]*siupk[a-zA-Z0-9.:/_-]*" frontend/dist | sort -u | head -20
+            exit 1
+          fi
+
+          # Dan `/api/api` tidak boleh muncul sama sekali.
+          #
+          # Ini bug yang pernah ada: `VITE_API_BASE_URL` berakhiran `/api`,
+          # dan sebagian file menambahkan `/api` lagi. Hasilnya
+          # `.../api/api`, dan nginx membalas 404 untuk SETIAP request --
+          # karena tidak ada route yang dimulai dengan `/api/api`.
+          #
+          # Bugnya lolos karena tidak ada satu pun check di pipeline yang
+          # melihatnya. Satu `grep` preventif di sini lebih murah daripada
+          # 404 yang baru ketahuan saat ada pengguna yang mengeluh.
+          if grep -rq "/api/api" frontend/dist; then
+            echo "::error::built bundle contains /api/api -- basis API terhitung dua kali"
+            grep -rqo "https\?://[a-zA-Z0-9.:/_-]*/api/api" frontend/dist | sort -u | head -20
+            exit 1
+          fi
+
+          echo "OK: bundle memakai origin sendiri, basis API tidak dobel."
 
       - uses: actions/upload-artifact@v7
         with:
@@ -48,7 +100,7 @@ jobs:
     name: Deploy to sim-sppg
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
@@ -62,20 +114,273 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # SEMUA secret diperiksa di sini, di tempat yang jelas.
+          #
+          # Repo ini pernah gagal deploy LIMA kali berturut-turut, selalu di
+          # step yang sama, dengan pesan "Process completed with exit code 1"
+          # yang tidak menyebut satu pun secret yang bermasalah. Penyebabnya
+          # tidak terlihat dari log: `secrets.X` yang kosong tidak membuat
+          # error, ia hanya menjadi string kosong -- jadi `ssh-keyscan` dan
+          # `ssh` gagal dengan pesan yang accuses JARINGAN, bukan KONFIGURASI.
+          #
+          # Penyebab sebenarnya: repo ini tidak punya SATU PUN secret Actions
+          # (dicek lewat API GitHub: `total_count: 0`). Itu sebabnya setiap
+          # run gagal tepat di sini.
+          #
+          # Memeriksa semua secret sekaligus membuat itu jelas di SATU
+          # pesan, dan menyebutkan secret mana yang kurang.
+          #
+          # Each secret is checked separately, not with a loop. The `secrets`
+          # context does not support dynamic property access -- `secrets.$name`
+          # does not resolve to the secret named `$name`, it evaluates to an
+          # empty string. So a loop would report every secret as missing
+          # even when all of them are set, and the real error would be
+          # replaced by a false one.
+          missing=""
+
+          if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            missing="$missing DEPLOY_SSH_KEY"
+          fi
+
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            missing="$missing SSH_HOST"
+          fi
+
+          if [ -z "${{ secrets.SSH_PORT }}" ]; then
+            missing="$missing SSH_PORT"
+          fi
+
+          if [ -z "${{ secrets.SSH_USER }}" ]; then
+            missing="$missing SSH_USER"
+          fi
+
+          if [ -n "$missing" ]; then
+            echo "::error::secret Actions berikut belum diisi di repository ini:$missing"
+            echo "::error::isi lewat Settings > Secrets and variables > Actions > Repository secrets"
+            echo "::error::tanpa secret itu, deploy tidak bisa menghubungi server sama sekali"
+            exit 1
+          fi
+
+          # Kunci harus berbentuk private key yang sah.
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+          # `-i` eksplisit: beberapa versi ssh bawaan tidak memakai kunci
+          # default kalau ada lebih dari satu file di ~/.ssh.
+          if ! ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null 2>&1; then
+            echo "::error::DEPLOY_SSH_KEY bukan private key yang sah"
+            echo "::error::paste private key lengkap (termasuk baris BEGIN dan END), bukan public key"
+            exit 1
+          fi
+
+          # Host harus bisa dihubungi di port yang benar.
+          #
+          # `ssh-keyscan` mengembalikan status bukan-nol saat host tidak
+          # bisa dihubungi, dan step ini memakai `set -e` -- jadi tanpa
+          # penanganan eksplisit, kegagalan itu muncul sebagai "process
+          # completed with exit code 1" tanpa penjelasan apa pun.
+          if ! ssh-keyscan -T 10 -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "::error::gagal menghubungi ${{ secrets.SSH_HOST }}:${{ secrets.SSH_PORT }} via ssh-keyscan"
+            echo "::error::cek SSH_HOST dan SSH_PORT -- port default SSH adalah 22"
+            exit 1
+          fi
+
+          echo "SSH key siap."
+
+      - name: Test SSH connection
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" \
+            -i ~/.ssh/id_ed25519 \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=10 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'echo "SSH OK: $(hostname)"; docker ps --format "{{.Names}}" | head -20'
 
       - name: Rsync frontend build to server
-        run: rsync -az --delete -e "ssh -p ${{ secrets.SSH_PORT }} -o IdentitiesOnly=yes" frontend/dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/enpii/astaloka/frontend/dist/
+        run: |
+          # Ke `backend/public/`, BUKAN `frontend/dist/`.
+          #
+          # nginx menyajikan `root /var/www/public`, dan folder itu di-bind-mount
+          # dari host sebagai `./backend/public` (lihat `docker-compose.yml`).
+          # Jadi aset SPA yang benar-benar dibaca nginx harus ada di
+          # `backend/public/`.
+          #
+          # Rsync ke `frontend/dist/` -- seperti yang terjadi sebelumnya --
+          # menaruh hasilnya di folder yang TIDAK PERNAH dibaca nginx. Bundle
+          # terbaru tetap tertinggal di server, dan tidak ada satu pun error
+          # yang menyebutnya: yang muncul cuma 404 saat membuka halaman.
+          #
+          # `index.php` milik Laravel ikut ada di folder itu, jadi `--delete`
+          # dikecualikan untuk file itu.
+          #
+          # `assets/branding/` juga dikecualikan, dengan alasan yang sama.
+          # Folder itu berisi `logo.png`, `lunas.png`, dan `ttd.png` yang
+          # di-commit di repo dan dibaca `InvoiceController::stempel()` lewat
+          # `public_path()`. Hasil build frontend TIDAK PERNAH memuatnya, jadi
+          # `--delete` yang tidak dikecualikan akan menghapusnya dari server.
+          #
+          # Gejalanya bukan error: cap LUNAS dan tanda tangan di surat
+          # tagihan hilang diam-diam, karena template cuma menerima `null`
+          # lalu mencetak blok kosong. File yang hilang itu baru kembali kalau
+          # `git checkout` dilakukan manual di server.
+          #
+          # File lain yang di-commit di `backend/public/` (`.htaccess`,
+          # `favicon.ico`, `robots.txt`) dikecualikan dengan alasan sama --
+          # `--delete` akan menghapusnya, dan `git pull` di step berikutnya
+          # lalu complaining soal perubahan lokal yang menimpa upstream.
+          #
+          # `storage` adalah symlink ke `storage/app/public` yang dibuat
+          # `artisan storage:link`. Rsync tidak ikut mengikutinya, tapi
+          # `--delete` tetap akan MENGHAPUS symlink-nya -- dan tanpa symlink
+          # itu, logo hasil unggahan dan PDF tagihan membalas 404.
+          rsync -az --delete \
+            --exclude 'index.php' \
+            --exclude '.htaccess' \
+            --exclude 'favicon.ico' \
+            --exclude 'robots.txt' \
+            --exclude 'storage' \
+            --exclude 'assets/branding/' \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes" \
+            frontend/dist/ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/enpii/astaloka/backend/public/
 
-      - name: Pull source, migrate, clear caches
-        run: ssh -p ${{ secrets.SSH_PORT }} -o IdentitiesOnly=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'set -e; cd /home/enpii/astaloka; git pull --ff-only origin main; docker exec astaloka-app php artisan migrate --force --no-interaction; docker exec astaloka-app php artisan config:clear; docker exec astaloka-app php artisan route:clear'
+      - name: Pull source, install dependencies, migrate
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" \
+            -i ~/.ssh/id_ed25519 \
+            -o IdentitiesOnly=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -e
+             cd /home/enpii/astaloka
+
+             # `git pull` DULU, sebelum composer install.
+             #
+             # Urutan ini penting: `composer install` membaca `composer.json`
+             # yang baru di-pull. Kalau urutannya dibalik, dependensi yang
+             # terpasang masih versi lama -- dan kelas baru di `app/` tidak
+             # akan pernah ada di server, dengan pesan "Class not found" yang
+             # sama sekali tidak menyebut deploy.
+             git pull --ff-only origin main
+
+             # `vendor/` di-bind-mount dari host (lihat docker-compose.yml),
+             # jadi dependensi PHP harus dipasang DI HOST -- image Docker
+             # tidak akan pernah bringing-nya sendiri. Tanpa step ini,
+             # kelas baru di `app/` tidak pernah ada di server dan hasilnya
+             # "Class not found" yang sama sekali tidak menyebut deploy.
+             if [ -f backend/composer.json ]; then
+               cd backend
+               composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+               cd ..
+             fi
+
+             # Migrasi PUSAT (tenants, superadmin, invoice, audit).
+             #
+             # `php artisan migrate` biasa TIDAK bisa dipakai di sini: folder
+             # default Migrator `database/migrations/` sengaja dikosongkan,
+             # dan skema pusat + lokasi dipisah ke dua folder berbeda
+             # (`migrations_central/` dan `migrations_tenant/`). Perintah
+             # biasa keluar dengan status sukses sambil mencetak
+             # "Nothing to migrate" -- tanpa membuat satu tabel pun.
+             #
+             # `--seed` sengaja TIDAK dipakai: seeder pusat melakukan
+             # truncate pada tabel chart of accounts, dan itu akan menghapus
+             # data akuntansi yang sedang dipakai.
+             #
+             # `docker exec` dipakai, bukan `$DC exec`, karena container-nya
+             # sudah berjalan -- dan `exec` butuh container yang hidup,
+             # sedangkan `up`/`restart` justru butuh build yang sudah ada.
+             docker exec astaloka-app php artisan tenancy:migrate-central
+
+             # Migrasi LOKASI, untuk semua lokasi terdaftar.
+             #
+             # Tanpa ini, deploy hanya memperbarui database PUSAT, dan tiap
+             # lokasi tetap memakai skema versi lama -- karena data tiap
+             # lokasi ada di database masing-masing, bukan di satu database
+             # bersama. Gejalanya muncul jauh kemudian, di halaman panel
+             # lokasi, sebagai "Unknown column" yang lognya menunjuk ke
+             # controller, bukan ke migrasi yang tidak pernah jalan.
+             #
+             # `tenancy:migrate-tenants` (bukan `migrate` biasa) karena
+             # folder migrasi lokasi ada di `database/migrations_tenant/`,
+             # dan tiap lokasi butuh catatan migrasi sendiri.
+             docker exec astaloka-app php artisan tenancy:migrate-tenants
+
+             # Cache dibersihkan SETELAH migrasi, bukan sebelum.
+             #
+             # Urutannya di sini membuat cache yang dibuang benar-benar
+             # yang dipakai aplikasi yang baru saja berubah.
+             docker exec astaloka-app php artisan config:clear
+             docker exec astaloka-app php artisan route:clear
+             docker exec astaloka-app php artisan view:clear'
+
+      - name: Restart container
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" \
+            -i ~/.ssh/id_ed25519 \
+            -o IdentitiesOnly=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -e
+             cd /home/enpii/astaloka
+
+             # nginx (container terpisah, user nginx) dan php-fpm (user `sam`,
+             # uid 1000) harus bisa MEMBACA hasil build yang baru di-rsync.
+             # File hasil rsync mengikuti umask SSH user, jadi izinnya
+             # dikunci eksplisit di sini -- kalau tidak, aset SPA bisa
+             # terbaca 403 dan gejalanya muncul sebagai "halaman putih".
+             chmod -R a+rX backend/public
+
+             # `docker compose` (plugin v2) dan `docker-compose` (v1) punya
+             # nama berbeda. Server ini AlmaLinux, dan keduanya umum ada di
+             # sana -- jadi dipakai mana saja yang tersedia, bukan asal
+             # satu: kalau command yang tidak ada, step gagal tanpa
+             # sempat menjalankan apa pun.
+             if docker compose version >/dev/null 2>&1; then
+               DC="docker compose"
+             else
+               DC="docker-compose"
+             fi
+
+             # `up -d --build`, BUKAN `restart`.
+             #
+             # `restart` hanya menyalakan ulang container dengan image yang
+             # LAMA. Image itu berisi hasil build frontend yang dibuat
+             # saat image dibangun -- dan `docker/entrypoint.sh` menyalin
+             # `/app-build/dist` ke `public/` setiap kali container start.
+             #
+             # Jadi `restart` berarti: hasil build LAMA ditimpa ke atas
+             # hasil build BARU yang baru saja di-rsync. Bundle terbaru
+             # hilang, dan tidak ada satu pun error yang menyebutnya --
+             # gejalanya cuma "perubahan tidak terlihat setelah deploy".
+             #
+             # `--build` memaksa image dibangun ulang dari source yang
+             # baru di-pull, jadi `/app-build/dist` isinya sinkron dengan
+             # commit terbaru. Dan karena `public/` di-bind-mount dari host,
+             # hasil rsync tetap yang tersimpan di host -- keduanya sama.
+             #
+             # `-d` supaya command ini tidak menempel di log sampai
+             # container berhenti.
+             $DC up -d --build app web
+             $DC ps'
 
       - name: Smoke test production
         run: |
-          site=$(curl -s -o /dev/null -w '%{http_code}' https://astaloka.siupk.com/)
-          api=$(curl -s -o /dev/null -w '%{http_code}' https://astaloka.siupk.com/api/health)
-          echo "site=$site api=$api"
-          test "$site" = "200"
-          test "$api" = "200"
+          # Tunggu container siap sebelum mengecek. Container yang baru
+          # di-restart butuh beberapa detik untuk boot, dan request yang
+          # terlalu cepat dijawab 502 oleh nginx -- yang gejalanya sama
+          # dengan "deploy gagal".
+          for i in $(seq 1 30); do
+            site=$(curl -s -o /dev/null -w '%{http_code}' https://astaloka.siupk.com/ || true)
+            api=$(curl -s -o /dev/null -w '%{http_code}' https://astaloka.siupk.com/api/health || true)
+            echo "percobaan $i: site=$site api=$api"
+            if [ "$site" = "200" ] && [ "$api" = "200" ]; then
+              echo "OK"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "::error::site=$site api=$api setelah 30 percobaan"
+          exit 1

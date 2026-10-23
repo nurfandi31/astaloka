@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 import { tenantSlugAktif } from '@/utils/tenantSlug'
+import { apiBase } from '@/utils/apiBase'
 
 /**
  * Ambil branding lokasi yang sedang melayani request.
@@ -58,11 +59,11 @@ export async function ambilBranding() {
 /**
  * Base URL API, bentuk yang sama dengan `utils/axios.js`.
  *
- * Disalin, bukan diimpor dari `utils/axios.js`: yang diekspor sana adalah
- * *instance* axios yang sudah berisi interceptor -- dan mengimpor instance
- * itu ke sini akan menarik seluruh interceptor-nya (spinner, penghapusan
- * token saat 401) ke halaman login. Perhitungan URL-nya sendiri sengaja
- * diulang supaya tetap sama kalau `VITE_API_BASE_URL` berubah.
+ * Instance axios-nya sendiri TIDAK diimpor dari `utils/axios.js`: yang
+ * diekspor sana sudah berisi interceptor -- dan mengimpor instance itu ke
+ * sini akan menarik seluruh interceptor-nya (spinner, penghapusan token
+ * saat 401) ke halaman login. Yang diimpor hanya PERHITUNGAN URL-nya, dari
+ * `utils/apiBase.js`, supaya bentuk basis URL sama di semua file.
  *
  * `VITE_BACKEND_URL` SENGAJA TIDAK dipakai, sama seperti di `utils/axios.js`:
  * host di sana adalah host backend, bukan tempat SPA ini berada. Dipakai
@@ -71,11 +72,5 @@ export async function ambilBranding() {
  * padahal teks dan warnanya tersimpan rapi di database.
  */
 function baseUrlApi() {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname, port } = window.location
-    const asal = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`
-    return `${asal}/api`
-  }
-  return '/api'
+  return apiBase()
 }

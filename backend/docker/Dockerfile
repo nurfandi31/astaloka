@@ -15,7 +15,16 @@
 # `uid` memang harus dibaca lagi di tahap runtime.
 FROM node:22-alpine AS frontend-build
 
-ARG frontend_dir=/var/www/frontend
+# Folder frontend, RELATIF terhadap konteks build.
+#
+# Nilai lama `/var/www/frontend` salah: sumber `COPY` selalu relatif
+# terhadap konteks, jadi leading `/` dibuang dan yang dicari adalah
+# `<konteks>/var/www/frontend/package.json` -- folder yang tidak ada.
+# Build gagal dengan "package.json: not found".
+#
+# Konteks build untuk service `app` adalah repo root (`./`, lihat
+# `docker-compose.yml`), jadi folder frontend ada tepat di `./frontend`.
+ARG frontend_dir=frontend
 
 WORKDIR /build
 
