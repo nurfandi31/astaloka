@@ -16,6 +16,15 @@ updates:
     labels:
       - dependencies
       - security
+    # Update keamanan dikelompokkan jadi satu PR, supaya tidak ada
+    # release advisory baru yang datang satu-satu dan berlomba mengunci branch.
+    groups:
+      security:
+        applies-to: version-updates
+        update-types:
+          - "security"
+        patterns:
+          - "*"
 
   # Dependency frontend.
   - package-ecosystem: npm
@@ -30,12 +39,19 @@ updates:
       prefix: "deps(frontend)"
     labels:
       - dependencies
+    groups:
+      security:
+        applies-to: version-updates
+        update-types:
+          - "security"
+        patterns:
+          - "*"
 
   # Dependency action GitHub Actions.
   #
   # `uses:` di workflow saat ini memakai tag mutable (`actions/checkout@v7`),
-  # bukan SHA. Tag bisa dipindahkan ke commit lain -- itu supply-chain
-  # risk. Dependabot di sini tidak memindahkan ke SHA, tapi minimal membuat
+  # bukan SHA. Tag bisa dipindahkan ke commit lain -- itu supply-chain risk.
+  # Dependabot di sini tidak memindahkan ke SHA, tapi minimal membuat
   # pergerakan tag terlihat di PR, jadi tidak diam-diam berubah.
   - package-ecosystem: github-actions
     directory: /
@@ -50,3 +66,10 @@ updates:
     labels:
       - dependencies
       - security
+    groups:
+      security:
+        applies-to: version-updates
+        update-types:
+          - "security"
+        patterns:
+          - "*"
