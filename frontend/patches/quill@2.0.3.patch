@@ -1,0 +1,36 @@
+diff --git a/formats/formula.js b/formats/formula.js
+index 1c1b1a5..69fed1c 100644
+--- a/formats/formula.js
++++ b/formats/formula.js
+@@ -26,8 +26,11 @@ class Formula extends Embed {
+     const {
+       formula
+     } = this.value();
+-    return `<span>${formula}</span>`;
++    return `<span>${escapeHTML(formula)}</span>`;
+   }
+ }
++function escapeHTML(html) {
++  return String(html ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
++}
+ export default Formula;
+ //# sourceMappingURL=formula.js.map
+\ No newline at end of file
+diff --git a/formats/video.js b/formats/video.js
+index 135a297..9dce03d 100644
+--- a/formats/video.js
++++ b/formats/video.js
+@@ -41,8 +41,11 @@ class Video extends BlockEmbed {
+     const {
+       video
+     } = this.value();
+-    return `<a href="${video}">${video}</a>`;
++    return `<a href="${escapeHTML(video)}">${escapeHTML(video)}</a>`;
+   }
+ }
++function escapeHTML(html) {
++  return String(html ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
++}
+ export default Video;
+ //# sourceMappingURL=video.js.map
+\ No newline at end of file
