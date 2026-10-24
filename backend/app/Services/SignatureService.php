@@ -84,7 +84,7 @@ class SignatureService
                 if (! is_string($raw)) {
                     $raw = '';
                 }
-                $clean = $this->sanitizeHtml($raw);
+                $clean = HtmlSanitizer::clean($raw);
 
                 $row = SignatureSetting::firstOrNew(['report_key' => $key]);
                 $row->report_key = $key;
@@ -329,99 +329,5 @@ class SignatureService
         if (! $valid) {
             throw new RuntimeException('Isi file bukan file gambar yang valid.');
         }
-    }
-
-    private function sanitizeHtml(string $html): string
-    {
-        // Buang seluruh blok <script>...</script> (termasuk inner text) sebelum
-        // strip_tags, karena strip_tags hanya membuang tag pembungkus, bukan
-        // teks di dalamnya. Sama untuk <style>.
-        $withoutDanger = preg_replace('#<script\b[^>]*>.*?</script>#si', '', $html) ?? $html;
-        $withoutDanger = preg_replace('#<style\b[^>]*>.*?</style>#si', '', $withoutDanger) ?? $withoutDanger;
-
-        // Allowlist tag — Quill output bisa berisi heading, link, blockquote.
-        // href diizinkan hanya untuk http/https/mailto (lihat filter di bawah).
-        $allowed = '<p><br><strong><b><em><i><u><ul><ol><li>'
-            .'<table><thead><tbody><tr><th><td>'
-            .'<span><div><img>'
-            .'<h1><h2><h3><h4><h5><h6>'
-            .'<a>'
-            .'<blockquote><pre>';
-        $stripped = strip_tags($withoutDanger, $allowed);
-
-        // Drop seluruh atribut non-standar (class, style, id, dll.) — hanya
-        // href (untuk <a>) dan src/alt (untuk <img>) yang dipertahankan.
-        $stripped = $this->cleanAttributes($stripped);
-
-        // Drop event handlers / javascript: URLs (safety net)
-        $stripped = preg_replace('/\s+on\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $stripped) ?? $stripped;
-        $stripped = preg_replace('/\s+(href|src)\s*=\s*("\s*javascript:[^"]*"|\'\s*javascript:[^\']*\'|javascript:[^\s>]+)/i', '', $stripped) ?? $stripped;
-
-        // Validasi href pada <a>: hanya http/https/mailto yang diizinkan.
-        // Drop seluruh <a> yang href-nya bukan protocol aman.
-        $stripped = preg_replace_callback(
-            '#<a\s+[^>]*href\s*=\s*"([^"]*)"[^>]*>.*?</a>#si',
-            function ($m) {
-                return preg_match('#^(https?:|mailto:)#i', $m[1]) ? $m[0] : '';
-            },
-            $stripped,
-        ) ?? $stripped;
-
-        // Hanya izinkan src data:image/(png|jpeg|jpg|webp);base64,.. pada <img>
-        if (preg_match_all('/<img\s+[^>]*src\s*=\s*"([^"]*)"/i', $stripped, $matches)) {
-            foreach ($matches[1] as $src) {
-                if (! preg_match('#^data:image/(png|jpeg|jpg|webp);base64,#i', $src)) {
-                    $stripped = preg_replace('#<img\s+[^>]*src\s*=\s*"'.preg_quote($src, '#').'"[^>]*>#i', '', $stripped) ?? $stripped;
-                }
-            }
-        }
-
-        if (strlen($stripped) > 50_000) {
-            $stripped = substr($stripped, 0, 50_000);
-        }
-
-        return trim($stripped);
-    }
-
-    /**
-     * Hapus atribut non-essential dari setiap tag, sisakan hanya href (a),
-     * src/alt (img), dan align (p/td/th — untuk layout tabel tanda tangan).
-     */
-    private function cleanAttributes(string $html): string
-    {
-        return preg_replace_callback(
-            '/<([a-z][a-z0-9]*)\b([^>]*)>/i',
-            function ($m) {
-                $tag = strtolower($m[1]);
-                $attrs = $m[2];
-
-                $allowed = [];
-                if ($tag === 'a') {
-                    if (preg_match('/\bhref\s*=\s*"([^"]*)"/i', $attrs, $h)) {
-                        $allowed[] = 'href="'.htmlspecialchars($h[1], ENT_QUOTES).'"';
-                    }
-                } elseif ($tag === 'img') {
-                    if (preg_match('/\bsrc\s*=\s*"([^"]*)"/i', $attrs, $s)) {
-                        $allowed[] = 'src="'.htmlspecialchars($s[1], ENT_QUOTES).'"';
-                    }
-                    if (preg_match('/\balt\s*=\s*"([^"]*)"/i', $attrs, $a)) {
-                        $allowed[] = 'alt="'.htmlspecialchars($a[1], ENT_QUOTES).'"';
-                    }
-                } elseif (in_array($tag, ['p', 'td', 'th', 'tr', 'tbody', 'thead', 'table'], true)) {
-                    // Layout tabel tanda tangan butuh alignment per cell/row
-                    if (preg_match('/\balign\s*=\s*"([^"]*)"/i', $attrs, $al)) {
-                        $val = strtolower($al[1]);
-                        if (in_array($val, ['left', 'center', 'right', 'justify'], true)) {
-                            $allowed[] = 'align="'.$val.'"';
-                        }
-                    }
-                }
-
-                $attrStr = $allowed ? ' '.implode(' ', $allowed) : '';
-
-                return '<'.$m[1].$attrStr.'>';
-            },
-            $html,
-        ) ?? $html;
     }
 }

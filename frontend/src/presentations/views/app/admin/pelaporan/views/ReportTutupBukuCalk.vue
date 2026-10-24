@@ -1,119 +1,190 @@
 <template>
-  <BaseReportLayout :lembaga="payload?.lembaga" :config="payload?.config" :payload="payload" :no-meta-header="!isFirstPage">
+  <BaseReportLayout
+    :lembaga="payload?.lembaga"
+    :config="payload?.config"
+    :payload="payload"
+    :no-meta-header="!isFirstPage"
+  >
     <div ref="rootEl" class="calk-root">
-      <div v-if="isFirstPage" class="header-section" data-block="header" style="text-align:center;margin-bottom:15px;font-family:sans-serif;">
-        <h2 style="margin:0;font-size:14pt;font-weight:bold;text-transform:uppercase;color:#000;">
+      <div
+        v-if="isFirstPage"
+        class="header-section"
+        data-block="header"
+        style="text-align: center; margin-bottom: 15px; font-family: sans-serif"
+      >
+        <h2
+          style="
+            margin: 0;
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #000;
+          "
+        >
           CATATAN ATAS LAPORAN KEUANGAN
         </h2>
-        <h3 style="margin:-5px 0 0 0;font-size:12pt;font-weight:bold;color:#000;text-transform:uppercase;">
+        <h3
+          style="
+            margin: -5px 0 0 0;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #000;
+            text-transform: uppercase;
+          "
+        >
           PER {{ lastDay }} {{ payload?.periode?.bulan_name }} {{ payload?.periode?.tahun }}
         </h3>
       </div>
 
       <div class="page-content">
         <!-- HALAMAN PERTAMA: pakai <ol> dengan semua section -->
-        <ol v-if="isFirstPage" style="list-style: upper-alpha; font-size: 12px;">
+        <ol v-if="isFirstPage" style="list-style: upper-alpha; font-size: 12px">
           <li data-block="sec-gambaran">
-            <div style="text-transform: uppercase;">Gambaran Umum</div>
-            <div v-if="customPointA" class="point-a" style="text-align: justify" v-html="customPointA"></div>
+            <div style="text-transform: uppercase">Gambaran Umum</div>
+            <div
+              v-if="customPointA"
+              class="point-a"
+              style="text-align: justify"
+              v-html="customPointA"
+            ></div>
             <div v-else style="text-align: justify">
-{{ lembagaNama }} adalah Badan Usaha Milik Desa yang didirikan berdasarkan Peraturan
-                    Bersama Kepala Desa Nomor {{ peraturanDesa }}, dengan kegiatan usaha pelayanan pembiayaan
-                    dan pengembangan usaha masyarakat desa. {{ lembagaNama }} telah memperoleh Sertifikat Badan
-                    Hukum dari Menteri Hukum dan Hak Asasi Manusia No. {{ skKemenkumham }} dan berkedudukan di
-                    {{ lembagaAlamat }}, serta menjalankan usaha pembiayaan dan pengembangan usaha masyarakat
-                    desa yang berdomisili di {{ lembagaAlamat }} dengan perangkat organisasi sebagai berikut:
+              {{ lembagaNama }} adalah Badan Usaha Milik Desa yang didirikan berdasarkan Peraturan
+              Bersama Kepala Desa Nomor {{ peraturanDesa }}, dengan kegiatan usaha pelayanan
+              pembiayaan dan pengembangan usaha masyarakat desa. {{ lembagaNama }} telah memperoleh
+              Sertifikat Badan Hukum dari Menteri Hukum dan Hak Asasi Manusia No.
+              {{ skKemenkumham }} dan berkedudukan di {{ lembagaAlamat }}, serta menjalankan usaha
+              pembiayaan dan pengembangan usaha masyarakat desa yang berdomisili di
+              {{ lembagaAlamat }} dengan perangkat organisasi sebagai berikut:
             </div>
-           
           </li>
-          <li data-block="sec-kebijakan" style="margin-top: 12px;">
-            <div style="text-transform: uppercase;">
-                Ikhtisar Kebijakan Akuntansi
-            </div>
-            <ol style="list-style: none; padding-left: 0; text-align: justify;">
-                <li>
-                    1. Pernyataan Kepatuhan
-                    <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify;">
-                        <li>Laporan keuangan disusun menggunakan Standar Akuntansi Keuangan Perusahaan Jasa Keuangan</li>
-                        <li>Dasar Penyusunan Kepmendesa 136 Tahun 2022</li>
-                        <li>Dasar penyusunan laporan keuangan adalah biaya historis dan menggunakan asumsi dasar akrual. Mata uang penyajian yang digunakan untuk menyusun laporan keuangan ini adalah Rupiah.</li>
-                    </ol>
-                </li>
-                <li style="margin-top: 6px;">2. Piutang Usaha
-                    <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify;">
-                        <li>Piutang usaha disajikan sebesar jumlah saldo pinjaman dikurangi dengan cadangan kerugian pinjaman</li>
-                    </ol>
-                </li>
-                <li style="margin-top: 6px;">3. Aset Tetap (berwujud dan tidak berwujud)
-                    <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify;">
-                        <li>Aset tetap dicatat sebesar biaya perolehannya jika aset tersebut dimiliki secara hukum oleh Bumdesma Lkd. Aset tetap disusutkan menggunakan metode garis lurus tanpa nilai residu.</li>
-                    </ol>
-                </li>
-                <li style="margin-top: 6px;">4. Pengakuan Pendapatan dan Beban
-                    <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify;">
-                        <li>Jasa piutang kelompok dan lembaga lain yang sudah memasuki jatuh tempo pembayaran diakui sebagai pendapatan meskipun tidak diterbitkan kuitansi sebagai bukti pembayaran jasa piutang. Whereas denda keterlambatan pembayaran/pinalti diakui sebagai pendapatan pada saat diterbitkan kuitansi pembayaran.</li>
-                        <li>Adapun kewajiban bayar atas kebutuhan operasional, pemasaran maupun non operasional pada suatu periode operasi tertentu sebagai akibat telah menikmati manfaat/menerima fasilitas, maka hal tersebut sudah wajib diakui sebagai beban meskipun belum diterbitkan kuitansi pembayaran.</li>
-                    </ol>
-                </li>
-                <li style="margin-top: 6px;">5. Pajak Penghasilan
-                    <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify;">
-                        <li>Pajak Penghasilan mengikuti ketentuan perpajakan yang berlaku di Indonesia</li>
-                    </ol>
-                </li>
+          <li data-block="sec-kebijakan" style="margin-top: 12px">
+            <div style="text-transform: uppercase">Ikhtisar Kebijakan Akuntansi</div>
+            <ol style="list-style: none; padding-left: 0; text-align: justify">
+              <li>
+                1. Pernyataan Kepatuhan
+                <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify">
+                  <li>
+                    Laporan keuangan disusun menggunakan Standar Akuntansi Keuangan Perusahaan Jasa
+                    Keuangan
+                  </li>
+                  <li>Dasar Penyusunan Kepmendesa 136 Tahun 2022</li>
+                  <li>
+                    Dasar penyusunan laporan keuangan adalah biaya historis dan menggunakan asumsi
+                    dasar akrual. Mata uang penyajian yang digunakan untuk menyusun laporan keuangan
+                    ini adalah Rupiah.
+                  </li>
+                </ol>
+              </li>
+              <li style="margin-top: 6px">
+                2. Piutang Usaha
+                <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify">
+                  <li>
+                    Piutang usaha disajikan sebesar jumlah saldo pinjaman dikurangi dengan cadangan
+                    kerugian pinjaman
+                  </li>
+                </ol>
+              </li>
+              <li style="margin-top: 6px">
+                3. Aset Tetap (berwujud dan tidak berwujud)
+                <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify">
+                  <li>
+                    Aset tetap dicatat sebesar biaya perolehannya jika aset tersebut dimiliki secara
+                    hukum oleh Bumdesma Lkd. Aset tetap disusutkan menggunakan metode garis lurus
+                    tanpa nilai residu.
+                  </li>
+                </ol>
+              </li>
+              <li style="margin-top: 6px">
+                4. Pengakuan Pendapatan dan Beban
+                <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify">
+                  <li>
+                    Jasa piutang kelompok dan lembaga lain yang sudah memasuki jatuh tempo
+                    pembayaran diakui sebagai pendapatan meskipun tidak diterbitkan kuitansi sebagai
+                    bukti pembayaran jasa piutang. Whereas denda keterlambatan pembayaran/pinalti
+                    diakui sebagai pendapatan pada saat diterbitkan kuitansi pembayaran.
+                  </li>
+                  <li>
+                    Adapun kewajiban bayar atas kebutuhan operasional, pemasaran maupun non
+                    operasional pada suatu periode operasi tertentu sebagai akibat telah menikmati
+                    manfaat/menerima fasilitas, maka hal tersebut sudah wajib diakui sebagai beban
+                    meskipun belum diterbitkan kuitansi pembayaran.
+                  </li>
+                </ol>
+              </li>
+              <li style="margin-top: 6px">
+                5. Pajak Penghasilan
+                <ol style="list-style: lower-alpha; padding-left: 25px; text-align: justify">
+                  <li>
+                    Pajak Penghasilan mengikuti ketentuan perpajakan yang berlaku di Indonesia
+                  </li>
+                </ol>
+              </li>
             </ol>
           </li>
-          <li data-block="sec-informasi" style="margin-top: 12px; break-inside: avoid;">
-            <div style="text-transform: uppercase;">
-                  Informasi Tambahan Laporan Keuangan
-            </div>
-              <calk-table :rows="rows" :show-table-header="showTableHeader" :is-last-page="isLastPage" :total-saldo="payload?.total_saldo" :format-currency="formatCurrency" variant="tutup-buku" />
+          <li data-block="sec-informasi" style="margin-top: 12px; break-inside: avoid">
+            <div style="text-transform: uppercase">Informasi Tambahan Laporan Keuangan</div>
+            <calk-table
+              :rows="rows"
+              :show-table-header="showTableHeader"
+              :is-last-page="isLastPage"
+              :total-saldo="payload?.total_saldo"
+              :format-currency="formatCurrency"
+              variant="tutup-buku"
+            />
           </li>
           <template v-if="isLastPage">
-            <li data-block="sec-pembagian" style="margin-top: 12px;">
-            <div style="text-transform: uppercase;">
-                Pembagian Laba Usaha
-            </div>
-            <ol style="list-style: none; padding-left: 0; text-align: justify;">
+            <li data-block="sec-pembagian" style="margin-top: 12px">
+              <div style="text-transform: uppercase">Pembagian Laba Usaha</div>
+              <ol style="list-style: none; padding-left: 0; text-align: justify">
                 <li>
-                    Pembagian atas laba usaha dibagi menjadi Laba dibagikan dan laba ditahan sesuai dengan ketentuan pada
-                    Permendesa PDTT nomor 15 tahun 2021 yaitu:
-                    <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify;">
-                        <li>Hasil usaha yang dibagikan paling sedikit terdiri atas: bagian milik bersama masyarakat Desa; dan bagian Desa;</li>
-                        <li>Besaran masing-masing bagian dihitung berdasarkan persentase penyertaan modal dan dituangkan dalam anggaran dasar.</li>
-                    </ol>
+                  Pembagian atas laba usaha dibagi menjadi Laba dibagikan dan laba ditahan sesuai
+                  dengan ketentuan pada Permendesa PDTT nomor 15 tahun 2021 yaitu:
+                  <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify">
+                    <li>
+                      Hasil usaha yang dibagikan paling sedikit terdiri atas: bagian milik bersama
+                      masyarakat Desa; dan bagian Desa;
+                    </li>
+                    <li>
+                      Besaran masing-masing bagian dihitung berdasarkan persentase penyertaan modal
+                      dan dituangkan dalam anggaran dasar.
+                    </li>
+                  </ol>
                 </li>
-                <li style="margin-top: 6px;">
-                    Laba Ditahan Dari Laba Tahun
-                    <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify;">
-                        <li>Laba Ditahan untuk Penambahan Modal Kegiatan Rp.</li>
-                        <li>Laba Ditahan untuk Penambahan Investasi Usaha Rp.</li>
-                        <li>Laba Ditahan untuk Pendirian Unit Usaha Rp.</li>
-                    </ol>
+                <li style="margin-top: 6px">
+                  Laba Ditahan Dari Laba Tahun
+                  <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify">
+                    <li>Laba Ditahan untuk Penambahan Modal Kegiatan Rp.</li>
+                    <li>Laba Ditahan untuk Penambahan Investasi Usaha Rp.</li>
+                    <li>Laba Ditahan untuk Pendirian Unit Usaha Rp.</li>
+                  </ol>
                 </li>
-            </ol>
+              </ol>
             </li>
-            <li v-if="calkContent" data-block="sec-lain-lain" style="margin-top: 12px;">
-              <div style="text-transform: uppercase;">
-                Lain Lain
-              </div>
+            <li v-if="calkContent" data-block="sec-lain-lain" style="margin-top: 12px">
+              <div style="text-transform: uppercase">Lain Lain</div>
               <div style="text-align: justify" v-html="calkContent"></div>
             </li>
-            <li data-block="sec-penutup" style="margin-top: 12px;">
-            <div style="text-transform: uppercase;">
-               Penutup
-          </div>
-              <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
-                  <tr>
-                      <td align="justify">
-                          <div style="text-align: justify">
-                              Laporan Keuangan ini disajikan dengan berpedoman pada Keputusan
-                              Kementerian Desa Nomor 136/2022 Tentang Panduan Penyusunan Pelaporan Bumdes. dimana yang
-                              dimaksud Bumdes yang dimaksud dalam Keputusan Kementerian Desa adalah meliputi Bumdes, Bumdesma
-                              dan Bumdesma Lkd. Catatan atas Laporan Keuangan (CaLK) ini merupakan bagian tidak terpisahkan
-                              dari Laporan Keuangan Badan Usaha Milik Desa Bersama.
-                          </div>
-                      </td>
-                  </tr>
+            <li data-block="sec-penutup" style="margin-top: 12px">
+              <div style="text-transform: uppercase">Penutup</div>
+              <table
+                border="0"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                style="font-size: 11px"
+              >
+                <tr>
+                  <td align="justify">
+                    <div style="text-align: justify">
+                      Laporan Keuangan ini disajikan dengan berpedoman pada Keputusan Kementerian
+                      Desa Nomor 136/2022 Tentang Panduan Penyusunan Pelaporan Bumdes. dimana yang
+                      dimaksud Bumdes yang dimaksud dalam Keputusan Kementerian Desa adalah meliputi
+                      Bumdes, Bumdesma dan Bumdesma Lkd. Catatan atas Laporan Keuangan (CaLK) ini
+                      merupakan bagian tidak terpisahkan dari Laporan Keuangan Badan Usaha Milik
+                      Desa Bersama.
+                    </div>
+                  </td>
+                </tr>
               </table>
             </li>
           </template>
@@ -121,58 +192,76 @@
 
         <!-- HALAMAN LANJUTAN (non-first): tabel informasi sebagai plain div -->
         <div v-else>
-          <div data-block="sec-informasi-cont" style="margin-top: 12px; break-inside: avoid;">
-            <calk-table :rows="rows" :show-table-header="showTableHeader" :is-last-page="isLastPage" :total-saldo="payload?.total_saldo" :format-currency="formatCurrency" variant="tutup-buku" />
+          <div data-block="sec-informasi-cont" style="margin-top: 12px; break-inside: avoid">
+            <calk-table
+              :rows="rows"
+              :show-table-header="showTableHeader"
+              :is-last-page="isLastPage"
+              :total-saldo="payload?.total_saldo"
+              :format-currency="formatCurrency"
+              variant="tutup-buku"
+            />
           </div>
 
           <!-- Halaman terakhir: section pembagian & penutup dengan label D, E -->
-          <ol v-if="isLastPage" :start="4" style="list-style: upper-alpha; font-size: 12px; margin-top: 12px;">
+          <ol
+            v-if="isLastPage"
+            :start="4"
+            style="list-style: upper-alpha; font-size: 12px; margin-top: 12px"
+          >
             <li data-block="sec-pembagian">
-              <div style="text-transform: uppercase;">
-                  Pembagian Laba Usaha
-              </div>
-              <ol style="list-style: none; padding-left: 0; text-align: justify;">
-                  <li>
-                      Pembagian atas laba usaha dibagi menjadi Laba dibagikan dan laba ditahan sesuai dengan ketentuan pada
-                      Permendesa PDTT nomor 15 tahun 2021 yaitu:
-                      <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify;">
-                          <li>Hasil usaha yang dibagikan paling sedikit terdiri atas: bagian milik bersama masyarakat Desa; dan bagian Desa;</li>
-                          <li>Besaran masing-masing bagian dihitung berdasarkan persentase penyertaan modal dan dituangkan dalam anggaran dasar.</li>
-                      </ol>
-                  </li>
-                  <li style="margin-top: 6px;">
-                      Laba Ditahan Dari Laba Tahun
-                      <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify;">
-                          <li>Laba Ditahan untuk Penambahan Modal Kegiatan Rp.</li>
-                          <li>Laba Ditahan untuk Penambahan Investasi Usaha Rp.</li>
-                          <li>Laba Ditahan untuk Pendirian Unit Usaha Rp.</li>
-                      </ol>
-                  </li>
+              <div style="text-transform: uppercase">Pembagian Laba Usaha</div>
+              <ol style="list-style: none; padding-left: 0; text-align: justify">
+                <li>
+                  Pembagian atas laba usaha dibagi menjadi Laba dibagikan dan laba ditahan sesuai
+                  dengan ketentuan pada Permendesa PDTT nomor 15 tahun 2021 yaitu:
+                  <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify">
+                    <li>
+                      Hasil usaha yang dibagikan paling sedikit terdiri atas: bagian milik bersama
+                      masyarakat Desa; dan bagian Desa;
+                    </li>
+                    <li>
+                      Besaran masing-masing bagian dihitung berdasarkan persentase penyertaan modal
+                      dan dituangkan dalam anggaran dasar.
+                    </li>
+                  </ol>
+                </li>
+                <li style="margin-top: 6px">
+                  Laba Ditahan Dari Laba Tahun
+                  <ol style="list-style: lower-latin; padding-left: 25px; text-align: justify">
+                    <li>Laba Ditahan untuk Penambahan Modal Kegiatan Rp.</li>
+                    <li>Laba Ditahan untuk Penambahan Investasi Usaha Rp.</li>
+                    <li>Laba Ditahan untuk Pendirian Unit Usaha Rp.</li>
+                  </ol>
+                </li>
               </ol>
             </li>
-            <li v-if="calkContent" data-block="sec-lain-lain" style="margin-top: 12px;">
-              <div style="text-transform: uppercase;">
-                Lain Lain
-              </div>
+            <li v-if="calkContent" data-block="sec-lain-lain" style="margin-top: 12px">
+              <div style="text-transform: uppercase">Lain Lain</div>
               <div style="text-align: justify" v-html="calkContent"></div>
             </li>
-            <li data-block="sec-penutup" style="margin-top: 12px;">
-              <div style="text-transform: uppercase;">
-                 Penutup
-            </div>
-                <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
-                    <tr>
-                        <td align="justify">
-                            <div style="text-align: justify">
-                                Laporan Keuangan ini disajikan dengan berpedoman pada Keputusan
-                                Kementerian Desa Nomor 136/2022 Tentang Panduan Penyusunan Pelaporan Bumdes. dimana yang
-                                dimaksud Bumdes yang dimaksud dalam Keputusan Kementerian Desa adalah meliputi Bumdes, Bumdesma
-                                dan Bumdesma Lkd. Catatan atas Laporan Keuangan (CaLK) ini merupakan bagian tidak terpisahkan
-                                dari Laporan Keuangan Badan Usaha Milik Desa Bersama.
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+            <li data-block="sec-penutup" style="margin-top: 12px">
+              <div style="text-transform: uppercase">Penutup</div>
+              <table
+                border="0"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                style="font-size: 11px"
+              >
+                <tr>
+                  <td align="justify">
+                    <div style="text-align: justify">
+                      Laporan Keuangan ini disajikan dengan berpedoman pada Keputusan Kementerian
+                      Desa Nomor 136/2022 Tentang Panduan Penyusunan Pelaporan Bumdes. dimana yang
+                      dimaksud Bumdes yang dimaksud dalam Keputusan Kementerian Desa adalah meliputi
+                      Bumdes, Bumdesma dan Bumdesma Lkd. Catatan atas Laporan Keuangan (CaLK) ini
+                      merupakan bagian tidak terpisahkan dari Laporan Keuangan Badan Usaha Milik
+                      Desa Bersama.
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </li>
           </ol>
         </div>
@@ -185,10 +274,11 @@
 import { computed, ref } from 'vue'
 import BaseReportLayout from '../layouts/BaseReportLayout.vue'
 import CalkTable from './CalkTable.vue'
+import { sanitizeRichText } from '@/utils/sanitizeHtml'
 
 const props = defineProps({
   payload: { type: Object, default: () => ({}) },
-  meta: { type: Object, default: () => ({}) }
+  meta: { type: Object, default: () => ({}) },
 })
 
 const rootEl = ref(null)
@@ -277,7 +367,11 @@ const customPointA = computed(() => {
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/gi, ' ')
     .trim()
-  return stripped ? raw : ''
+  // Disanitasi lagi di sini. Server sudah membersihkannya saat
+  // penyimpanan, tapi data yang sudah terlanjur tersimpan sebelum
+  // sanitasi itu ada tidak ikut dibersihkan -- dan halaman laporan ini
+  // merender hasilnya dengan v-html.
+  return stripped ? sanitizeRichText(raw) : ''
 })
 
 /**
@@ -292,7 +386,10 @@ const calkContent = computed(() => {
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/gi, ' ')
     .trim()
-  return stripped ? raw : ''
+  // Sama seperti customPointA: server sudah menyanitasi saat
+  // penyimpanan, tapi isi lama yang sudah terlanjur tersimpan tidak
+  // ikut dibersihkan.
+  return stripped ? sanitizeRichText(raw) : ''
 })
 </script>
 
@@ -303,7 +400,23 @@ const calkContent = computed(() => {
   flex: 1 1 auto;
   min-height: 0;
 }
-.header-section { text-align: center; margin-top: 5px; margin-bottom: 15px; }
-.header-section h2 { margin: 0; font-size: 14pt; font-weight: bold; color: #000000; line-height: 1.2; }
-.header-section h3 { margin: -5px 0 0 0; font-size: 12pt; font-weight: bold; color: #000000; text-transform: uppercase; }
+.header-section {
+  text-align: center;
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+.header-section h2 {
+  margin: 0;
+  font-size: 14pt;
+  font-weight: bold;
+  color: #000000;
+  line-height: 1.2;
+}
+.header-section h3 {
+  margin: -5px 0 0 0;
+  font-size: 12pt;
+  font-weight: bold;
+  color: #000000;
+  text-transform: uppercase;
+}
 </style>

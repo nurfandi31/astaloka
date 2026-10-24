@@ -11,9 +11,7 @@
                 <font-awesome-icon icon="book-open" />
               </div>
               <div class="flex-1!">
-                <h4 class="text-xs! font-black! text-slate-800! leading-tight!">
-                  Peraturan Desa
-                </h4>
+                <h4 class="text-xs! font-black! text-slate-800! leading-tight!">Peraturan Desa</h4>
                 <p class="text-[10px]! text-slate-400!">
                   Nomor peraturan bersama kepala desa yang menjadi dasar hukum.
                 </p>
@@ -54,7 +52,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3! gap-4!">
         <div>
-          <label class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!">
+          <label
+            class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!"
+          >
             Bantuan Rumah Tangga (%)
           </label>
           <BaseInput
@@ -69,7 +69,9 @@
           />
         </div>
         <div>
-          <label class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!">
+          <label
+            class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!"
+          >
             Pengembangan Kapasitas (%)
           </label>
           <BaseInput
@@ -84,7 +86,9 @@
           />
         </div>
         <div>
-          <label class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!">
+          <label
+            class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!"
+          >
             Pelatihan Masyarakat (%)
           </label>
           <BaseInput
@@ -123,7 +127,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3! gap-4!">
         <div>
-          <label class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!">
+          <label
+            class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!"
+          >
             Peningkatan Modal
           </label>
           <BaseInput
@@ -138,7 +144,9 @@
           />
         </div>
         <div>
-          <label class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!">
+          <label
+            class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!"
+          >
             Penambahan Investasi Usaha
           </label>
           <BaseInput
@@ -153,7 +161,9 @@
           />
         </div>
         <div>
-          <label class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!">
+          <label
+            class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-1! block!"
+          >
             Pendirian Unit Usaha
           </label>
           <BaseInput
@@ -185,18 +195,20 @@
             Custom CALK (Point A - Gambaran Umum)
           </h4>
           <p class="text-[10px]! text-indigo-700!">
-            Narasi khusus yang akan menggantikan teks bawaan pada bagian
-            "A. Gambaran Umum" di laporan.
-            Gunakan editor WYSIWYG untuk memformat teks dengan mudah (bold,
-            italic, heading, list, dan link). Kosongkan untuk menggunakan teks
-            bawaan.
+            Narasi khusus yang akan menggantikan teks bawaan pada bagian "A. Gambaran Umum" di
+            laporan. Gunakan editor WYSIWYG untuk memformat teks dengan mudah (bold, italic,
+            heading, list, dan link). Kosongkan untuk menggunakan teks bawaan.
           </p>
         </div>
       </div>
 
       <!-- Toolbar Aksi Cepat: Insert Variable Placeholder -->
-      <div class="flex! flex-wrap! gap-2! p-3! bg-white! border! border-indigo-100! rounded-xl! mb-3!">
-        <span class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! self-center! mr-2!">
+      <div
+        class="flex! flex-wrap! gap-2! p-3! bg-white! border! border-indigo-100! rounded-xl! mb-3!"
+      >
+        <span
+          class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! self-center! mr-2!"
+        >
           Sisipkan Variabel:
         </span>
         <button
@@ -227,8 +239,12 @@
           placeholder="Tulis narasi Point A di sini. Gunakan toolbar untuk format teks. Kosongkan untuk menggunakan teks bawaan."
           editor-style="height: 320px; background: #ffffff; color: #1e293b;"
           :pt="{
-            root: { style: 'border-radius: 12px; overflow: hidden; background: #ffffff; color: #1e293b;' },
-            toolbar: { style: 'background: #eef2ff; border-bottom: 1px solid #c7d2fe; color: #475569;' },
+            root: {
+              style: 'border-radius: 12px; overflow: hidden; background: #ffffff; color: #1e293b;',
+            },
+            toolbar: {
+              style: 'background: #eef2ff; border-bottom: 1px solid #c7d2fe; color: #475569;',
+            },
             content: { style: 'background: #ffffff; color: #1e293b;' },
           }"
           @load="handleEditorLoad"
@@ -279,12 +295,17 @@
 
       <!-- Preview Output HTML -->
       <div class="mt-3!">
-        <label class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-2! block!">
+        <label
+          class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-widest! mb-2! block!"
+        >
           Preview HTML (Hasil yang akan tampil di laporan)
         </label>
         <div
           class="min-h-[60px]! p-4! border! border-slate-200! rounded-xl! bg-white! text-[12px]! leading-relaxed! text-slate-700!"
-          v-html="form.point_a || '<em class=&quot;text-slate-400!&quot;>(kosong - akan menampilkan teks bawaan)</em>'"
+          v-html="
+            previewPointA ||
+            '<em class=&quot;text-slate-400!&quot;>(kosong - akan menampilkan teks bawaan)</em>'
+          "
         ></div>
       </div>
     </div>
@@ -309,9 +330,8 @@
           </h4>
           <p class="text-[11px]! font-medium! text-slate-500! leading-relaxed!">
             <strong class="text-indigo-700!">Catatan Atas Laporan Keuangan (CALK)</strong>
-            adalah bagian tidak terpisahkan dari laporan keuangan yang menjelaskan
-            kebijakan akuntansi dan rincian pembagian laba.
-            Pengaturan di sini akan otomatis tampil di
+            adalah bagian tidak terpisahkan dari laporan keuangan yang menjelaskan kebijakan
+            akuntansi dan rincian pembagian laba. Pengaturan di sini akan otomatis tampil di
             <strong>Pelaporan &raquo; CALK</strong>.
           </p>
         </div>
@@ -335,8 +355,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import BaseInput from '@/presentations/components/ui/BaseInput.vue'
 import BaseButton from '@/presentations/components/ui/BaseButton.vue'
+import { sanitizeRichText } from '@/utils/sanitizeHtml'
 
 const form = defineModel({ required: true })
 
@@ -352,6 +374,21 @@ defineProps({
  * Disimpan di module-scope agar dapat diakses oleh insertVariable().
  */
 let quillInstance = null
+
+/**
+ * Pratinjau Point A yang sudah disanitasi.
+ *
+ * PrimeVue Editor memanggil `quill.getSemanticHTML()` setiap kali teks
+ * berubah, dan Quill 2.0.3 punya celah XSS sendiri (CVE-2025-15056):
+ * blot `formula` dan `video` meng-interpolasi nilai mentah ke string HTML.
+ * Belum ada versi patch-nya. Pratinjau ini dirender dengan `v-html`, jadi
+ * tanpa sanitasi, payload-nya dieksekusi di browser admin SEBELUM
+ * request apa pun dikirim ke server.
+ *
+ * Backend juga menyanitasi (lihat `App\Services\HtmlSanitizer`), tapi
+ * sanitasi di server tidak melindungi pratinjau. Ini lapisan kedua.
+ */
+const previewPointA = computed(() => sanitizeRichText(form.value?.point_a || ''))
 
 /**
  * Dipanggil otomatis oleh PrimeVue Editor saat instance Quill siap.
@@ -507,7 +544,7 @@ function resetPointA() {
   color: #1e293b !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
-.calk-wysiwyg-wrapper .ql-snow .ql-tooltip input[type=text] {
+.calk-wysiwyg-wrapper .ql-snow .ql-tooltip input[type='text'] {
   border: 1px solid #cbd5e1 !important;
   color: #1e293b !important;
   background: #ffffff !important;
