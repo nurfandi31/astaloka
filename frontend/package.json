@@ -68,7 +68,8 @@
   },
   "pnpm": {
     "overrides": {
-      "yaml": "^2.8.3"
+      "yaml": "^2.8.3",
+      "vue-sweetalert2>sweetalert2": "^11.22.4"
     },
     "patchedDependencies": {
       "quill@2.0.3": "patches/quill@2.0.3.patch"
