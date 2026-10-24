@@ -13,9 +13,12 @@
     "lint-staged": "^15.4.3"
   },
   "lint-staged": {
-    "frontend/**/*.{js,vue,json}": [
+    "frontend/**/*.{js,vue}": [
       "pnpm --dir frontend exec oxlint --fix",
       "pnpm --dir frontend exec eslint --fix --cache",
+      "pnpm --dir frontend exec prettier --write"
+    ],
+    "frontend/**/*.json": [
       "pnpm --dir frontend exec prettier --write"
     ],
     "backend/**/*.php": [
