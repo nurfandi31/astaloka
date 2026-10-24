@@ -6,6 +6,7 @@ settings:
 
 overrides:
   yaml: ^2.8.3
+  vue-sweetalert2>sweetalert2: ^11.22.4
 
 patchedDependencies:
   quill@2.0.3:
@@ -2367,9 +2368,6 @@ packages:
 
   sweetalert2@11.26.25:
     resolution: {integrity: sha512-+hunCOJdJ6FLj04T9YSLvvZXRjsvIkTeTKP2e4VF8CaBias961BTnWiSFAy7F/CM5eq3QK2Rraoc5Gzftslvkg==}
-
-  sweetalert2@11.4.4:
-    resolution: {integrity: sha512-9yYWQuRT1v9JNI/paPTSYV+68MHwe9C+HQ/I2jtfaFzoJgYRftWXOs4JqmDSjT7m2m4r8ebMMn8LcxD1Wq9B/w==}
 
   tailwindcss-primeui@0.6.1:
     resolution: {integrity: sha512-T69Rylcrmnt8zy9ik+qZvsLuRIrS9/k6rYJSIgZ1trnbEzGDDQSCIdmfyZknevqiHwpSJHSmQ9XT2C+S/hJY4A==}
@@ -4756,8 +4754,6 @@ snapshots:
 
   sweetalert2@11.26.25: {}
 
-  sweetalert2@11.4.4: {}
-
   tailwindcss-primeui@0.6.1(tailwindcss@4.3.3):
     dependencies:
       tailwindcss: 4.3.3
@@ -4946,7 +4942,7 @@ snapshots:
 
   vue-sweetalert2@5.0.11(vue@3.5.44):
     dependencies:
-      sweetalert2: 11.4.4
+      sweetalert2: 11.26.25
       vue: 3.5.44
 
   vue@3.5.44:
