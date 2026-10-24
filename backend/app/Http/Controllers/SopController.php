@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Calk;
 use App\Models\Setting;
+use App\Services\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -91,15 +92,15 @@ class SopController extends Controller
     public function updateLembaga(Request $request)
     {
         try {
-$data = $request->validate([
-            'nama' => 'nullable|string|max:150',
-            'alamat' => 'nullable|string',
-            'email' => 'nullable|email|max:150',
-            'telepon' => 'nullable|string|max:30',
-            'domain' => 'nullable|string|max:255',
-            'peraturan_desa' => 'nullable|string|max:100',
-            'sk_kemenkumham' => 'nullable|string|max:100',
-        ]);
+            $data = $request->validate([
+                'nama' => 'nullable|string|max:150',
+                'alamat' => 'nullable|string',
+                'email' => 'nullable|email|max:150',
+                'telepon' => 'nullable|string|max:30',
+                'domain' => 'nullable|string|max:255',
+                'peraturan_desa' => 'nullable|string|max:100',
+                'sk_kemenkumham' => 'nullable|string|max:100',
+            ]);
 
             $s = Setting::firstOrNew([]);
             $s->key = $s->key ?: 'sop';
@@ -398,7 +399,11 @@ $data = $request->validate([
 
             $s = Setting::firstOrNew([]);
             $s->key = $s->key ?: 'sop';
-            $s->calk_point_a = $data['point_a'] ?? '';
+            // HTML dari editor dirender apa adanya di laporan (v-html),
+            // jadi harus disanitasi sebelum disimpan -- bukan saat
+            // ditampilkan. Tanpa ini, markup berbahaya ikut tersimpan
+            // dan dieksekusi setiap kali laporan dibuka.
+            $s->calk_point_a = HtmlSanitizer::clean($data['point_a'] ?? '');
             $s->save();
 
             return $this->success('Custom CALK Berhasil Diperbarui.');
@@ -451,7 +456,9 @@ $data = $request->validate([
             if (! empty($data['catatan'])) {
                 Calk::create([
                     'tanggal' => $data['tanggal'],
-                    'catatan' => $data['catatan'],
+                    // Catatan CALK dirender apa adanya di laporan, jadi
+                    // harus disanitasi sebelum disimpan.
+                    'catatan' => HtmlSanitizer::clean($data['catatan']),
                 ]);
             }
 

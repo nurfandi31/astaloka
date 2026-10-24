@@ -7,6 +7,11 @@ settings:
 overrides:
   yaml: ^2.8.3
 
+patchedDependencies:
+  quill@2.0.3:
+    hash: 27266e4cf59646e1b65212f929e48baa5c2b259a3335a9c249b0192dd9413b01
+    path: patches/quill@2.0.3.patch
+
 importers:
 
   .:
@@ -76,7 +81,7 @@ importers:
         version: 4.5.5(vue@3.5.44)
       quill:
         specifier: ^2.0.3
-        version: 2.0.3
+        version: 2.0.3(patch_hash=27266e4cf59646e1b65212f929e48baa5c2b259a3335a9c249b0192dd9413b01)
       sweetalert2:
         specifier: ^11.26.25
         version: 11.26.25
@@ -4646,7 +4651,7 @@ snapshots:
       lodash.clonedeep: 4.5.0
       lodash.isequal: 4.5.0
 
-  quill@2.0.3:
+  quill@2.0.3(patch_hash=27266e4cf59646e1b65212f929e48baa5c2b259a3335a9c249b0192dd9413b01):
     dependencies:
       eventemitter3: 5.0.4
       lodash-es: 4.18.1
