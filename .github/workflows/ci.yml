@@ -52,10 +52,16 @@ jobs:
         run: pnpm run test
 
   backend:
-    name: Backend tests (Pest) — non-blocking
-    # Non-blocking: 6 test gagal secara pre-existing (bug test/produk, mis.
-    # transisi status InstallationTicket). Hasil tetap terlihat di Checks.
-    continue-on-error: true
+    name: Backend tests (Pest)
+    # Blocking. Sebelumnya job ini `continue-on-error: true` dengan
+    # alasan "6 test gagal secara pre-existing". Kebaruan itu sudah tidak
+    # berlaku: 594 test lulus (2922 assertion), lokal maupun di runner,
+    # dan tidak ada satu pun test yang di-skip.
+    #
+    # Yang tersisa dari alasan lama: `InstallationTicket` punya test
+    # transisi status yang dulu gagal. Test itu sekarang lulus, jadi
+    # alasan untuk tidak memblokir merge juga sudah hilang.
+    continue-on-error: false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
