@@ -148,7 +148,9 @@ const getDetail = async () => {
     }
 
     desaOptions.value = [{ id: data.village_name, text: data.village_name }]
-  } catch (err) {
+  } catch {
+    // Detail desa gagal dimuat: form dibiarkan kosong supaya pengguna
+    // bisa mengisinya manual. Kesalahan sengaja ditelan di sini.
   }
 }
 
@@ -179,8 +181,7 @@ const handleSave = async () => {
 
     uiStore.success('Data desa berhasil diperbarui')
     router.push('/app/data-desa')
-  } catch (err) {
-
+  } catch {
     Swal.fire('Error', 'Gagal update data', 'error')
   } finally {
     isLoading.value = false

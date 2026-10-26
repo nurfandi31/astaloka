@@ -122,6 +122,21 @@ for (const nama of [
   'HTMLTemplateElement',
   'HTMLSlotElement',
   /*
+   * `ShadowRoot` masuk daftar ini karena `@primeuix/utils` memakainya saat
+   * memeriksa apakah sebuah node berada di dalam shadow tree:
+   *
+   *     function y(t) {
+   *       if (t instanceof ShadowRoot && t.host) t = t.host
+   *       return t
+   *     }
+   *
+   * `primevue/editor` memanggil utilitas itu saat memuat Quill, jadi tanpa
+   * stub ini test apa pun yang menyentuh Editor gagal dengan
+   * `ReferenceError: ShadowRoot is not defined` -- error yang menyebut
+   * kelas browser, bukan komponen yang sedang diuji.
+   */
+  'ShadowRoot',
+  /*
    * `XMLSerializer` dan `Range` ikut karena PrimeVue memakainya.
    *
    * `primevue/select` yang dipakai `BaseSelect` memanggil

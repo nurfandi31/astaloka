@@ -2,7 +2,7 @@
   <div class="space-y-6!">
     <div class="flex! flex-col! lg:flex-row! lg:items-center! lg:justify-between! gap-4!">
       <div class="flex! items-center! gap-3!">
-        <span class="text-lg!">“Š</span>
+        <span class="text-lg!">📊</span>
         <div class="flex! flex-col! gap-1!">
           <span class="text-base! font-semibold! text-gray-900!">
             {{ title || `Tentukan Rencana Anggaran Tahun ${tahun}` }}
@@ -13,14 +13,16 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="” Cari kode atau nama akun..."
+          placeholder="🔍 Cari kode atau nama akun..."
           class="w-full! h-10! pl-3! pr-3! bg-white! border! border-slate-200! rounded-lg! text-sm! text-slate-700! transition-all! focus:outline-none! focus:border-blue-500! focus:ring-2! focus:ring-blue-500/10!"
         />
       </div>
     </div>
 
     <div v-if="loading" class="text-center! py-12!">
-      <div class="animate-spin! w-10! h-10! border-4! border-blue-500! border-t-transparent! rounded-full! mx-auto! mb-3!"></div>
+      <div
+        class="animate-spin! w-10! h-10! border-4! border-blue-500! border-t-transparent! rounded-full! mx-auto! mb-3!"
+      ></div>
       <p class="text-slate-500! text-sm!">Memuat data akun...</p>
     </div>
 
@@ -28,13 +30,19 @@
       <table class="min-w-full! divide-y! divide-slate-200!">
         <thead class="bg-gradient-to-r! from-slate-700! to-slate-800!">
           <tr>
-            <th class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-white! uppercase! tracking-wider! text-left!">
+            <th
+              class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-white! uppercase! tracking-wider! text-left!"
+            >
               Kode Akun
             </th>
-            <th class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-white! uppercase! tracking-wider! text-left!">
+            <th
+              class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-white! uppercase! tracking-wider! text-left!"
+            >
               Nama Akun
             </th>
-            <th class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-white! uppercase! tracking-wider! text-right! w-80!">
+            <th
+              class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-white! uppercase! tracking-wider! text-right! w-80!"
+            >
               Saldo
             </th>
           </tr>
@@ -43,17 +51,25 @@
           <tr
             v-for="(akun, idx) in filteredItems"
             :key="akun.account_id"
-            :class="[idx % 2 === 0 ? 'bg-slate-50/40!' : 'bg-white!', 'hover:bg-slate-100!', 'transition-colors!']"
+            :class="[
+              idx % 2 === 0 ? 'bg-slate-50/40!' : 'bg-white!',
+              'hover:bg-slate-100!',
+              'transition-colors!',
+            ]"
           >
             <td class="px-4! py-1.5! text-xs! sm:text-sm! text-gray-700! font-sans!">
-              <span class="font-mono! text-[11px]! sm:text-xs! bg-blue-50! text-blue-700! px-3! py-1! rounded-full! border! border-blue-100! font-bold! tracking-tight!">
+              <span
+                class="font-mono! text-[11px]! sm:text-xs! bg-blue-50! text-blue-700! px-3! py-1! rounded-full! border! border-blue-100! font-bold! tracking-tight!"
+              >
                 {{ akun.kode_akun }}
               </span>
             </td>
             <td class="px-4! py-1.5! text-xs! sm:text-sm! font-semibold! text-gray-900! font-sans!">
               {{ akun.nama_akun }}
             </td>
-            <td class="px-4! py-1! text-xs! sm:px-6! sm:py-1.5! sm:text-sm! text-right! border-b! border-gray-200! font-sans!">
+            <td
+              class="px-4! py-1! text-xs! sm:px-6! sm:py-1.5! sm:text-sm! text-right! border-b! border-gray-200! font-sans!"
+            >
               <div class="w-full! max-w-xs! ml-auto!">
                 <MaksMoneyInput
                   v-model="akun.saldo"
@@ -67,18 +83,25 @@
           </tr>
           <tr v-if="filteredItems.length === 0">
             <td colspan="3" class="text-center! py-8! text-slate-500! text-sm!">
-              {{ searchQuery ? 'Tidak ada akun yang cocok dengan pencarian.' : 'Belum ada data akun.' }}
+              {{
+                searchQuery ? 'Tidak ada akun yang cocok dengan pencarian.' : 'Belum ada data akun.'
+              }}
             </td>
           </tr>
         </tbody>
         <tfoot>
           <tr class="bg-gray-50!">
-            <td colspan="2" class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-gray-700! uppercase! tracking-wider! border-t-2! border-gray-300! font-sans!">
+            <td
+              colspan="2"
+              class="px-4! py-3! text-xs! sm:text-sm! font-semibold! text-gray-700! uppercase! tracking-wider! border-t-2! border-gray-300! font-sans!"
+            >
               TOTAL SALDO KESELURUHAN
             </td>
             <td class="px-4! py-3! text-right! border-t-2! border-gray-300! font-sans!">
               <div class="flex! flex-col! items-end! leading-tight!">
-                <span class="text-[11px]! sm:text-xs! font-bold! text-slate-500! uppercase!">Rp.</span>
+                <span class="text-[11px]! sm:text-xs! font-bold! text-slate-500! uppercase!"
+                  >Rp.</span
+                >
                 <span class="font-mono! font-bold! text-blue-600! text-base! sm:text-lg!">
                   {{ formatNumber(total) }}
                 </span>
@@ -140,7 +163,7 @@ const fetchAccounts = async () => {
       items.value = response.data.data.items || []
       recomputeTotal()
     }
-  } catch (err) {
+  } catch {
     items.value = []
     total.value = 0
   } finally {
@@ -150,7 +173,14 @@ const fetchAccounts = async () => {
 
 defineExpose({ fetchAccounts, items, total })
 
-watch(() => [props.tahun, props.bulan], () => { if (props.autoFetch) fetchAccounts() })
+watch(
+  () => [props.tahun, props.bulan],
+  () => {
+    if (props.autoFetch) fetchAccounts()
+  },
+)
 
-onMounted(() => { if (props.autoFetch) fetchAccounts() })
+onMounted(() => {
+  if (props.autoFetch) fetchAccounts()
+})
 </script>

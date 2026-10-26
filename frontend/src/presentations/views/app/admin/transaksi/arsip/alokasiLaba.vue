@@ -5,7 +5,9 @@
     </div>
 
     <template v-else>
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6! gap-4">
+      <div
+        class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6! gap-4"
+      >
         <div class="header-left">
           <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Alokasi Laba</h1>
         </div>
@@ -36,9 +38,7 @@
             :key="item.kode_akun + '-' + idx"
             class="mb-4!"
           >
-            <div
-              class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1.5! gap-1"
-            >
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1.5! gap-1">
               <span class="text-sm font-semibold text-gray-600">
                 {{ item.nama_akun }}
               </span>
@@ -64,14 +64,8 @@
             </div>
           </div>
 
-          <div
-            v-for="(item, idx) in itemsDitahan"
-            :key="'ditahan-' + idx"
-            class="mb-4!"
-          >
-            <div
-              class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1.5! gap-1"
-            >
+          <div v-for="(item, idx) in itemsDitahan" :key="'ditahan-' + idx" class="mb-4!">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1.5! gap-1">
               <span class="text-sm font-semibold text-gray-600">
                 {{ item.nama_akun }}
               </span>
@@ -146,7 +140,9 @@ const totalDibagihkan = computed(() =>
   itemsDibagihkan.value.reduce((s, i) => s + (Number(i.nominal) || 0), 0),
 )
 
-const totalAlokasi = computed(() => totalDibagihkan.value + (Number(itemsDitahan.value[0]?.nominal) || 0))
+const totalAlokasi = computed(
+  () => totalDibagihkan.value + (Number(itemsDitahan.value[0]?.nominal) || 0),
+)
 const selisih = computed(() => totalSaldo.value - totalAlokasi.value)
 const isBalanced = computed(() => Math.abs(selisih.value) < 0.01)
 
@@ -158,10 +154,6 @@ const allAccountsFilled = computed(() => {
 })
 
 const canSave = computed(() => isBalanced.value && allAccountsFilled.value)
-
-const pctDibagihkan = computed(() =>
-  totalSaldo.value > 0 ? (totalDibagihkan.value / totalSaldo.value) * 100 : 0,
-)
 
 const pemupukanModalNominal = computed(() => {
   return totalSaldo.value - totalDibagihkan.value
@@ -230,29 +222,11 @@ const loadBookStatus = async (year) => {
     loadingStatus.value = false
   }
 }
-
-const calculateAllocation = async (year) => {
-  try {
-    const res = await accountingService.calculateAllocation(year, null)
-    if (res?.success && res.data) {
-      applyAllocation(
-        res.data.laba_dibagihkan,
-        res.data.total_laba,
-      )
-    }
-  } catch (e) {
-    uiStore.error(e?.response?.data?.message || 'Gagal memuat perhitungan alokasi.')
-  }
-}
-
 const loadExistingAllocation = async (year) => {
   try {
     const res = await accountingService.calculateAllocation(year, null)
     if (res?.success && res.data) {
-      applyAllocation(
-        res.data.laba_dibagihkan,
-        res.data.total_laba,
-      )
+      applyAllocation(res.data.laba_dibagihkan, res.data.total_laba)
     }
   } catch {
     // Alokasi laba tahun ini belum tersimpan. Formulir dibiarkan kosong
@@ -307,7 +281,8 @@ const handleSimpan = async () => {
     const res = await accountingService.saveAllocation(selectedTahun.value, items)
     if (res?.success) {
       uiStore.success(
-        res.data?.message || `Alokasi laba tahun ${selectedTahun.value} berhasil disimpan ke bulan 13.`,
+        res.data?.message ||
+          `Alokasi laba tahun ${selectedTahun.value} berhasil disimpan ke bulan 13.`,
       )
     } else {
       uiStore.error(res?.message || 'Gagal menyimpan alokasi laba.')

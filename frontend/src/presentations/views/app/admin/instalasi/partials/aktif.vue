@@ -15,7 +15,10 @@
             </p>
             <h1 class="text-lg! font-bold! text-slate-800! truncate!">{{ customer.name }}</h1>
             <div class="flex! items-center! gap-1.5! text-slate-500!">
-              <font-awesome-icon icon="map-marker-alt" class="text-emerald-400! text-[10px]! shrink-0!" />
+              <font-awesome-icon
+                icon="map-marker-alt"
+                class="text-emerald-400! text-[10px]! shrink-0!"
+              />
               <p class="text-[11px]! truncate!">{{ customer.address }}</p>
             </div>
           </div>
@@ -54,7 +57,6 @@
           </div>
         </div>
       </ContentCard>
-
 
       <ContentCard variant="bordered" padding="normal" rounded="2xl">
         <div class="flex! items-center! gap-2! mb-3!">
@@ -125,7 +127,10 @@
           <h3 class="text-sm! font-bold! text-slate-800!">Riwayat Pencatatan Meter</h3>
         </div>
 
-        <div v-if="customer.readings.length === 0" class="text-center! py-4! text-xs! text-slate-400!">
+        <div
+          v-if="customer.readings.length === 0"
+          class="text-center! py-4! text-xs! text-slate-400!"
+        >
           Belum ada pencatatan meter.
         </div>
         <div v-else class="space-y-2!">
@@ -168,7 +173,9 @@
           Belum ada tagihan.
         </div>
         <div v-else class="space-y-2!">
-          <div class="rounded-xl! bg-gradient-to-br! from-sky-50! to-cyan-50! border! border-sky-100! p-3!">
+          <div
+            class="rounded-xl! bg-gradient-to-br! from-sky-50! to-cyan-50! border! border-sky-100! p-3!"
+          >
             <div class="flex! items-center! justify-between! mb-1!">
               <span class="text-[10px]! font-bold! text-slate-500! uppercase! tracking-wider!">
                 Periode
@@ -202,7 +209,9 @@
                 <p class="text-[8px]! font-bold! text-slate-400! uppercase!">Denda</p>
                 <p
                   class="text-[11px]! font-bold!"
-                  :class="customer.latestBill.penalty_amount > 0 ? 'text-rose-600!' : 'text-slate-400!'"
+                  :class="
+                    customer.latestBill.penalty_amount > 0 ? 'text-rose-600!' : 'text-slate-400!'
+                  "
                 >
                   Rp {{ formatRibuan(customer.latestBill.penalty_amount) }}
                 </p>
@@ -356,7 +365,7 @@ const loadSurveys = async () => {
     })
     const list = res?.data?.data
     surveys.value = Array.isArray(list) ? list : []
-  } catch (err) {
+  } catch {
     surveys.value = []
   } finally {
     loadingSurvey.value = false
@@ -390,7 +399,7 @@ const handleSaveSurvey = async (updatedData) => {
     uiStore.success('Survey berhasil diupdate')
     showEditSurvey.value = false
     await loadSurveys()
-  } catch (err) {
+  } catch {
     uiStore.error('Gagal update survey')
   } finally {
     uiStore.setLoading(false)
@@ -398,8 +407,18 @@ const handleSaveSurvey = async (updatedData) => {
 }
 
 const MONTHS_ID = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
 ]
 
 const formatMeter = (val) => {
@@ -456,7 +475,9 @@ const customer = computed(() => {
     .map((r) => {
       const y = Number(r.reading_year)
       const m = Number(r.reading_month)
-      const date = new Date(r.recorded_at || r.created_at || `${y}-${String(m).padStart(2, '0')}-25`)
+      const date = new Date(
+        r.recorded_at || r.created_at || `${y}-${String(m).padStart(2, '0')}-25`,
+      )
       return {
         label: m ? MONTHS_ID[m - 1].substring(0, 3) + " '" + String(y).slice(-2) : '-',
         year: y,
@@ -495,7 +516,11 @@ const customer = computed(() => {
   const latestBill = billsRaw.length
     ? billsRaw
         .slice()
-        .sort((a, b) => (Number(b.billing_period_year) - Number(a.billing_period_year)) * 12 + (Number(b.billing_period_month) - Number(a.billing_period_month)))[0]
+        .sort(
+          (a, b) =>
+            (Number(b.billing_period_year) - Number(a.billing_period_year)) * 12 +
+            (Number(b.billing_period_month) - Number(a.billing_period_month)),
+        )[0]
     : null
   const latestBillData = latestBill
     ? {
@@ -520,7 +545,8 @@ const customer = computed(() => {
     .sort((a, b) => Number(a.usage_min_m3) - Number(b.usage_min_m3))
     .map((b) => {
       const min = Number(b.usage_min_m3)
-      const max = b.usage_max_m3 !== null && b.usage_max_m3 !== undefined ? Number(b.usage_max_m3) : null
+      const max =
+        b.usage_max_m3 !== null && b.usage_max_m3 !== undefined ? Number(b.usage_max_m3) : null
       const range = max === null ? `${min}+ m³` : max - min >= 1 ? `${min}–${max} m³` : `${min} m³`
       return {
         range,
@@ -633,4 +659,3 @@ watch(
   @apply text-[12px] font-bold text-slate-800 truncate;
 }
 </style>
-

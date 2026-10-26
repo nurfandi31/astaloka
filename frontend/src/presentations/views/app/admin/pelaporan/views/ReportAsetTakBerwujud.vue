@@ -1,44 +1,40 @@
 <template>
   <BaseReportLayout :lembaga="payload?.lembaga" :config="payload?.config" :payload="payload">
-      <div
+    <div
       class="header-section"
-      style="text-align:center;margin-bottom:15px;font-family:sans-serif;"
+      style="text-align: center; margin-bottom: 15px; font-family: sans-serif"
     >
-      <h2
-        style="margin:0;font-size:14pt;font-weight:bold;color:#000;"
-      >
+      <h2 style="margin: 0; font-size: 14pt; font-weight: bold; color: #000">
         Daftar {{ pageTitle }}
       </h2>
 
-      <h3
-        style="margin:-5px 0 0 0;font-size:12pt;font-weight:bold;color:#000;"
-      >
-       BULAN {{ payload?.periode?.bulan_name || '' }} {{ payload?.periode?.tahun || '' }}
+      <h3 style="margin: -5px 0 0 0; font-size: 12pt; font-weight: bold; color: #000">
+        BULAN {{ payload?.periode?.bulan_name || '' }} {{ payload?.periode?.tahun || '' }}
       </h3>
     </div>
 
     <table class="data-table">
       <thead>
         <tr>
-          <th rowspan="2" style="width: 3%;">No</th>
-          <th rowspan="2" style="width: 8%;">Tgl Beli</th>
-          <th rowspan="2" style="width: 20%;">Nama Barang</th>
-          <th rowspan="2" style="width: 3%;">Id</th>
-          <th rowspan="2" style="width: 6%;">Kondisi</th>
-          <th rowspan="2" style="width: 4%;">Unit</th>
-          <th rowspan="2" style="width: 10%;">Harga Satuan</th>
-          <th rowspan="2" style="width: 10%;">Harga Perolehan</th>
-          <th rowspan="2" style="width: 6%;">Umur Eko.</th>
-          <th rowspan="2" style="width: 9%;">Satuan Susut</th>
-          <th colspan="2" style="width: 15%;">Tahun Ini</th>
-          <th colspan="2" style="width: 15%;">s.d. Tahun Ini</th>
-          <th rowspan="2" style="width: 11%;">Nilai Buku</th>
+          <th rowspan="2" style="width: 3%">No</th>
+          <th rowspan="2" style="width: 8%">Tgl Beli</th>
+          <th rowspan="2" style="width: 20%">Nama Barang</th>
+          <th rowspan="2" style="width: 3%">Id</th>
+          <th rowspan="2" style="width: 6%">Kondisi</th>
+          <th rowspan="2" style="width: 4%">Unit</th>
+          <th rowspan="2" style="width: 10%">Harga Satuan</th>
+          <th rowspan="2" style="width: 10%">Harga Perolehan</th>
+          <th rowspan="2" style="width: 6%">Umur Eko.</th>
+          <th rowspan="2" style="width: 9%">Satuan Susut</th>
+          <th colspan="2" style="width: 15%">Tahun Ini</th>
+          <th colspan="2" style="width: 15%">s.d. Tahun Ini</th>
+          <th rowspan="2" style="width: 11%">Nilai Buku</th>
         </tr>
         <tr>
-          <th style="width: 8%;">Umur</th>
-          <th style="width: 8%;">Biaya</th>
-          <th style="width: 8%;">Umur</th>
-          <th style="width: 8%;">Biaya</th>
+          <th style="width: 8%">Umur</th>
+          <th style="width: 8%">Biaya</th>
+          <th style="width: 8%">Umur</th>
+          <th style="width: 8%">Biaya</th>
         </tr>
       </thead>
       <tbody>
@@ -61,22 +57,35 @@
         </tr>
 
         <tr v-if="rows.length === 0">
-          <td colspan="15" class="text-center" style="padding: 20px;">Tidak ada data pada akun ini.</td>
+          <td colspan="15" class="text-center" style="padding: 20px">
+            Tidak ada data pada akun ini.
+          </td>
         </tr>
 
         <tr class="total-row">
-          <td colspan="5" class="text-center"><b>Jumlah {{ pageTitle }}</b></td>
-          <td class="text-center"><b>{{ pageTotals.unit }}</b></td>
+          <td colspan="5" class="text-center">
+            <b>Jumlah {{ pageTitle }}</b>
+          </td>
+          <td class="text-center">
+            <b>{{ pageTotals.unit }}</b>
+          </td>
           <td></td>
-          <td class="text-right"><b>{{ formatRupiah(pageTotals.harga_perolehan) }}</b></td>
+          <td class="text-right">
+            <b>{{ formatRupiah(pageTotals.harga_perolehan) }}</b>
+          </td>
           <td colspan="2"></td>
-          <td  class="text-right" colspan="2"><b>{{ formatRupiah(pageTotals.penyusutan) }}</b></td>
-          <td  class="text-right" colspan="2"><b>{{ formatRupiah(pageTotals.akum_susut) }}</b></td>
-          <td class="text-right"><b>{{ formatRupiah(pageTotals.nilai_buku) }}</b></td>
+          <td class="text-right" colspan="2">
+            <b>{{ formatRupiah(pageTotals.penyusutan) }}</b>
+          </td>
+          <td class="text-right" colspan="2">
+            <b>{{ formatRupiah(pageTotals.akum_susut) }}</b>
+          </td>
+          <td class="text-right">
+            <b>{{ formatRupiah(pageTotals.nilai_buku) }}</b>
+          </td>
         </tr>
       </tbody>
     </table>
-
   </BaseReportLayout>
 </template>
 
@@ -85,17 +94,8 @@ import { computed } from 'vue'
 import BaseReportLayout from '../layouts/BaseReportLayout.vue'
 
 const props = defineProps({
-  payload: { type: Object, default: () => ({ config: {}, periode: {} }) }
+  payload: { type: Object, default: () => ({ config: {}, periode: {} }) },
 })
-
-const tanggalCetak = computed(() => {
-  return new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-})
-
 const formatRupiah = (val) => {
   const n = Number(val || 0)
   return n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -135,12 +135,8 @@ const currentGroup = computed(() => {
 
 const pageTitle = computed(() => {
   // Jika API mengirimkan 'view_target', gunakan itu sebagai fallback
-  const label = props.payload?.view_target === 'atb' ? 'ASET TAK BERWUJUD' : '';
-  return currentGroup.value?.nama_akun || label;
-})
-
-const isLastPage = computed(() => {
-  return props.payload?.isLastPage !== false
+  const label = props.payload?.view_target === 'atb' ? 'ASET TAK BERWUJUD' : ''
+  return currentGroup.value?.nama_akun || label
 })
 
 const rows = computed(() => {
@@ -149,17 +145,19 @@ const rows = computed(() => {
   const invList = group.inventory || []
   const tahun = Number(props.payload?.periode?.tahun) || new Date().getFullYear()
   const bulan = Number(props.payload?.periode?.bulan) || 12
-  const tglKondisi = props.payload?.meta?.tgl_kondisi
-    || props.payload?.tgl_kondisi
-    || `${tahun}-${String(bulan).padStart(2, '0')}-${new Date(tahun, bulan, 0).getDate()}`
+  const tglKondisi =
+    props.payload?.meta?.tgl_kondisi ||
+    props.payload?.tgl_kondisi ||
+    `${tahun}-${String(bulan).padStart(2, '0')}-${new Date(tahun, bulan, 0).getDate()}`
   const tahunLaluEnd = `${tahun - 1}-12-31`
 
   return invList.map((inv) => {
     const detail = inv.detail_susut || { penyusutan: 0, akum_susut: 0, nilai_buku: 0 }
     const hargaPerolehan = Number(inv.harsat || 0) * Number(inv.unit || 0)
-    const satuanSusut = Number(inv.umur_ekonomis || 0) > 0
-      ? (Number(inv.harsat || 0) / Number(inv.umur_ekonomis || 1)) * 12
-      : 0
+    const satuanSusut =
+      Number(inv.umur_ekonomis || 0) > 0
+        ? (Number(inv.harsat || 0) / Number(inv.umur_ekonomis || 1)) * 12
+        : 0
     const umurSd = hitungBulan(inv.tgl_beli, tglKondisi)
     const umurSdLalu = hitungBulan(inv.tgl_beli, tahunLaluEnd)
     const umurTahunIni = Math.max(0, umurSd - umurSdLalu)
@@ -227,9 +225,15 @@ const pageTotals = computed(() => {
   background-color: #f9f9f9;
   font-weight: bold;
 }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.text-left { text-align: left; }
+.text-center {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
+.text-left {
+  text-align: left;
+}
 
 .footer-container {
   width: 100%;
@@ -242,8 +246,12 @@ const pageTotals = computed(() => {
   text-align: center;
   font-size: 8.5pt;
 }
-.mt-0 { margin-top: 0px !important; }
-.mb-0 { margin-bottom: 0px !important; }
+.mt-0 {
+  margin-top: 0px !important;
+}
+.mb-0 {
+  margin-bottom: 0px !important;
+}
 .page-info {
   text-align: right;
   font-size: 8pt;
@@ -252,6 +260,8 @@ const pageTotals = computed(() => {
 }
 
 @media print {
-  .page-info { display: none !important; }
+  .page-info {
+    display: none !important;
+  }
 }
 </style>

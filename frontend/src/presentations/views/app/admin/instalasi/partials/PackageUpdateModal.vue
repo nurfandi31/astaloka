@@ -1,10 +1,6 @@
 <template>
   <Teleport to="body">
-    <div
-      v-if="show"
-      class="package-modal-overlay"
-      @click.self="!loading && $emit('close')"
-    >
+    <div v-if="show" class="package-modal-overlay" @click.self="!loading && $emit('close')">
       <div class="package-modal package-modal--update">
         <!-- Top accent gradient -->
         <div class="package-modal__accent"></div>
@@ -45,12 +41,8 @@
         <!-- ============ BODY: 2-COLUMN LAYOUT ============ -->
         <div class="package-modal__body">
           <div class="package-modal__body-inner pdm-stack">
-
             <!-- ===== TOP: Current package banner ===== -->
-            <section
-              v-if="currentPackage"
-              class="current-package-banner"
-            >
+            <section v-if="currentPackage" class="current-package-banner">
               <div class="package-icon-square package-icon-square--slate flex-shrink-0">
                 <font-awesome-icon icon="box" />
               </div>
@@ -78,7 +70,6 @@
 
             <!-- ===== MAIN: 2 columns layout ===== -->
             <section class="pdm-update-grid">
-
               <!-- =========== LEFT COLUMN: Pilih paket =========== -->
               <div class="package-panel">
                 <div class="package-panel__header package-panel__header--blue">
@@ -111,20 +102,26 @@
                         form.newPackageId === pkg.id && 'radio-card--selected',
                       ]"
                     >
-                      <div
-                        v-if="form.newPackageId === pkg.id"
-                        class="radio-card__check"
-                      >
+                      <div v-if="form.newPackageId === pkg.id" class="radio-card__check">
                         <font-awesome-icon icon="check" class="text-[10px]!" />
                       </div>
 
-                      <div :class="form.newPackageId === pkg.id ? 'radio-card__title radio-card__title--selected' : 'radio-card__title'">
+                      <div
+                        :class="
+                          form.newPackageId === pkg.id
+                            ? 'radio-card__title radio-card__title--selected'
+                            : 'radio-card__title'
+                        "
+                      >
                         {{ pkg.name }}
                       </div>
                       <div class="radio-card__price">
                         <div class="radio-card__price-row">
                           <span>Abodemen</span>
-                          <strong>{{ formatRupiah(pkg.monthly_abodemen) }}<span class="radio-card__price-unit">/bln</span></strong>
+                          <strong
+                            >{{ formatRupiah(pkg.monthly_abodemen)
+                            }}<span class="radio-card__price-unit">/bln</span></strong
+                          >
                         </div>
                         <div class="radio-card__price-row">
                           <span>Pasang</span>
@@ -161,7 +158,10 @@
                         class="preview-change__icon"
                         :class="selectedPackage ? previewHeaderBg : 'bg-slate-300'"
                       >
-                        <font-awesome-icon :icon="selectedPackage ? previewIcon : 'eye'" class="text-white text-sm!" />
+                        <font-awesome-icon
+                          :icon="selectedPackage ? previewIcon : 'eye'"
+                          class="text-white text-sm!"
+                        />
                       </div>
                       <div class="min-w-0">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-cyan-700">
@@ -172,15 +172,22 @@
                         </div>
                       </div>
                     </div>
-                    <span v-if="selectedPackage" class="chip" :class="previewBadgeClass">{{ previewTypeLabel }}</span>
+                    <span v-if="selectedPackage" class="chip" :class="previewBadgeClass">{{
+                      previewTypeLabel
+                    }}</span>
                     <span v-else class="chip chip--info">Idle</span>
                   </div>
 
-                  <div v-if="selectedPackage && currentPackage" class="preview-change__body pdm-stack pdm-stack--sm">
+                  <div
+                    v-if="selectedPackage && currentPackage"
+                    class="preview-change__body pdm-stack pdm-stack--sm"
+                  >
                     <!-- Before → After -->
                     <div class="flex items-center gap-2">
                       <div class="flex-1 min-w-0">
-                        <div class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        <div
+                          class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1"
+                        >
                           Dari
                         </div>
                         <div class="preview-change__from">
@@ -196,7 +203,9 @@
                         <font-awesome-icon icon="arrow-right" />
                       </div>
                       <div class="flex-1 min-w-0">
-                        <div class="text-[9px] font-bold uppercase tracking-wider text-cyan-700 mb-1">
+                        <div
+                          class="text-[9px] font-bold uppercase tracking-wider text-cyan-700 mb-1"
+                        >
                           Ke
                         </div>
                         <div class="preview-change__to">
@@ -213,7 +222,9 @@
                     <!-- Diff stats -->
                     <div class="grid grid-cols-2 gap-2 pt-2.5 border-t border-cyan-200/50">
                       <div class="preview-change__stat">
-                        <div class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                        <div
+                          class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5"
+                        >
                           Selisih Abodemen
                         </div>
                         <div class="text-xs font-extrabold" :class="diffColor">
@@ -221,29 +232,33 @@
                         </div>
                       </div>
                       <div class="preview-change__stat">
-                        <div class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                        <div
+                          class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5"
+                        >
                           Selisih Biaya Pasang
                         </div>
                         <div
                           class="text-xs font-extrabold"
-                          :class="installFeeDiff === 0
-                            ? 'text-slate-700'
-                            : installFeeDiff > 0
-                            ? 'text-emerald-700'
-                            : 'text-rose-700'"
+                          :class="
+                            installFeeDiff === 0
+                              ? 'text-slate-700'
+                              : installFeeDiff > 0
+                                ? 'text-emerald-700'
+                                : 'text-rose-700'
+                          "
                         >
-                          {{ installFeeDiff === 0
-                            ? '±'
-                            : installFeeDiff > 0
-                            ? '+'
-                            : '−' }}{{ formatRupiah(Math.abs(installFeeDiff)) }}
+                          {{ installFeeDiff === 0 ? '±' : installFeeDiff > 0 ? '+' : '−'
+                          }}{{ formatRupiah(Math.abs(installFeeDiff)) }}
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div v-else class="preview-change__empty">
-                    <font-awesome-icon icon="arrow-right" class="text-2xl text-cyan-300 mb-2 block" />
+                    <font-awesome-icon
+                      icon="arrow-right"
+                      class="text-2xl text-cyan-300 mb-2 block"
+                    />
                     <p class="text-[11px] text-slate-500 font-medium">
                       Preview perubahan akan muncul di sini
                     </p>
@@ -282,9 +297,9 @@
                 <div class="notice notice--warn">
                   <font-awesome-icon icon="exclamation-triangle" class="mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Penting:</strong> Tagihan lama tetap pakai tarif paket lama (snapshot pada
-                    kolom abodemen &amp; usage_charge). Hanya tagihan baru ke depan yang memakai tarif
-                    paket baru.
+                    <strong>Penting:</strong> Tagihan lama tetap pakai tarif paket lama (snapshot
+                    pada kolom abodemen &amp; usage_charge). Hanya tagihan baru ke depan yang
+                    memakai tarif paket baru.
                   </span>
                 </div>
               </div>
@@ -329,31 +344,42 @@ import { computed } from 'vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
-  form: { type: Object, required: true },
   packages: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   formatRupiah: { type: Function, required: true },
 })
 
+/**
+ * `form` dimodelkan sebagai `defineModel`, bukan prop biasa.
+ *
+ * Modal ini menulis `form.newPackageId` dan `form.reason` saat pengguna
+ * memilih paket atau mengetik alasan. Kalau `form` cuma prop, tulisan itu
+ * berarti memodifikasi prop -- melanggar aturan Vue dan bikin nilainya
+ * tidak terkirim balik ke induk.
+ *
+ * Dengan `defineModel`, induk memakai `v-model:form`, jadi isi form tetap
+ * milik induk (satu sumber kebenaran) tapi modal boleh mengubahnya lewat
+ * jalur resmi.
+ */
+const form = defineModel('form', { type: Object, required: true })
+
 defineEmits(['close', 'submit'])
 
 const currentPackage = computed(() => {
-  return props.packages.find((p) => p.id === props.form.currentPackageId) || null
+  return props.packages.find((p) => p.id === form.value.currentPackageId) || null
 })
 
 const selectedPackage = computed(() => {
-  return props.packages.find((p) => p.id === props.form.newPackageId) || null
+  return props.packages.find((p) => p.id === form.value.newPackageId) || null
 })
 
 const availablePackages = computed(() =>
-  props.packages.filter((p) => p.id !== props.form.currentPackageId),
+  props.packages.filter((p) => p.id !== form.value.currentPackageId),
 )
 
 const diff = computed(() => {
   if (!currentPackage.value || !selectedPackage.value) return 0
-  return (
-    selectedPackage.value.monthly_abodemen - currentPackage.value.monthly_abodemen
-  )
+  return selectedPackage.value.monthly_abodemen - currentPackage.value.monthly_abodemen
 })
 
 const diffSymbol = computed(() => {
@@ -370,9 +396,7 @@ const diffColor = computed(() => {
 
 const installFeeDiff = computed(() => {
   if (!currentPackage.value || !selectedPackage.value) return 0
-  return (
-    selectedPackage.value.installation_fee - currentPackage.value.installation_fee
-  )
+  return selectedPackage.value.installation_fee - currentPackage.value.installation_fee
 })
 
 const changeType = computed(() => {

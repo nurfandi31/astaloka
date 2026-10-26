@@ -203,8 +203,7 @@ onMounted(async () => {
 
       alamat_lengkap: data.address || '',
     }
-  } catch (error) {
-
+  } catch {
     Swal.fire({
       title: 'Gagal!',
       text: 'Tidak dapat mengambil data pelanggan.',
@@ -246,7 +245,7 @@ const handleSave = async () => {
 
     uiStore.success('Data pelanggan berhasil diperbarui')
     router.push('/app/data-pelanggan')
-  } catch (error) {
+  } catch {
     // Error handled globally
   } finally {
     isLoading.value = false

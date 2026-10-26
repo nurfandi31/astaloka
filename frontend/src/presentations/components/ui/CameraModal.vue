@@ -132,7 +132,7 @@ const startCamera = async () => {
       videoRef.value.srcObject = stream.value
       loading.value = false
     }
-  } catch (err) {
+  } catch {
     alert('Gagal mengakses kamera. Pastikan izin kamera sudah diberikan.')
     closeModal()
   }

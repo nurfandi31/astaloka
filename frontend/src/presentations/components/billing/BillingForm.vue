@@ -26,7 +26,9 @@
       <div class="flex-1! min-w-0! text-xs! text-amber-900!">
         <div class="font-extrabold! text-amber-800! mb-1.5! flex! items-center! gap-1.5!">
           <span>Pembayaran Sebelum Tanggal Generate Tunggakan</span>
-          <span class="px-1.5! py-0.5! rounded! bg-amber-200! text-amber-900! text-[9px]! font-extrabold! uppercase! tracking-wide!">
+          <span
+            class="px-1.5! py-0.5! rounded! bg-amber-200! text-amber-900! text-[9px]! font-extrabold! uppercase! tracking-wide!"
+          >
             Advance
           </span>
         </div>
@@ -53,8 +55,9 @@
             />
             <span>
               Pembayaran akan disimpan sebagai
-              <strong class="text-emerald-700!">pemakaian bulan
-              {{ formatDueDate(formData.dueDate, true) }}</strong>
+              <strong class="text-emerald-700!"
+                >pemakaian bulan {{ formatDueDate(formData.dueDate, true) }}</strong
+              >
               dengan tanggal
               <strong class="font-extrabold!">{{ formatDueDate(tanggalStr) }}</strong>
               (sesuai tanggal uang benar-benar diterima).
@@ -79,10 +82,9 @@
           Selesaikan Tagihan Lebih Lama Dulu
         </div>
         <div class="leading-relaxed!">
-          Masih ada tagihan lebih lama yang belum dibayar untuk pelanggan ini.
-          Pembayaran harus dilakukan urut dari tagihan paling lama.
-          Tombol konfirmasi saat ini <strong>nonaktif</strong> &mdash;
-          bayar dulu tagihan tertunggak di atas.
+          Masih ada tagihan lebih lama yang belum dibayar untuk pelanggan ini. Pembayaran harus
+          dilakukan urut dari tagihan paling lama. Tombol konfirmasi saat ini
+          <strong>nonaktif</strong> &mdash; bayar dulu tagihan tertunggak di atas.
         </div>
       </div>
     </div>
@@ -316,9 +318,11 @@
     <div class="flex! justify-end! pt-4! pb-2! border-t! border-slate-200/60!">
       <button
         :disabled="isConfirmDisabled"
-        :class="isConfirmDisabled
-          ? 'px-6! py-2.5! text-sm! font-bold! text-slate-500! bg-slate-200! cursor-not-allowed! rounded-xl! flex! items-center! gap-2!'
-          : 'px-6! py-2.5! text-sm! font-bold! text-white! bg-slate-500! hover:bg-slate-600! rounded-xl! shadow-lg! shadow-slate-200/50! transition-all! flex! items-center! gap-2!'"
+        :class="
+          isConfirmDisabled
+            ? 'px-6! py-2.5! text-sm! font-bold! text-slate-500! bg-slate-200! cursor-not-allowed! rounded-xl! flex! items-center! gap-2!'
+            : 'px-6! py-2.5! text-sm! font-bold! text-white! bg-slate-500! hover:bg-slate-600! rounded-xl! shadow-lg! shadow-slate-200/50! transition-all! flex! items-center! gap-2!'
+        "
         @click="handleSave"
         @click.stop
       >
@@ -353,7 +357,7 @@ const emit = defineEmits(['save'])
 const settingsStore = useSettingsStore()
 
 // Pastikan settings.toleransiTunggakan sudah di-load dari backend SEBELUM
-// computed `paidBeforeDueDate` & `thresholdDateStr` dievaluasi.
+// computed `paidBeforeDueDate` dievaluasi.
 // Sebelumnya store default = 0 → notifikasi ADVANCE tidak pernah muncul kalau
 // user belum pernah ke halaman SOP (yang sebelumnya satu-satunya pemanggil loadSettings).
 // Idempotent: store punya flag `isLoaded`, jadi aman dipanggil berulang.
@@ -470,9 +474,7 @@ const isPaidToday = computed(() => tanggalStr.value === todayStr)
  * adalah 'cash'. Backend memvalidasi `payment_method` jadi tetap konsisten
  * dengan kontrak yang sudah ada.
  */
-const effectivePaymentMethod = computed(() =>
-  isPaidToday.value ? 'cash' : paymentMethod.value,
-)
+const effectivePaymentMethod = computed(() => (isPaidToday.value ? 'cash' : paymentMethod.value))
 
 /**
  * Tombol konfirmasi nonaktif kalau masih ada tagihan lebih lama yang belum
@@ -565,30 +567,6 @@ const overdueDays = computed(() => {
  * PEMAKAIAN tagihan = billing_period_month/year).
  * Return string `YYYY-MM-DD` atau null kalau tidak bisa dihitung.
  */
-const thresholdDateStr = computed(() => {
-  const tgl = Number(settingsStore.toleransiTunggakan || 0)
-  if (tgl < 1) return null
-  let year, month
-  if (formData.billingPeriodMonth && formData.billingPeriodYear) {
-    year = Number(formData.billingPeriodYear)
-    month = Number(formData.billingPeriodMonth) - 1
-  } else if (formData.dueDate) {
-    const due = parseLocalDate(formData.dueDate)
-    if (!due) return null
-    year = due.getFullYear()
-    month = due.getMonth()
-  } else {
-    return null
-  }
-  if (Number.isNaN(year) || Number.isNaN(month)) return null
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const effectiveDay = Math.min(tgl, daysInMonth)
-  const yyyy = String(year)
-  const mm = String(month + 1).padStart(2, '0')
-  const dd = String(effectiveDay).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd}`
-})
-
 /**
  * TRUE kalau tanggal pembayaran LEBIH AWAL dari threshold.
  * Logika SAMA dengan backend `MonthlyBillController::pay`:
@@ -685,7 +663,8 @@ const handleSave = () => {
     MySwal.fire({
       icon: 'warning',
       iconColor: '#F59E0B',
-      title: 'Reklas Piutang & Catat Sebagai Pemakaian Bulan ' + formatDueDate(formData.dueDate, true),
+      title:
+        'Reklas Piutang & Catat Sebagai Pemakaian Bulan ' + formatDueDate(formData.dueDate, true),
       html: `
         <div class="text-left! text-sm! leading-relaxed!">
           <div class="p-3! rounded-lg! border! border-rose-200! bg-rose-50/60! space-y-2!">

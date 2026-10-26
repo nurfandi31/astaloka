@@ -4,8 +4,8 @@
       <div class="flex-1!">
         <h1 class="text-2xl font-bold text-slate-900! tracking-tight mb-1!">Data Instalasi</h1>
         <p class="text-sm text-slate-500! leading-relaxed">
-          Daftar seluruh instalasi pelanggan beserta statusnya. Klik baris untuk melihat
-          riwayat &amp; memperbarui paket pelanggan.
+          Daftar seluruh instalasi pelanggan beserta statusnya. Klik baris untuk melihat riwayat
+          &amp; memperbarui paket pelanggan.
         </p>
       </div>
 
@@ -96,8 +96,19 @@
           class="inline-flex! items-center! gap-1.5! px-3! py-1.5! rounded-lg! text-[11px]! font-bold! tracking-wider! uppercase! bg-cyan-600! hover:bg-cyan-700! text-white! border! border-cyan-700! shadow-sm! transition-all! hover:shadow-md! whitespace-nowrap!"
           title="Ubah paket pelanggan"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-5 5v8a2 2 0 002 2h11a5 5 0 005-5v-1M18.478 14v-2m0 0h-3m3 0-3-3m-3 9v-3m0 0h3m-3 0 3 3" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-3.5 h-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M11 5H6a2 2 0 00-5 5v8a2 2 0 002 2h11a5 5 0 005-5v-1M18.478 14v-2m0 0h-3m3 0-3-3m-3 9v-3m0 0h3m-3 0 3 3"
+            />
           </svg>
           Ubah Paket
         </button>
@@ -117,8 +128,8 @@
 
     <!-- ==================== MODAL UPDATE PAKET ==================== -->
     <PackageUpdateModal
+      v-model:form="updateForm"
       :show="!!updateForm.ticketId"
-      :form="updateForm"
       :packages="packages"
       :loading="isUpdateSubmitting"
       :format-rupiah="formatRupiah"

@@ -1,10 +1,13 @@
 <template>
-  <BaseReportLayout :lembaga="payload?.lembaga" :config="payload?.config" :payload="payload" :no-meta-header="!isFirstPage">
+  <BaseReportLayout
+    :lembaga="payload?.lembaga"
+    :config="payload?.config"
+    :payload="payload"
+    :no-meta-header="!isFirstPage"
+  >
     <div v-if="isFirstPage" class="page-header">
-        <h2>TAGIHAN PELANGGAN</h2>
-      <h2 class="mt-1 mb-0 leading-tight uppercase">
-        BULAN {{ periodeText }}
-      </h2>
+      <h2>TAGIHAN PELANGGAN</h2>
+      <h2 class="mt-1 mb-0 leading-tight uppercase">BULAN {{ periodeText }}</h2>
     </div>
 
     <div v-if="caterVisible" class="cater-teknisi">
@@ -13,29 +16,109 @@
 
     <table class="data-table" :class="{ 'data-table-tight': caterVisible }">
       <thead>
-        <tr style="background-color: rgb(230, 230, 230); font-weight: bold; text-align: center;">
-          <th width="4%" class="t l b" rowspan="2" align="center" style="text-align: center; vertical-align: middle;">No</th>
-          <th width="21%" class="t l b" rowspan="2" align="center" style="text-align: center; vertical-align: middle;">Nama</th>
-          <th width="15%" class="t l b" rowspan="2" align="center" style="text-align: center; vertical-align: middle;">No. Induk</th>
-          <th width="10%" class="t l b" rowspan="2" align="center" style="text-align: center; vertical-align: middle;">Tgl Aktif</th>
-          <th width="30%" class="t l b" colspan="3" align="center" style="text-align: center; vertical-align: middle;">Tagihan</th>
-          <th width="10%" class="t l b" rowspan="2" align="center" style="text-align: center; vertical-align: middle;">Dibayar</th>
-          <th width="10%" class="t l b r" rowspan="2" align="center" style="text-align: center; vertical-align: middle;">Status</th>
+        <tr style="background-color: rgb(230, 230, 230); font-weight: bold; text-align: center">
+          <th
+            width="4%"
+            class="t l b"
+            rowspan="2"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            No
+          </th>
+          <th
+            width="21%"
+            class="t l b"
+            rowspan="2"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            Nama
+          </th>
+          <th
+            width="15%"
+            class="t l b"
+            rowspan="2"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            No. Induk
+          </th>
+          <th
+            width="10%"
+            class="t l b"
+            rowspan="2"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            Tgl Aktif
+          </th>
+          <th
+            width="30%"
+            class="t l b"
+            colspan="3"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            Tagihan
+          </th>
+          <th
+            width="10%"
+            class="t l b"
+            rowspan="2"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            Dibayar
+          </th>
+          <th
+            width="10%"
+            class="t l b r"
+            rowspan="2"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            Status
+          </th>
         </tr>
-        <tr style="background-color: rgb(230, 230, 230); font-weight: bold; text-align: center;">
-          <th width="10%" class="t l b" align="center" style="text-align: center; vertical-align: middle;">s/d Bulan Lalu</th>
-          <th width="10%" class="t l b" align="center" style="text-align: center; vertical-align: middle;">Bulan Ini</th>
-          <th width="10%" class="t l b r" align="center" style="text-align: center; vertical-align: middle;">s/d Bulan Ini</th>
+        <tr style="background-color: rgb(230, 230, 230); font-weight: bold; text-align: center">
+          <th
+            width="10%"
+            class="t l b"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            s/d Bulan Lalu
+          </th>
+          <th
+            width="10%"
+            class="t l b"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            Bulan Ini
+          </th>
+          <th
+            width="10%"
+            class="t l b r"
+            align="center"
+            style="text-align: center; vertical-align: middle"
+          >
+            s/d Bulan Ini
+          </th>
         </tr>
       </thead>
       <tbody>
         <template v-if="rawItems.length > 0">
           <template v-for="(dusunGroup, namaDesa) in hierarchicalRows" :key="namaDesa">
             <template v-for="(customers, namaDusun) in dusunGroup" :key="namaDusun">
-
               <tr v-if="shouldShowWilayahHeader(namaDesa, namaDusun)" class="wilayah-header-gabung">
                 <td colspan="9">
-                  <span class="text-format-normal"><b>Desa {{ namaDesa.toLowerCase() }} Dusun {{ namaDusun.toLowerCase() }}</b></span>
+                  <span class="text-format-normal"
+                    ><b
+                      >Desa {{ namaDesa.toLowerCase() }} Dusun {{ namaDusun.toLowerCase() }}</b
+                    ></span
+                  >
                 </td>
               </tr>
 
@@ -46,7 +129,9 @@
                 <td class="text-center">{{ row.activated_at }}</td>
                 <td class="text-right">{{ formatCurrency(row.bulan_lalu) }}</td>
                 <td class="text-right">{{ formatCurrency(row.bulan_ini) }}</td>
-                <td class="text-right" style="font-weight: 500;">{{ formatCurrency(row.sampai_bulan_ini) }}</td>
+                <td class="text-right" style="font-weight: 500">
+                  {{ formatCurrency(row.sampai_bulan_ini) }}
+                </td>
                 <td class="text-right">{{ formatCurrency(row.dibayar) }}</td>
                 <td class="text-center">
                   <span class="uppercase-text">
@@ -54,206 +139,194 @@
                   </span>
                 </td>
               </tr>
-
             </template>
           </template>
         </template>
         <tr v-else>
-          <td colspan="9" class="empty-state">Tidak ada data tagihan pelanggan pada periode ini.</td>
+          <td colspan="9" class="empty-state">
+            Tidak ada data tagihan pelanggan pada periode ini.
+          </td>
         </tr>
       </tbody>
     </table>
-
-    
   </BaseReportLayout>
 </template>
 
 <script setup>
-  import { computed } from 'vue'
-  import BaseReportLayout from '../layouts/BaseReportLayout.vue'
+import { computed } from 'vue'
+import BaseReportLayout from '../layouts/BaseReportLayout.vue'
 
-  const props = defineProps({
-    payload: { type: Object, default: () => ({ config: {}, items: [] }) },
-    meta: { type: Object, default: () => ({}) },
+const props = defineProps({
+  payload: { type: Object, default: () => ({ config: {}, items: [] }) },
+  meta: { type: Object, default: () => ({}) },
+})
+
+const rawItems = computed(() => {
+  return props.payload?.items || []
+})
+
+const startIndex = computed(() => {
+  return Number(props.payload?.startIndex) || 0
+})
+
+const hierarchicalRows = computed(() => {
+  const tree = {}
+  rawItems.value.forEach((item) => {
+    const desa = item.nama_desa || 'BELUM DISET'
+    const dusun = item.nama_dusun || 'BELUM DISET'
+
+    if (!tree[desa]) tree[desa] = {}
+    if (!tree[desa][dusun]) tree[desa][dusun] = []
+
+    tree[desa][dusun].push(item)
   })
+  return tree
+})
 
-  const rawItems = computed(() => {
-    return props.payload?.items || []
-  })
+const shouldShowWilayahHeader = (desa, dusun) => {
+  const items = rawItems.value
+  if (!items || items.length === 0) return true
+  const first = items[0]
+  const firstDesa = first.nama_desa || 'BELUM DISET'
+  const firstDusun = first.nama_dusun || 'BELUM DISET'
+  if (firstDesa !== desa || firstDusun !== dusun) return true
+  return first._show_wilayah_header === true
+}
 
-  const startIndex = computed(() => {
-    return Number(props.payload?.startIndex) || 0
-  })
-
-  const hierarchicalRows = computed(() => {
-    const tree = {}
-    rawItems.value.forEach(item => {
-      const desa = item.nama_desa || 'BELUM DISET'
-      const dusun = item.nama_dusun || 'BELUM DISET'
-
-      if (!tree[desa]) tree[desa] = {}
-      if (!tree[desa][dusun]) tree[desa][dusun] = []
-
-      tree[desa][dusun].push(item)
-    })
-    return tree
-  })
-
-  const shouldShowWilayahHeader = (desa, dusun) => {
-    const items = rawItems.value
-    if (!items || items.length === 0) return true
-    const first = items[0]
-    const firstDesa = first.nama_desa || 'BELUM DISET'
-    const firstDusun = first.nama_dusun || 'BELUM DISET'
-    if (firstDesa !== desa || firstDusun !== dusun) return true
-    return first._show_wilayah_header === true
+const periodeText = computed(() => {
+  const m = props.meta || {}
+  if (m.bulanan) {
+    return `${m.bulan_name || '-'} ${m.tahun || ''}`
   }
+  return `TAHUN ${m.tahun || ''}`
+})
 
-  const periodeText = computed(() => {
-    const m = props.meta || {}
-    if (m.bulanan) {
-      return `${m.bulan_name || '-'} ${m.tahun || ''}`
-    }
-    return `TAHUN ${m.tahun || ''}`
+const isFirstPage = computed(() => props.payload?.isFirstPage !== false)
+const caterVisible = computed(() => Boolean(props.meta?.nama_teknisi) && isFirstPage.value)
+
+const namaTeknisiFormatted = computed(() => {
+  const raw = props.meta?.nama_teknisi
+  if (!raw) return ''
+  return String(raw)
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ''))
+    .join(' ')
+})
+
+const formatCurrency = (val) => {
+  if (val === null || val === undefined || isNaN(val)) return '0,00'
+  return Number(val).toLocaleString('id-ID', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   })
-
-  const isFirstPage = computed(() => props.payload?.isFirstPage !== false)
-  const caterVisible = computed(() => Boolean(props.meta?.nama_teknisi) && isFirstPage.value)
-
-  const namaTeknisiFormatted = computed(() => {
-    const raw = props.meta?.nama_teknisi
-    if (!raw) return ''
-    return String(raw)
-      .toLowerCase()
-      .split(/\s+/)
-      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ''))
-      .join(' ')
-  })
-
-
-  const formatCurrency = (val) => {
-    if (val === null || val === undefined || isNaN(val)) return '0,00'
-    return Number(val).toLocaleString('id-ID', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })
-  }
-
-  const tanggalCetak = computed(() => {
-    return new Date().toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  })
-
-  const tempat = 'Tempat'
+}
 </script>
 
 <style scoped>
-  .page-header {
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 0;
-  }
-  .page-header h2 {
-    font-size: 14pt; /* Disesuaikan agar seragam */
-    font-weight: bold;
-    text-transform: uppercase;
-    color: #000000;
-    margin: 0;
-  }
+.page-header {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.page-header h2 {
+  font-size: 14pt; /* Disesuaikan agar seragam */
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #000000;
+  margin: 0;
+}
 
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 4px;
-    table-layout: fixed; /* Ditambahkan agar lebar kolom konsisten */
-  }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+  table-layout: fixed; /* Ditambahkan agar lebar kolom konsisten */
+}
 
-  /* Header Utama - Disamakan dengan Neraca */
-  .data-table th {
-    border: 1px solid #000000;
-    padding: 4px 4px; /* Diseragamkan */
-    font-size: 12px;  /* Diseragamkan */
-    font-weight: bold;
-    background: #d9d9d9;
-    text-align: center;
-  }
+/* Header Utama - Disamakan dengan Neraca */
+.data-table th {
+  border: 1px solid #000000;
+  padding: 4px 4px; /* Diseragamkan */
+  font-size: 12px; /* Diseragamkan */
+  font-weight: bold;
+  background: #d9d9d9;
+  text-align: center;
+}
 
-  /* Data Baris Tagihan - Disamakan dengan Neraca */
-  .data-table td {
-    border: 1px solid #000000;
-    padding: 4px 4px; /* Diseragamkan */
-    font-size: 12px;  /* Diseragamkan */
-    vertical-align: middle;
-    line-height: 1.2; /* Diseragamkan */
-    color: #000000;
-    word-wrap: break-word;
-  }
+/* Data Baris Tagihan - Disamakan dengan Neraca */
+.data-table td {
+  border: 1px solid #000000;
+  padding: 4px 4px; /* Diseragamkan */
+  font-size: 12px; /* Diseragamkan */
+  vertical-align: middle;
+  line-height: 1.2; /* Diseragamkan */
+  color: #000000;
+  word-wrap: break-word;
+}
 
-  .wilayah-header-gabung td {
-    background-color: #f3f3f3 !important;
-    font-size: 12px;
-    padding: 4px 8px;
-    text-align: left;
-    border: 1px solid #000000;
-    font-weight: bold;
-  }
+.wilayah-header-gabung td {
+  background-color: #f3f3f3 !important;
+  font-size: 12px;
+  padding: 4px 8px;
+  text-align: left;
+  border: 1px solid #000000;
+  font-weight: bold;
+}
 
-  .pembatas-spasi {
-    margin-left: 20px;
-  }
+.pembatas-spasi {
+  margin-left: 20px;
+}
 
-  .text-format-normal {
-    text-transform: capitalize;
-  }
+.text-format-normal {
+  text-transform: capitalize;
+}
 
-  .text-center {
-    text-align: center !important;
-  }
-  .text-right {
-    text-align: right !important;
-    padding-right: 8px !important;
-  }
-  .uppercase-text {
-    text-transform: uppercase;
-  }
+.text-center {
+  text-align: center !important;
+}
+.text-right {
+  text-align: right !important;
+  padding-right: 8px !important;
+}
+.uppercase-text {
+  text-transform: uppercase;
+}
 
-  .empty-state {
-    text-align: center;
-    padding: 20px;
-    font-style: italic;
-    font-size: 12px;
-    border: 1px solid #000000;
-  }
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+  font-size: 12px;
+  border: 1px solid #000000;
+}
 
-  .cater-teknisi {
-    text-align: right;
-    font-size: 13px;
-    margin-top: -2px;
-    margin-bottom: 0;
-    padding: 0 4px;
-    text-transform: none;
-    line-height: 2.1;
-  }
-  .cater-teknisi b {
-    margin-left: 8px;
-  }
+.cater-teknisi {
+  text-align: right;
+  font-size: 13px;
+  margin-top: -2px;
+  margin-bottom: 0;
+  padding: 0 4px;
+  text-transform: none;
+  line-height: 2.1;
+}
+.cater-teknisi b {
+  margin-left: 8px;
+}
 
-  .data-table.data-table-tight {
-    margin-top: 0;
-  }
+.data-table.data-table-tight {
+  margin-top: 0;
+}
 
-  .footer-container {
-    width: 100%;
-    margin-top: 25px;
-    display: flex;
-    justify-content: flex-end;
-  }
-  .footer-sign {
-    width: 30%;
-    text-align: center;
-    font-size: 12px;
-  }
+.footer-container {
+  width: 100%;
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+}
+.footer-sign {
+  width: 30%;
+  text-align: center;
+  font-size: 12px;
+}
 </style>
