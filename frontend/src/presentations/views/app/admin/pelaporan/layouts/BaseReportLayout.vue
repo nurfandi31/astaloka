@@ -49,12 +49,14 @@
         signature.html berisi template + image yang sudah diinjeksi
         oleh backend (lihat SignatureService::renderForReport).
         Hanya dirender di halaman terakhir untuk laporan multi-page.
+
+        Isinya tetap disanitasi di frontend: backend sudah menyanitasi
+        templatenya, tapi ini lapisan kedua untuk kasus yang tidak
+        melewati backend sama sekali (mis. data lama di database yang
+        disisipkan di luar aplikasi). Tanpa ini, satu baris template
+        yang belum pernah melewati sanitizer bisa jadi Stored XSS.
       -->
-      <div
-        v-if="showSignature"
-        class="report-signature-block"
-        v-html="effectiveSignature.html"
-      ></div>
+      <div v-if="showSignature" class="report-signature-block" v-html="safeSignatureHtml"></div>
     </main>
   </div>
 </template>
@@ -62,6 +64,7 @@
 <script setup>
 import { computed, inject, useAttrs } from 'vue'
 import { storageUrl } from '@/utils/storage'
+import { sanitizeRichText } from '@/utils/sanitizeHtml'
 
 const props = defineProps({
   lembaga: { type: Object, default: () => ({}) },
@@ -102,6 +105,32 @@ const providedSignature = inject('reportSignature', null)
 const effectiveSignature = computed(
   () => props.signature || providedSignature?.value || providedSignature || null,
 )
+
+/**
+ * HTML tanda tangan yang aman untuk `v-html`.
+ *
+ * Backend sudah menyanitasi template tanda tangan (dan juga menyanitasi
+ * ulang saat membacanya -- lihat `SignatureService::templates()`), tapi
+ * lapisan kedua di sini tetap perlu:
+ *
+ *   1. HTML lama di database bisa berasal dari versi aplikasi yang
+ *      belum punya sanitizer sama sekali.
+ *   2. Baris yang disisipkan langsung ke database di luar aplikasi
+ *      (impor data, perbaikan manual) tidak pernah melewati backend.
+ *
+ * Tanpa lapisan ini, satu baris template seperti
+ * `<p onclick="alert(1)">` akan dieksekusi di browser admin setiap kali
+ * laporan dibuka.
+ *
+ * `sanitizeRichText` memakai allowlist yang sama dengan
+ * `App\Services\HtmlSanitizer` di backend, jadi hasil finally-nya sama
+ * dengan yang sudah tersimpan di server.
+ */
+const safeSignatureHtml = computed(() => {
+  const sig = effectiveSignature.value
+  if (!sig || typeof sig.html !== 'string') return ''
+  return sanitizeRichText(sig.html)
+})
 
 /**
  * Tentukan apakah signature block perlu dirender.
@@ -423,7 +452,23 @@ const logoUrl = computed(() => {
   margin: 0 0 4px 0;
   line-height: 1.3;
 }
+/*
+ * Ukuran gambar tanda tangan.
+ *
+ * Dulu ukuran ini ditulis sebagai `style` inline di backend
+ * (`SignatureService::renderForReport`), tapi `HtmlSanitizer` membuang
+ * seluruh atribut `style` -- jadi style itu selalu hilang begitu HTML-nya
+ * disanitasi, dan frontend yang merender Drupal punya ukuran berbeda
+ * dari yang dimaksud backend.
+ *
+ * Sekarang ukurannya ada di sini, sebagai CSS. Aturan `style` inline
+ * memang dibuang, tapi CSS di dalam stylesheet aplikasi tidak pernah
+ * melewati sanitizer -- dan hasilnya sama untuk HTML yang datang dari
+ * backend maupun yang datang dari frontend.
+ */
 .report-signature-block :deep(img) {
+  height: 50px;
+  max-width: 180px;
   max-height: 60px;
   object-fit: contain;
 }

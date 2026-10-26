@@ -39,6 +39,14 @@ class SignatureService
     /**
      * Ambil semua template (default value kalau record belum ada).
      *
+     * Template disanitasi SAAT BACA, bukan hanya saat tulis. `saveTemplates()`
+     * sudah menyanitasi, tapi baris yang tersimpan sebelum sanitasi itu
+     * ada (atau yang disisipkan langsung ke database di luar aplikasi)
+     * belum pernah melewati `HtmlSanitizer`. Kalau baris seperti itu
+     * dirender apa adanya lewat `v-html`, payload-nya ikut dieksekusi.
+     *
+     * Sanitasi bersifat idempoten, jadi aman dijalankan setiap kali dibaca.
+     *
      * @return array<string, string>
      */
     public function templates(): array
@@ -48,7 +56,8 @@ class SignatureService
         $out = [];
         foreach (array_keys(SignatureSetting::REPORT_TYPES) as $key) {
             $row = $rows->get($key);
-            $out[$key] = $row && $row->template_html ? (string) $row->template_html : '';
+            $html = $row && $row->template_html ? (string) $row->template_html : '';
+            $out[$key] = $html === '' ? '' : HtmlSanitizer::clean($html);
         }
 
         return $out;
@@ -229,7 +238,20 @@ class SignatureService
             return $html;
         }
 
-        $img = '<img src="'.$uri.'" style="height:50px;max-width:180px;object-fit:contain" alt="Tanda Tangan" />';
+        /*
+         * TIDAK ada atribut `style` di sini.
+         *
+         * `HtmlSanitizer` membuang seluruh atribut `style`, jadi style
+         * inline yang dulu ditulis di sini SELALU hilang begitu HTML-nya
+         * disanitasi -- dan frontend juga menyanitasi ulang HTML ini
+         * sebelum merendernya. Style inline berarti ukuran gambar
+         * tanda tangan sedikit berbeda antara backend dan frontend.
+         *
+         * Ukurannya sekarang diatur dari CSS di sisi frontend
+         * (`.report-signature-block :deep(img)`), yang hasilnya sama
+         * untuk kedua sisi dan tidak perlu lolos melewati sanitizer.
+         */
+        $img = '<img src="'.$uri.'" alt="Tanda Tangan" />';
 
         if (str_contains($html, '{ttd_image}')) {
             return str_replace('{ttd_image}', $img, $html);

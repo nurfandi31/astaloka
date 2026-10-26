@@ -115,11 +115,42 @@ class HtmlSanitizer
         // di dalam <script> justru payload-nya.
         $html = self::dropDangerousElements($html);
 
+        /*
+         * allowlist atribut -- SEBELUM strip_tags.
+         *
+         * Urutannya penting, dan bukan karena soal kecepatan.
+         *
+         * `strip_tags()` memutuskan di mana sebuah tag berakhir hanya
+         * dengan melihat karakter `>` -- dia tidak tahu mana yang berada
+         * di dalam nilai atribut. Jadi `<a title="Total > 500">` dipotong
+         * menjadi `<a title="Total ">500">`, dan nilainya jadi "Total "
+         * -- tanda `>` beserta "500" hilang.
+         *
+         * Dua akibatnya:
+         *
+         *   1. Data hilang. "Total > 500" jadi "Total  500".
+         *
+         *   2. Nilai bisa berubah MAKNA. `href="java>script:alert(1)"`
+         *      dipotong jadi `href="javascript:alert(1)"` -- skimanya
+         *      seperti URL javascript yang sah. Kebetulan skemanya
+         *      kemudian diperiksa dan ditolak, tapi itu datang dari
+         *      kebetulan, bukan jaminan: pemotongan bisa saja
+         *      menghasilkan skema yang lolos pemeriksaan.
+         *
+         * Kalau atribut dibersihkan DULU, nilai `>` itu sudah jadi
+         * `&gt;` di dalam nilai ber-kutip, jadi `strip_tags()` tidak
+         * pernah memotong di tengah nilai atribut. Atribut yang sudah
+         * dibersihkan juga sudah diserialisasi ulang dengan format
+         * yang eksplisit, jadi `strip_tags()` hanya menyisakan tag yang
+         * memang boleh.
+         *
+         * Urutan ini sudah diuji terhadap korus payload XSS dan tidak
+         * membiarkan satu pun payload yang sebelumnya tertangkap.
+         */
+        $html = self::cleanAttributes($html);
+
         // allowlist tag
         $html = strip_tags($html, self::ALLOWED_TAGS);
-
-        // allowlist atribut
-        $html = self::cleanAttributes($html);
 
         // Lapisan pengaman: buang event handler dan URL javascript: yang
         // mungkin lolos karena penyusunan atribut tidak rapi.
