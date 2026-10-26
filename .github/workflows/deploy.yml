@@ -201,8 +201,9 @@ jobs:
           # salah.
           #
           # Jadi output ssh ditangkap dulu, lalu laporkan APA yang terjadi
-          # dan APA yang harus diperbaiki -- dengan FCS (GitHub issue
-          # summary) supaya mudah dibaca di halaman Actions.
+          # dan APA yang harus diperbaiki. Pesannya ditulis ke log DAN ke
+          # step summary: log supaya bisa disalin ke issue, summary
+          # supaya langsung terbaca di halaman Actions.
           #
           # `set +e` di sekitar perintah ssh supaya statusnya tidak
           # membatalkan step sebelum pesannya sempat ditulis.
@@ -223,54 +224,82 @@ jobs:
           echo "$SSH_OUT"
 
           if [ "$SSH_STATUS" -ne 0 ]; then
-            {
+            # Fingerprint public key yang dipakai runner.
+            #
+            # Ini yang dicari di server: `ssh-keygen -lf ~/.ssh/authorized_keys`
+            # di host, lalu cocokkan sidiknya. Fingerprint aman ditampilkan
+            # (tidak bisa dipakai untuk login), tapi public key-nya sendiri
+            # tidak ditampilkan karena repo ini publik.
+            #
+            # Tanpa ini, mustahil tahu key mana yang harus ditambah --
+            # `DEPLOY_SSH_KEY` hanya bisa ditulis, tidak bisa dibaca.
+            KEY_FINGERPRINT=$(ssh-keygen -lf ~/.ssh/id_ed25519 2>/dev/null | awk '{print $2}')
+
+            diagnose() {
               echo "## Deploy gagal: koneksi SSH ditolak"
               echo ""
               echo "Host \`${{ secrets.SSH_HOST }}:${{ secrets.SSH_PORT }}\` (port TCP terbuka), tapi autentikasi untuk user \`${{ secrets.SSH_USER }}\` gagal."
               echo ""
-              echo "### Diagnosis"
+              echo "### Yang terjadi"
               echo ""
-            } >> "$GITHUB_STEP_SUMMARY"
 
-            if echo "$SSH_OUT" | grep -q "Permission denied"; then
-              {
+              if echo "$SSH_OUT" | grep -q "Permission denied"; then
                 echo "Server **tidak mengenali public key** yang dipakai runner."
                 echo ""
-                echo "Kuncinya valid (langkah \`Setup SSH key\` sudah memverifikasi), tapi public key-nya belum ada di server."
+                echo "Kuncinya valid (langkah \`Setup SSH key\` sudah memverifikasi formatnya), tapi public key-nya belum terdaftar di server."
+              elif echo "$SSH_OUT" | grep -q "Host key verification failed"; then
+                echo "Public key host berubah, tapi \`known_hosts\` masih menyimpan yang lama."
+              else
+                echo "Kesalahan SSH lain. Lihat output mentah di atas."
+              fi
+
+              echo ""
+
+              if [ -n "$KEY_FINGERPRINT" ]; then
+                echo "### Public key yang harus terdaftar di server"
                 echo ""
-                echo "### Perbaikan (di server, bukan di repo)"
+                echo "Fingerprint: \`$KEY_FINGERPRINT\`"
                 echo ""
-                echo "1. Ambil public key yang cocok dengan \`DEPLOY_SSH_KEY\` di repository settings."
-                echo "2. Tambahkan ke \`~/.ssh/authorized_keys\` milik user \`${{ secrets.SSH_USER }}\` di server:"
+                echo "Cari key dengan sidik ini di server:"
                 echo ""
                 echo "   \`\`\`bash"
-                echo "   echo '<public key>' >> ~/.ssh/authorized_keys"
-                echo "   chmod 600 ~/.ssh/authorized_keys"
-                echo "   chmod 700 ~/.ssh"
+                echo "   ssh-keygen -lf ~/.ssh/authorized_keys"
                 echo "   \`\`\`"
                 echo ""
-                echo "3. Jalankan ulang workflow ini (\`workflow_dispatch\`) -- tidak perlu commit baru."
-              } >> "$GITHUB_STEP_SUMMARY"
-            elif echo "$SSH_OUT" | grep -q "Host key verification failed"; then
-              {
-                echo "Public key host berubah, tapi \`known_hosts\` masih menyimpan yang lama."
+                echo "Kalau sidiknya tidak ada di sana, key-nya memang belum terdaftar."
                 echo ""
-                echo "### Perbaikan"
-                echo ""
-                echo "Jalankan ulang setelah \`known_hosts\` di-refresh, atau kosongkan entri lama untuk host tersebut."
-              } >> "$GITHUB_STEP_SUMMARY"
-            else
-              {
-                echo "Kesalahan SSH lain. Lihat output mentah di atas."
-              } >> "$GITHUB_STEP_SUMMARY"
-            fi
+              fi
 
-            echo ""
+              echo "### Perbaikan (di server, bukan di repo)"
+              echo ""
+              echo "1. Ambil public key yang cocok dengan \`DEPLOY_SSH_KEY\` di repository settings."
+              echo "2. Tambahkan ke \`~/.ssh/authorized_keys\` milik user \`${{ secrets.SSH_USER }}\` di server:"
+              echo ""
+              echo "   \`\`\`bash"
+              echo "   echo '<public key>' >> ~/.ssh/authorized_keys"
+              echo "   chmod 600 ~/.ssh/authorized_keys"
+              echo "   chmod 700 ~/.ssh"
+              echo "   \`\`\`"
+              echo ""
+              echo "Kalau private key-nya sudah tidak tersimpan, buat pasangan baru:"
+              echo ""
+              echo "   \`\`\`bash"
+              echo "   ssh-keygen -t ed25519 -C 'deploy-astaloka'"
+              echo "   cat ~/.ssh/id_ed25519.pub"
+              echo "   \`\`\`"
+              echo ""
+              echo "Lalu perbarui secret \`DEPLOY_SSH_KEY\` dengan isi \`~/.ssh/id_ed25519\` (private key, termasuk baris BEGIN dan END)."
+              echo ""
+              echo "3. Jalankan ulang workflow ini (\`workflow_dispatch\`) -- tidak perlu commit baru."
+            }
+
+            diagnose
+            diagnose >> "$GITHUB_STEP_SUMMARY"
+
             echo "::error::koneksi SSH ditolak -- authenticate ulang public key deploy di server"
             exit "$SSH_STATUS"
           fi
 
-          echo "::add-mask::"
           echo "Koneksi SSH berhasil."
 
       - name: Rsync frontend build to server
