@@ -2,12 +2,14 @@
   <div class="preview-shell" :class="orientationClass">
     <div class="preview-toolbar no-print">
       <div class="toolbar-left">
-        <button class="toolbar-menu-btn no-print" @click="showSidebar = !showSidebar" title="Tampilkan / sembunyikan thumbnail">
+        <button
+          class="toolbar-menu-btn no-print"
+          @click="showSidebar = !showSidebar"
+          title="Tampilkan / sembunyikan thumbnail"
+        >
           <span></span><span></span><span></span>
         </button>
-        <h3 class="title">
-          Cetak Struk {{ filter.bulan }} {{ filter.tahun }}
-        </h3>
+        <h3 class="title">Cetak Struk {{ filter.bulan }} {{ filter.tahun }}</h3>
       </div>
 
       <div class="toolbar-right">
@@ -16,14 +18,17 @@
         </div>
 
         <div class="zoom-controls no-print" v-if="pages.length > 0">
-          <button class="zoom-btn" @click="zoomOut" :disabled="zoomLevel <= minZoom" title="Zoom Out">
+          <button
+            class="zoom-btn"
+            @click="zoomOut"
+            :disabled="zoomLevel <= minZoom"
+            title="Zoom Out"
+          >
             <span>âˆ’</span>
           </button>
-          <span
-            class="zoom-percent active"
-            @click="resetZoom"
-            title="Reset zoom"
-          >{{ zoomPercent }}%</span>
+          <span class="zoom-percent active" @click="resetZoom" title="Reset zoom"
+            >{{ zoomPercent }}%</span
+          >
           <button class="zoom-btn" @click="zoomIn" :disabled="zoomLevel >= maxZoom" title="Zoom In">
             <span>+</span>
           </button>
@@ -91,7 +96,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '@/stores/uiStore'
 import axios from '@/utils/axios'
@@ -101,7 +106,7 @@ import { usePdfPreview, THUMB_RENDER_BUFFER } from '@/composables/usePdfPreview'
 
 const route = useRoute()
 const uiStore = useUiStore()
-const { tableData, filter, refreshData, teknisiOptions, resolveTeknisiLabel } = usePemakaianAir()
+const { tableData, filter, refreshData, resolveTeknisiLabel } = usePemakaianAir()
 
 const PAGE_CONFIG = { paper_size: 'A4', orientation: 'portrait' }
 
@@ -127,7 +132,7 @@ const fetchPenandatangan = async () => {
       params: { nama_jabatan: 'Bendahara' },
     })
     bendahara.value = res?.data?.data?.Bendahara ?? null
-  } catch (err) {
+  } catch {
     bendahara.value = null
   }
 }
@@ -144,8 +149,6 @@ const {
   zoomIn,
   zoomOut,
   resetZoom,
-  pageNaturalWidth,
-  pageNaturalHeight,
   pageScale,
   pageScaledWidth,
   pageScaledHeight,
@@ -162,7 +165,10 @@ const selectedIdsParam = computed(() => {
   const fromStorage = sessionStorage.getItem('cetak_print_ids_struk')
   const raw = fromStorage || route.query.ids
   if (!raw) return null
-  const ids = String(raw).split(',').map((s) => s.trim()).filter(Boolean)
+  const ids = String(raw)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
   if (fromStorage) sessionStorage.removeItem('cetak_print_ids_struk')
   return ids
 })
@@ -170,7 +176,8 @@ const selectedIdsParam = computed(() => {
 const buildPages = () => {
   const all = flatCustomers.value
   const allowed = selectedIdsParam.value
-  const customers = allowed && allowed.length ? all.filter((c) => allowed.includes(String(c.id))) : all
+  const customers =
+    allowed && allowed.length ? all.filter((c) => allowed.includes(String(c.id))) : all
 
   if (customers.length === 0) {
     pages.value = []
@@ -186,9 +193,7 @@ const buildPages = () => {
       rtStr.toLowerCase() === 'null' ||
       rtStr.toLowerCase() === 'undefined'
     const rtLabel = rtIsMissing ? 'RT. 00' : `RT. ${rtStr}`
-    const alamat = [customer.dusun, rtLabel]
-      .filter(Boolean)
-      .join(', ') || customer.alamat || '-'
+    const alamat = [customer.dusun, rtLabel].filter(Boolean).join(', ') || customer.alamat || '-'
     return {
       ...customer,
       alamat,
@@ -355,7 +360,9 @@ onMounted(async () => {
   padding: 0px 10px;
   border-radius: 999px;
   background: transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .zoom-percent.active {
@@ -512,7 +519,9 @@ onMounted(async () => {
 
 .thumb-wrapper.active .thumb-paper {
   border-color: #38bdf8;
-  box-shadow: 0 0 0 2px #38bdf8, 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 2px #38bdf8,
+    0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .thumb-wrapper.active .thumb-number {

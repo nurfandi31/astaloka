@@ -106,7 +106,11 @@
                   <tr
                     v-for="(trx, index) in rows"
                     :key="trx._isHeader ? `hdr-${index}` : trx.id"
-                    :class="trx._isHeader ? 'bg-slate-50 font-semibold' : 'hover:bg-slate-50 transition-colors'"
+                    :class="
+                      trx._isHeader
+                        ? 'bg-slate-50 font-semibold'
+                        : 'hover:bg-slate-50 transition-colors'
+                    "
                   >
                     <td class="py-4! px-4! text-center">
                       <template v-if="!trx._isHeader">
@@ -131,7 +135,7 @@
                       {{ trx._isHeader ? '' : kodeAkunTrx(trx) }}
                     </td>
                     <td class="py-4! px-4! text-slate-700">
-                      {{ trx._isHeader ? trx.label : (trx.keterangan_transaksi || '-') }}
+                      {{ trx._isHeader ? trx.label : trx.keterangan_transaksi || '-' }}
                     </td>
                     <td class="py-4! px-4! font-mono text-xs text-slate-500">
                       {{ trx._isHeader ? '' : trx.id }}
@@ -169,7 +173,11 @@
             <button
               @click="handleCetak"
               :disabled="selectedCount === 0"
-              :title="selectedCount === 0 ? 'Pilih minimal satu transaksi' : 'Cetak ' + selectedCount + ' transaksi terpilih'"
+              :title="
+                selectedCount === 0
+                  ? 'Pilih minimal satu transaksi'
+                  : 'Cetak ' + selectedCount + ' transaksi terpilih'
+              "
               class="flex items-center gap-2! bg-slate-700 hover:bg-slate-800 disabled:opacity-50! disabled:cursor-not-allowed! text-white px-6! py-3! font-semibold transition-all active:scale-95 rounded-lg!"
             >
               <font-awesome-icon icon="print" />
@@ -217,7 +225,10 @@ const formatDate = (dateString) => {
 
 const formatCurrency = (amount) => {
   if (!amount) return '0,00'
-  return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
 
 const close = () => emit('close')
@@ -254,10 +265,8 @@ const handleCetak = () => {
   const route = router.resolve({ path: '/usages/cetak_bukti_transaksi' })
   window.open(route.href, '_blank', 'noopener')
 }
-
-const deleteTransaction = () => {}
-
-const kodeAkunTrx = (trx) => props.selectedAccount || trx.account_debet?.kode_akun || trx.account_debet
+const kodeAkunTrx = (trx) =>
+  props.selectedAccount || trx.account_debet?.kode_akun || trx.account_debet
 
 const debitTrx = (trx) => {
   if (!props.selectedAccount) return Number(trx.saldo) || 0
@@ -330,9 +339,10 @@ const selectableRows = computed(() => rows.value.filter((r) => !r._isHeader))
 
 const selectedCount = computed(() => selectedIds.value.size)
 
-const isAllSelected = computed(() =>
-  selectableRows.value.length > 0 &&
-  selectableRows.value.every((r) => selectedIds.value.has(r.id)),
+const isAllSelected = computed(
+  () =>
+    selectableRows.value.length > 0 &&
+    selectableRows.value.every((r) => selectedIds.value.has(r.id)),
 )
 
 const isIndeterminate = computed(() => {
@@ -349,10 +359,14 @@ const toggleAll = () => {
 }
 
 const totalSelectedDebit = computed(() =>
-  selectableRows.value.filter((r) => selectedIds.value.has(r.id)).reduce((s, r) => s + debitTrx(r), 0),
+  selectableRows.value
+    .filter((r) => selectedIds.value.has(r.id))
+    .reduce((s, r) => s + debitTrx(r), 0),
 )
 const totalSelectedKredit = computed(() =>
-  selectableRows.value.filter((r) => selectedIds.value.has(r.id)).reduce((s, r) => s + kreditTrx(r), 0),
+  selectableRows.value
+    .filter((r) => selectedIds.value.has(r.id))
+    .reduce((s, r) => s + kreditTrx(r), 0),
 )
 
 const handleKeydown = (e) => {
@@ -385,15 +399,30 @@ onUnmounted(() => {
 }
 
 @keyframes slide-up {
-  from { transform: translateY(30px) scale(0.98); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
+  from {
+    transform: translateY(30px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 .animate-slide-up {
   animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.scrollbar-custom::-webkit-scrollbar { width: 8px; height: 8px; }
-.scrollbar-custom::-webkit-scrollbar-track { background: #f8fafc; }
-.scrollbar-custom::-webkit-scrollbar-thumb { background: #e2e8f0; }
-.scrollbar-custom::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+.scrollbar-custom::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+}
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
 </style>

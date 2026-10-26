@@ -84,9 +84,15 @@
                 stroke="white"
                 stroke-width="2"
                 class="transition-all! duration-300! cursor-pointer!"
-                :class="activeSlice === 'pendapatan' ? 'opacity-100!' : (activeSlice && activeSlice !== 'pendapatan') ? 'opacity-50!' : 'opacity-100!'"
+                :class="
+                  activeSlice === 'pendapatan'
+                    ? 'opacity-100!'
+                    : activeSlice && activeSlice !== 'pendapatan'
+                      ? 'opacity-50!'
+                      : 'opacity-100!'
+                "
                 :transform="activeSlice === 'pendapatan' ? 'scale(1.04)' : 'scale(1)'"
-                style="transform-origin: 100px 100px; transform-box: fill-box;"
+                style="transform-origin: 100px 100px; transform-box: fill-box"
                 @mouseenter="activeSlice = 'pendapatan'"
               />
               <!-- Slice Beban -->
@@ -97,9 +103,15 @@
                 stroke="white"
                 stroke-width="2"
                 class="transition-all! duration-300! cursor-pointer!"
-                :class="activeSlice === 'beban' ? 'opacity-100!' : (activeSlice && activeSlice !== 'beban') ? 'opacity-50!' : 'opacity-100!'"
+                :class="
+                  activeSlice === 'beban'
+                    ? 'opacity-100!'
+                    : activeSlice && activeSlice !== 'beban'
+                      ? 'opacity-50!'
+                      : 'opacity-100!'
+                "
                 :transform="activeSlice === 'beban' ? 'scale(1.04)' : 'scale(1)'"
-                style="transform-origin: 100px 100px; transform-box: fill-box;"
+                style="transform-origin: 100px 100px; transform-box: fill-box"
                 @mouseenter="activeSlice = 'beban'"
               />
               <!-- Slice Surplus (hijau emerald, hanya tampil kalau surplus > 0) -->
@@ -110,9 +122,15 @@
                 stroke="white"
                 stroke-width="2"
                 class="transition-all! duration-300! cursor-pointer!"
-                :class="activeSlice === 'surplus' ? 'opacity-100!' : (activeSlice && activeSlice !== 'surplus') ? 'opacity-50!' : 'opacity-100!'"
+                :class="
+                  activeSlice === 'surplus'
+                    ? 'opacity-100!'
+                    : activeSlice && activeSlice !== 'surplus'
+                      ? 'opacity-50!'
+                      : 'opacity-100!'
+                "
                 :transform="activeSlice === 'surplus' ? 'scale(1.04)' : 'scale(1)'"
-                style="transform-origin: 100px 100px; transform-box: fill-box;"
+                style="transform-origin: 100px 100px; transform-box: fill-box"
                 @mouseenter="activeSlice = 'surplus'"
               />
 
@@ -124,7 +142,7 @@
                 font-size="9"
                 font-weight="700"
                 text-anchor="middle"
-                style="letter-spacing: 0.05em;"
+                style="letter-spacing: 0.05em"
               >
                 PENDAPATAN
               </text>
@@ -160,7 +178,7 @@
             <div
               v-if="activeSlice && pieChartGeometry.total > 0"
               class="absolute! top-1/2! left-1/2! -translate-x-1/2! -translate-y-1/2! pointer-events-none! bg-slate-900/95! text-white! px-3! py-2! rounded-lg! shadow-xl! backdrop-blur-sm! animate-[fade-in-up_0.2s_ease-out_forwards]!"
-              style="z-index: 10;"
+              style="z-index: 10"
             >
               <div class="flex! items-center! gap-1.5! mb-1!">
                 <div
@@ -201,7 +219,9 @@
           </div>
 
           <!-- Trend baris (badges Pendapatan / Beban / Surplus vs bulan lalu) -->
-          <div class="mt-3! pt-3! border-t! border-slate-100! flex! items-center! justify-between! gap-2!">
+          <div
+            class="mt-3! pt-3! border-t! border-slate-100! flex! items-center! justify-between! gap-2!"
+          >
             <div
               :class="trendBadgeClass(financeTrend.pendapatan)"
               class="flex! items-center! gap-1! px-2! py-1! rounded-md! text-[10px]! font-bold!"
@@ -231,7 +251,12 @@
       </div>
 
       <div class="lg:col-span-8! h-full! flex!">
-        <ContentCard variant="bordered" padding="normal" hoverable class="flex! flex-col! pb-2! h-full! w-full!">
+        <ContentCard
+          variant="bordered"
+          padding="normal"
+          hoverable
+          class="flex! flex-col! pb-2! h-full! w-full!"
+        >
           <div
             class="flex! flex-col! sm:flex-row! items-start! sm:items-center! justify-between! gap-2! mb-4!"
           >
@@ -415,7 +440,9 @@
             <component :is="activeComponent" />
           </div>
 
-          <div class="px-6! py-4! border-t! border-slate-100! flex! items-center! justify-between! bg-white!">
+          <div
+            class="px-6! py-4! border-t! border-slate-100! flex! items-center! justify-between! bg-white!"
+          >
             <div class="text-xs! text-slate-500! font-medium!">
               <template v-if="currentDetailType === 'tagihan' && tagihanSelection.length > 0">
                 {{ tagihanSelection.length }} data tagihan dipilih
@@ -636,7 +663,9 @@ const pieChartGeometry = computed(() => {
 
   // Minimum slice 1.5% supaya slice kecil tetap kelihatan
   const min = 0.015
-  let dP = normP, dB = normB, dS = normS
+  let dP = normP,
+    dB = normB,
+    dS = normS
   if (total > 0) {
     if (dP > 0 && dP < min) dP = min
     if (dB > 0 && dB < min) dB = min
@@ -644,7 +673,9 @@ const pieChartGeometry = computed(() => {
     // Renormalize setelah min
     const dSum = dP + dB + dS
     if (dSum > 0) {
-      dP /= dSum; dB /= dSum; dS /= dSum
+      dP /= dSum
+      dB /= dSum
+      dS /= dSum
     }
   }
 
@@ -830,7 +861,10 @@ const loadStats = async () => {
         })
       }
     }
-  } catch (error) {
+  } catch {
+    // Statistik dashboard bersifat opsional: kalau request gagal, dashboard
+    // tetap harus tampil dengan kartu lain yang sudah terisi. Error sengaja
+    // ditelan di sini, tanpa pesan apa pun ke pengguna.
   }
 }
 
@@ -899,7 +933,10 @@ const loadFinance = async () => {
         surplus: pctChange(prevMonth.surplus, financialData.value.surplus),
       }
     }
-  } catch (error) {
+  } catch {
+    // Tren keuangan ikut opsional: kartu ringkasan di atasnya sudah punya
+    // datanya sendiri, jadi kegagalan di sini tidak perlu mengganggu
+    // tampilan. Error sengaja ditelan tanpa pesan ke pengguna.
   } finally {
     loadingFinance.value = false
   }

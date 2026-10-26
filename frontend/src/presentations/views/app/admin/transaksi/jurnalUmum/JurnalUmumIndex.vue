@@ -14,7 +14,7 @@
         <div class="flex flex-col gap-0.5">
           <SelectSearch
             v-model="form.jenisTransaksi"
-:options="jenisTransaksiOptions"
+            :options="jenisTransaksiOptions"
             label="Jenis Transaksi"
             placeholder="Pilih Jenis Transaksi"
             icon="list"
@@ -58,15 +58,10 @@
             />
           </div>
           <div class="flex flex-col gap-0.5">
-            <BaseInput
-              v-model="form.jumlahUnit"
-              type="number"
-              label="Jml. Unit"
-              placeholder="0"
-            />
+            <BaseInput v-model="form.jumlahUnit" type="number" label="Jml. Unit" placeholder="0" />
           </div>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
           <div class="flex flex-col gap-0.5">
             <MaksMoneyInput
@@ -96,17 +91,13 @@
           </div>
         </div>
       </template>
-      
+
       <template v-else>
         <!-- Inputan biasa -->
         <div v-if="showRelasi" class="mb-2">
-          <BaseInput
-            v-model="form.relasi"
-            label="Relasi"
-            placeholder="Masukkan relasi transaksi"
-          />
+          <BaseInput v-model="form.relasi" label="Relasi" placeholder="Masukkan relasi transaksi" />
         </div>
-        
+
         <BaseInput
           v-model="form.keterangan"
           type="textarea"
@@ -115,7 +106,7 @@
           :rows="3"
           class="mb-2"
         />
-        
+
         <div class="flex flex-col gap-0.5 mb-2!">
           <MaksMoneyInput
             v-model="form.nominal"
@@ -138,18 +129,17 @@
           Simpan Transaksi
         </BaseButton>
       </div>
-      </ContentCard>
+    </ContentCard>
 
-      <div class="flex flex-col gap-6 lg:sticky lg:top-8">
+    <div class="flex flex-col gap-6 lg:sticky lg:top-8">
       <ContentCard variant="elevated" padding="none" hoverable class="total-saldo-wrapper">
         <div class="total-saldo-card">
-          <div class="text-xs text-white/60 font-semibold mb-1 relative z-10">
-            Saldo
+          <div class="text-xs text-white/60 font-semibold mb-1 relative z-10">Saldo</div>
+          <div class="relative z-10 mb-2! flex items-center gap-1 text-white">
+            <span class="text-xl font-black tracking-tight">{{
+              formatSaldo(saldoSumberDana)
+            }}</span>
           </div>
-           <div class="relative z-10 mb-2! flex items-center gap-1 text-white">
-             <span class="text-xl font-black tracking-tight">{{ formatSaldo(saldoSumberDana) }}</span>
-           </div>
-
         </div>
       </ContentCard>
 
@@ -219,24 +209,24 @@
         </div>
       </ContentCard>
     </div>
-    <DetailModal 
-      :show="showDetail" 
-      :transactions="transactions" 
-      :loading="loading" 
+    <DetailModal
+      :show="showDetail"
+      :transactions="transactions"
+      :loading="loading"
       :title="modalTitle"
       :selected-account="form.sumberDana"
       :saldo-awal-tahun="bukuBesar.saldo_awal_tahun"
       :saldo-awal-bulan="bukuBesar.saldo_awal_bulan"
       :filter-tahun="filter.tahun"
       :filter-bulan="filter.bulan"
-      @close="showDetail = false" 
+      @close="showDetail = false"
       @openCetak="handleOpenCetak"
       @delete="deleteTransaction"
     />
-    <CetakTrxModal 
-      :show="showCetak" 
-      :transactions="transactions" 
-      :loading="loading" 
+    <CetakTrxModal
+      :show="showCetak"
+      :transactions="transactions"
+      :loading="loading"
       :title="modalTitle"
       :selected-account="form.sumberDana"
       :saldo-awal-tahun="bukuBesar.saldo_awal_tahun"
@@ -301,12 +291,12 @@ const filter = ref({
 
 const filterParams = computed(() => {
   const params = {}
-  
+
   // Jika tahun tidak dipilih, return params kosong (tanpa filter tanggal)
   if (!filter.value.tahun) {
     return params
   }
-  
+
   let tgl_dari = `${filter.value.tahun}-01-01`
   let tgl_sampai = `${filter.value.tahun}-12-31`
 
@@ -333,7 +323,7 @@ const filterParams = computed(() => {
 
 const selectedJenisTransaksi = computed(() => {
   if (!form.value.jenisTransaksi) return null
-  return jenisTransaksiOptions.value.find(item => item.id === form.value.jenisTransaksi)
+  return jenisTransaksiOptions.value.find((item) => item.id === form.value.jenisTransaksi)
 })
 
 const modalTitle = computed(() => {
@@ -352,7 +342,7 @@ const showRelasi = computed(() => {
   // Tampilkan inputan relasi jika sumber dana atau disimpan ke dimulai dengan "1.1.01."
   const sumber = form.value.sumberDana
   const tujuan = form.value.disimpanKe
-  
+
   return (sumber && sumber.startsWith('1.1.01.')) || (tujuan && tujuan.startsWith('1.1.01.'))
 })
 
@@ -364,7 +354,7 @@ const isInventaris = computed(() => {
   // Khusus inventaris: kode akun 1.2.01.04, disimpan ke, jenis transaksi sesuai id
   const tujuan = form.value.disimpanKe
   const jenisId = form.value.jenisTransaksi
-  
+
   return tujuan === '1.2.01.04' && inventarisJenisIds.includes(jenisId)
 })
 
@@ -374,96 +364,106 @@ const sumberDanaOptions = computed(() => {
     // Jika belum pilih jenis transaksi, dropdown kosong (hanya placeholder)
     return baseOptions
   }
-  
+
   const jenisText = selectedJenisTransaksi.value.text.toLowerCase().replace(/\s+/g, '_')
-  
+
   if (jenisText === 'aset_masuk') {
     // Aset masuk: sumber dana hanya akun dengan kode_akun tidak dimulai dari 1 (selain aset)
     return [
       ...baseOptions,
       ...accounts.value
-        .filter(acc => !acc.kode_akun.startsWith('1'))
-        .map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+        .filter((acc) => !acc.kode_akun.startsWith('1'))
+        .map((acc) => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` })),
     ]
   } else if (jenisText === 'aset_keluar') {
     // Aset keluar: sumber dana semua akun
     return [
       ...baseOptions,
-      ...accounts.value.map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+      ...accounts.value.map((acc) => ({
+        id: acc.kode_akun,
+        text: `${acc.kode_akun} - ${acc.nama_akun}`,
+      })),
     ]
   } else if (jenisText === 'simpan_saldo') {
     // Simpan saldo: semua akun
     return [
       ...baseOptions,
-      ...accounts.value.map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+      ...accounts.value.map((acc) => ({
+        id: acc.kode_akun,
+        text: `${acc.kode_akun} - ${acc.nama_akun}`,
+      })),
     ]
   }
-  
+
   // Default: semua akun (jika teks tidak cocok)
   return [
     ...baseOptions,
-    ...accounts.value.map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+    ...accounts.value.map((acc) => ({
+      id: acc.kode_akun,
+      text: `${acc.kode_akun} - ${acc.nama_akun}`,
+    })),
   ]
 })
 
 const sumberDanaText = computed(() => {
   if (!form.value.sumberDana) return ''
-  const option = sumberDanaOptions.value.find(opt => opt.id === form.value.sumberDana)
+  const option = sumberDanaOptions.value.find((opt) => opt.id === form.value.sumberDana)
   return option ? option.text : ''
 })
 
 const disimpanKeText = computed(() => {
   if (!form.value.disimpanKe) return ''
-  const option = disimpanKeOptions.value.find(opt => opt.id === form.value.disimpanKe)
+  const option = disimpanKeOptions.value.find((opt) => opt.id === form.value.disimpanKe)
   return option ? option.text : ''
 })
-
-const disimpanKeLabel = computed(() => {
-  const jenisText = selectedJenisTransaksi.value ? selectedJenisTransaksi.value.text.toLowerCase().replace(/\s+/g, '_') : ''
-  return jenisText === 'aset_keluar' ? 'Keperluan' : 'Disimpan Ke'
-})
-
 const disimpanKeOptions = computed(() => {
   const baseOptions = [{ id: '', text: 'Pilih Tujuan' }]
   if (!selectedJenisTransaksi.value) {
     // Jika belum pilih jenis transaksi, dropdown kosong (hanya placeholder)
     return baseOptions
   }
-  
+
   const jenisText = selectedJenisTransaksi.value.text.toLowerCase().replace(/\s+/g, '_')
-  
+
   if (jenisText === 'aset_masuk') {
     // Aset masuk: disimpan ke semua akun
     return [
       ...baseOptions,
-      ...accounts.value.map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+      ...accounts.value.map((acc) => ({
+        id: acc.kode_akun,
+        text: `${acc.kode_akun} - ${acc.nama_akun}`,
+      })),
     ]
   } else if (jenisText === 'aset_keluar') {
     // Aset keluar: disimpan ke hanya akun dengan kode_akun tidak dimulai dari 1 (selain aset)
     return [
       ...baseOptions,
       ...accounts.value
-        .filter(acc => !acc.kode_akun.startsWith('1'))
-        .map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+        .filter((acc) => !acc.kode_akun.startsWith('1'))
+        .map((acc) => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` })),
     ]
   } else if (jenisText === 'simpan_saldo') {
     // Simpan saldo: semua akun
     return [
       ...baseOptions,
-      ...accounts.value.map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+      ...accounts.value.map((acc) => ({
+        id: acc.kode_akun,
+        text: `${acc.kode_akun} - ${acc.nama_akun}`,
+      })),
     ]
   }
-  
+
   // Default: semua akun (jika teks tidak cocok)
   return [
     ...baseOptions,
-    ...accounts.value.map(acc => ({ id: acc.kode_akun, text: `${acc.kode_akun} - ${acc.nama_akun}` }))
+    ...accounts.value.map((acc) => ({
+      id: acc.kode_akun,
+      text: `${acc.kode_akun} - ${acc.nama_akun}`,
+    })),
   ]
 })
 
-const jenisTransaksiOptions = ref([
-  { id: '', text: 'Pilih Jenis Transaksi' },
-])
+const jenisTransaksiOptions = ref([{ id: '', text: 'Pilih Jenis Transaksi' }])
 
 const fetchJenisTransaksi = async () => {
   try {
@@ -473,10 +473,7 @@ const fetchJenisTransaksi = async () => {
         id: jt.id,
         text: jt.nama_jt,
       }))
-      jenisTransaksiOptions.value = [
-        { id: '', text: 'Pilih Jenis Transaksi' },
-        ...items,
-      ]
+      jenisTransaksiOptions.value = [{ id: '', text: 'Pilih Jenis Transaksi' }, ...items]
     }
   } catch {
     // Daftar jenis transaksi gagal diambil. Select dibiarkan kosong
@@ -501,7 +498,7 @@ const regenerateAmount = async () => {
   try {
     await api.post('/generate-amount', {
       bulan: now.getMonth() + 1,
-      tahun: now.getFullYear()
+      tahun: now.getFullYear(),
     })
   } catch {
     // Regenerasi nominal gagal. Nilai transaksi tidak diubah.
@@ -509,18 +506,18 @@ const regenerateAmount = async () => {
 }
 
 const bulanMap = {
-  'Januari': '01',
-  'Februari': '02',
-  'Maret': '03',
-  'April': '04',
-  'Mei': '05',
-  'Juni': '06',
-  'Juli': '07',
-  'Agustus': '08',
-  'September': '09',
-  'Oktober': '10',
-  'November': '11',
-  'Desember': '12',
+  Januari: '01',
+  Februari: '02',
+  Maret: '03',
+  April: '04',
+  Mei: '05',
+  Juni: '06',
+  Juli: '07',
+  Agustus: '08',
+  September: '09',
+  Oktober: '10',
+  November: '11',
+  Desember: '12',
 }
 
 const fetchTransactions = async (page = 1) => {
@@ -589,9 +586,10 @@ const fetchBukuBesar = async () => {
     if (response.data.success) {
       bukuBesar.value = {
         saldo_awal_tahun: Number(response.data.data.saldo_awal_tahun) || 0,
-        saldo_awal_bulan: response.data.data.saldo_awal_bulan !== null
-          ? Number(response.data.data.saldo_awal_bulan)
-          : null,
+        saldo_awal_bulan:
+          response.data.data.saldo_awal_bulan !== null
+            ? Number(response.data.data.saldo_awal_bulan)
+            : null,
       }
     }
   } catch {
@@ -611,7 +609,7 @@ watch(
   () => {
     fetchTransactions()
   },
-  { deep: true }
+  { deep: true },
 )
 
 watch(
@@ -622,7 +620,7 @@ watch(
     form.value.disimpanKe = ''
     form.value.keterangan = ''
     saldoSumberDana.value = 0
-  }
+  },
 )
 
 watch(
@@ -633,7 +631,7 @@ watch(
     } else {
       saldoSumberDana.value = 0
     }
-  }
+  },
 )
 
 const fetchSaldoSumberDana = async (kodeAkun) => {
@@ -653,22 +651,24 @@ watch(
     // Generate keterangan otomatis
     if (form.value.sumberDana && form.value.disimpanKe) {
       // Ambil nama akun saja (tanpa kode)
-      const sumberNama = sumberDanaText.value.split(' - ').slice(1).join(' - ') || sumberDanaText.value
-      const tujuanNama = disimpanKeText.value.split(' - ').slice(1).join(' - ') || disimpanKeText.value
-      
+      const sumberNama =
+        sumberDanaText.value.split(' - ').slice(1).join(' - ') || sumberDanaText.value
+      const tujuanNama =
+        disimpanKeText.value.split(' - ').slice(1).join(' - ') || disimpanKeText.value
+
       if (sumberNama && tujuanNama) {
         form.value.keterangan = `${sumberNama} disimpan ke ${tujuanNama}`
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const tahunOptions = computed(() => {
   const current = new Date().getFullYear()
   return [
     { id: '', text: 'Semua Tahun' },
-    ...Array.from({ length: 5 }, (_, i) => ({ id: current - i, text: current - i }))
+    ...Array.from({ length: 5 }, (_, i) => ({ id: current - i, text: current - i })),
   ]
 })
 
@@ -703,32 +703,13 @@ const tanggalOptionsFiltered = computed(() => {
   }
   return [
     { id: '', text: 'Semua Tanggal' },
-    ...Array.from({ length: 31 }, (_, i) => ({ id: i + 1, text: i + 1 }))
+    ...Array.from({ length: 31 }, (_, i) => ({ id: i + 1, text: i + 1 })),
   ]
 })
 
 function formatSaldo(val) {
   return useCurrencyFormat(val)
 }
-
-function formatDate(dateString) {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
-
-function formatCurrency(amount) {
-  if (!amount) return '0'
-  return new Intl.NumberFormat('id-ID', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
 async function deleteTransaction(id) {
   const result = await Swal.fire({
     title: 'Konfirmasi Hapus',
@@ -798,7 +779,7 @@ async function handleSubmit() {
       icon: 'error',
       title: 'Validasi Gagal',
       text: 'Tanggal transaksi harus diisi.',
-      confirmButtonText: 'OK'
+      confirmButtonText: 'OK',
     })
     return
   }
@@ -807,7 +788,7 @@ async function handleSubmit() {
       icon: 'error',
       title: 'Validasi Gagal',
       text: 'Jenis transaksi harus dipilih.',
-      confirmButtonText: 'OK'
+      confirmButtonText: 'OK',
     })
     return
   }
@@ -816,7 +797,7 @@ async function handleSubmit() {
       icon: 'error',
       title: 'Validasi Gagal',
       text: 'Sumber dana harus dipilih.',
-      confirmButtonText: 'OK'
+      confirmButtonText: 'OK',
     })
     return
   }
@@ -825,7 +806,7 @@ async function handleSubmit() {
       icon: 'error',
       title: 'Validasi Gagal',
       text: 'Disimpan ke/keperluan harus dipilih.',
-      confirmButtonText: 'OK'
+      confirmButtonText: 'OK',
     })
     return
   }
@@ -834,7 +815,7 @@ async function handleSubmit() {
       icon: 'error',
       title: 'Validasi Gagal',
       text: 'Nominal harus diisi dan lebih dari 0.',
-      confirmButtonText: 'OK'
+      confirmButtonText: 'OK',
     })
     return
   }
@@ -884,7 +865,7 @@ async function handleSubmit() {
         icon: 'error',
         title: 'Gagal menyimpan transaksi',
         text: response.data.message || 'Terjadi kesalahan pada server.',
-        confirmButtonText: 'OK'
+        confirmButtonText: 'OK',
       })
     }
   } catch (error) {
@@ -898,7 +879,7 @@ async function handleSubmit() {
       icon: 'error',
       title: 'Gagal menyimpan transaksi',
       text: errorMessage,
-      confirmButtonText: 'OK'
+      confirmButtonText: 'OK',
     })
   }
 }

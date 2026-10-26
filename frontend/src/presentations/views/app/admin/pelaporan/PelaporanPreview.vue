@@ -2,7 +2,11 @@
   <div class="preview-shell" :class="[reportConfig?.orientation || 'portrait']">
     <div class="preview-toolbar no-print">
       <div class="toolbar-left">
-        <button class="toolbar-menu-btn" @click="showSidebar = !showSidebar" title="Tampilkan / sembunyikan thumbnail">
+        <button
+          class="toolbar-menu-btn"
+          @click="showSidebar = !showSidebar"
+          title="Tampilkan / sembunyikan thumbnail"
+        >
           <span></span><span></span><span></span>
         </button>
         <h3 class="title">
@@ -16,14 +20,17 @@
         </div>
 
         <div class="zoom-controls no-print">
-          <button class="zoom-btn" @click="zoomOut" :disabled="zoomLevel <= minZoom" title="Zoom Out">
+          <button
+            class="zoom-btn"
+            @click="zoomOut"
+            :disabled="zoomLevel <= minZoom"
+            title="Zoom Out"
+          >
             <span>−</span>
           </button>
-          <span
-            class="zoom-percent active"
-            @click="resetZoom"
-            title="Reset zoom"
-          >{{ zoomPercent }}%</span>
+          <span class="zoom-percent active" @click="resetZoom" title="Reset zoom"
+            >{{ zoomPercent }}%</span
+          >
           <button class="zoom-btn" @click="zoomIn" :disabled="zoomLevel >= maxZoom" title="Zoom In">
             <span>+</span>
           </button>
@@ -38,26 +45,20 @@
          Hasil pengukuran dipakai untuk generate pages sesuai tinggi A4 aktual.
          Wrapper a4-fixed memaksa BaseReportLayout di dalamnya pakai height tetap.
          Signature block di-inject otomatis via provide('reportSignature'). -->
-    <div
-      v-if="calkProbeData"
-      class="a4-fixed"
-      aria-hidden="true"
-    >
+    <div v-if="calkProbeData" class="a4-fixed" aria-hidden="true">
       <div
         ref="calkProbeEl"
         class="calk-probe"
-        :class="[reportConfig?.paper_size === 'F4' ? 'size-f4' : 'size-a4', reportConfig?.orientation || 'portrait']"
+        :class="[
+          reportConfig?.paper_size === 'F4' ? 'size-f4' : 'size-a4',
+          reportConfig?.orientation || 'portrait',
+        ]"
       >
-        <component
-          :is="resolvedView"
-          :payload="calkProbeData"
-          :meta="meta"
-        />
+        <component :is="resolvedView" :payload="calkProbeData" :meta="meta" />
       </div>
     </div>
 
     <div class="workspace-container">
-
       <div class="thumbnail-sidebar no-print" v-show="showSidebar">
         <div
           v-for="(page, i) in pages"
@@ -88,7 +89,6 @@
       <div class="preview-stage" ref="stageEl" @scroll.passive="onStageScroll">
         <div ref="reportRoot" class="report-root">
           <div
-            v-if="pages.length > 0"
             v-for="(page, i) in pages"
             :key="i"
             class="report-page-wrap"
@@ -116,17 +116,24 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import BaseButton from '@/presentations/components/ui/BaseButton.vue'
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  onBeforeUnmount,
+  provide,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue'
+import { useRoute } from 'vue-router'
 import pelaporanService from '@/services/pelaporan.service.js'
-import { usePdfReport } from '@/composables/usePdfReport.js'
 import { THUMB_RENDER_BUFFER } from '@/composables/usePdfPreview.js'
 
 // Kelompok Utama
@@ -160,40 +167,34 @@ import TutupBukuLabaRugiView from '@/presentations/views/app/admin/pelaporan/vie
 import TutupBukuJurnalView from '@/presentations/views/app/admin/pelaporan/views/ReportTutupBukuJurnal.vue'
 import TutupBukuCalkView from '@/presentations/views/app/admin/pelaporan/views/ReportTutupBukuCalk.vue'
 
-
-
-
-
 const reportComponents = {
-  'cover': CoverView,
-  'surat_pengantar': SuratPengantarView,
-  'daftar_pelanggan': DaftarPelangganView,
-  'tagihan_pelanggan': DaftarTagihanView,
-  'piutang_pelanggan': DaftarPiutangView,
-  'piutang_komisi': PiutangKomisiView,
-  'jurnal_transaksi': JurnalTransaksiView,
-  'buku_besar': BukuBesarView,
-  'neraca_saldo': NeracaSaldoView,
-  'neraca': NeracaView,
-  'laba_rugi': LabaRugiView,
-  'arus_kas': ArusKasView,
-  'perubahan_modal': PerubahanModalView,
-  'calk': CalkView,
-  'calkk': CalkView,
-  'ati': AsetTetapView,
-  'atb': AsetTakBerwujudView,
-  'e_budgeting': EbudgetingView,
-  'tutup_buku': AwalTahunView,
-  'tutup_buku_alokasi_laba': TutupBukuAlokasiLabaView,
-  'tutup_buku_neraca': TutupBukuNeracaView,
-  'tutup_buku_laba_rugi': TutupBukuLabaRugiView,
-  'tutup_buku_jurnal': TutupBukuJurnalView,
-  'tutup_buku_calk': TutupBukuCalkView
-};
+  cover: CoverView,
+  surat_pengantar: SuratPengantarView,
+  daftar_pelanggan: DaftarPelangganView,
+  tagihan_pelanggan: DaftarTagihanView,
+  piutang_pelanggan: DaftarPiutangView,
+  piutang_komisi: PiutangKomisiView,
+  jurnal_transaksi: JurnalTransaksiView,
+  buku_besar: BukuBesarView,
+  neraca_saldo: NeracaSaldoView,
+  neraca: NeracaView,
+  laba_rugi: LabaRugiView,
+  arus_kas: ArusKasView,
+  perubahan_modal: PerubahanModalView,
+  calk: CalkView,
+  calkk: CalkView,
+  ati: AsetTetapView,
+  atb: AsetTakBerwujudView,
+  e_budgeting: EbudgetingView,
+  tutup_buku: AwalTahunView,
+  tutup_buku_alokasi_laba: TutupBukuAlokasiLabaView,
+  tutup_buku_neraca: TutupBukuNeracaView,
+  tutup_buku_laba_rugi: TutupBukuLabaRugiView,
+  tutup_buku_jurnal: TutupBukuJurnalView,
+  tutup_buku_calk: TutupBukuCalkView,
+}
 
-const router = useRouter()
 const route = useRoute()
-const { isGenerating, downloadPdf, bulanNama } = usePdfReport()
 
 const loading = ref(true)
 const errorMsg = ref('')
@@ -284,7 +285,7 @@ const pageScale = (i) => {
   return baseFit * zoomLevel.value
 }
 
-const pageMarginBottom = (i) => {
+const pageMarginBottom = () => {
   // CSS zoom menskalakan layout box sekaligus visual, jadi flex gap 24px
   // dari .report-root sudah cukup untuk jarak visual antar halaman di semua zoom level.
   return '0px'
@@ -343,9 +344,9 @@ const fetchPreview = async () => {
     // MODIFIKASI: Ubah favicon menjadi transparan/kosong saat data berhasil dimuat
     const faviconLink = document.querySelector("link[rel~='icon']")
     if (faviconLink) {
-      faviconLink.href = 'data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAAB1RHTAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4yMTnTabrAAAAnSURBVDhPY2AgDTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwYAAAAE0AZfsc4sYAAAAASUVORK5CYII='
+      faviconLink.href =
+        'data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAAB1RHTAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4yMTnTabrAAAAnSURBVDhPY2AgDTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwYAAAAE0AZfsc4sYAAAAASUVORK5CYII='
     }
-
   } catch (err) {
     errorMsg.value = err.message || 'Terjadi kesalahan'
   } finally {
@@ -361,38 +362,56 @@ const buildPages = (res) => {
 
   if (res.view_target === 'cover' || res.view_target === 'surat_pengantar') {
     pages.value = [{ payload: data, meta: baseMeta }]
-  } 
-  else if (res.view_target === 'calk' || res.view_target === 'calkk' || res.view_target === 'tutup_buku_calk') {
+  } else if (
+    res.view_target === 'calk' ||
+    res.view_target === 'calkk' ||
+    res.view_target === 'tutup_buku_calk'
+  ) {
     const rows = Array.isArray(data?.rows) ? data.rows : []
     const calkContent = data?.calk_content || ''
     const totalSaldo = data?.total_saldo || 0
 
     if (rows.length === 0) {
-      pages.value = [{ payload: { ...data, config: baseConfig, rows: [], pageInfo: { current: 1, total: 1 }, isFirstPage: true, isLastPage: true }, meta: baseMeta }]
+      pages.value = [
+        {
+          payload: {
+            ...data,
+            config: baseConfig,
+            rows: [],
+            pageInfo: { current: 1, total: 1 },
+            isFirstPage: true,
+            isLastPage: true,
+          },
+          meta: baseMeta,
+        },
+      ]
     } else {
       // Untuk CaLK, chunkSize dihitung dari probe setelah render.
       // Kita buat SATU placeholder page dulu; setelah render probe off-screen,
       // chunkSize dihitung dari tinggi konten aktual dan pages dipecah ulang.
-      pages.value = [{
-        payload: {
-          ...data,
-          config: baseConfig,
-          rows: rows,
-          calk_content: calkContent,
-          total_saldo: totalSaldo,
-          pageInfo: { current: 1, total: 1 },
-          isFirstPage: true,
-          isLastPage: true,
-          showTableHeader: true,
-          _allRows: rows,
-          _calkContent: calkContent,
-          _totalSaldo: totalSaldo,
+      pages.value = [
+        {
+          payload: {
+            ...data,
+            config: baseConfig,
+            rows: rows,
+            calk_content: calkContent,
+            total_saldo: totalSaldo,
+            pageInfo: { current: 1, total: 1 },
+            isFirstPage: true,
+            isLastPage: true,
+            showTableHeader: true,
+            _allRows: rows,
+            _calkContent: calkContent,
+            _totalSaldo: totalSaldo,
+          },
+          meta: baseMeta,
         },
-        meta: baseMeta,
-      }]
+      ]
     }
-  }
-  else if (['daftar_pelanggan', 'tagihan_pelanggan', 'piutang_pelanggan'].includes(res.view_target)) {
+  } else if (
+    ['daftar_pelanggan', 'tagihan_pelanggan', 'piutang_pelanggan'].includes(res.view_target)
+  ) {
     const items = Array.isArray(data) ? data : data?.items || []
     // Chunk size dibedakan: halaman 1 lebih sedikit karena ada header judul + baris wilayah,
     // halaman lanjutan bisa lebih banyak karena hanya ada kop + tabel.
@@ -400,14 +419,30 @@ const buildPages = (res) => {
     const NEXT_PAGE_ROWS = 25
 
     if (items.length === 0) {
-      pages.value = [{ payload: { config: baseConfig, items: [], startIndex: 0, pageInfo: { current: 1, total: 1 }, isFirstPage: true }, meta: baseMeta }]
+      pages.value = [
+        {
+          payload: {
+            config: baseConfig,
+            items: [],
+            startIndex: 0,
+            pageInfo: { current: 1, total: 1 },
+            isFirstPage: true,
+          },
+          meta: baseMeta,
+        },
+      ]
     } else {
       // Kelompokkan items berdasarkan Desa + Dusun, lalu chunk per-group
       // supaya header desa/dusun tidak muncul dua kali di halaman yang berbeda
       const groups = new Map()
       items.forEach((item) => {
         const key = `${item.nama_desa || 'BELUM DISET'}__${item.nama_dusun || 'BELUM DISET'}`
-        if (!groups.has(key)) groups.set(key, { desa: item.nama_desa || 'BELUM DISET', dusun: item.nama_dusun || 'BELUM DISET', rows: [] })
+        if (!groups.has(key))
+          groups.set(key, {
+            desa: item.nama_desa || 'BELUM DISET',
+            dusun: item.nama_dusun || 'BELUM DISET',
+            rows: [],
+          })
         groups.get(key).rows.push(item)
       })
 
@@ -421,9 +456,10 @@ const buildPages = (res) => {
       const flushPage = () => {
         if (bufferCount === 0) return
         // Tandai item pertama di halaman: apakah grup desa/dusun berbeda dari halaman sebelumnya?
-        const firstKey = buffer.length > 0
-          ? `${buffer[0].nama_desa || 'BELUM DISET'}__${buffer[0].nama_dusun || 'BELUM DISET'}`
-          : null
+        const firstKey =
+          buffer.length > 0
+            ? `${buffer[0].nama_desa || 'BELUM DISET'}__${buffer[0].nama_dusun || 'BELUM DISET'}`
+            : null
         const showWilayahHeader = firstKey !== prevLastGroupKey
         const marked = buffer.map((row, i) => ({
           ...row,
@@ -434,13 +470,14 @@ const buildPages = (res) => {
             config: baseConfig,
             items: marked,
             startIndex: globalIndex - bufferCount,
-            pageInfo: { current: pages.value.length + 1, total: 0 }
+            pageInfo: { current: pages.value.length + 1, total: 0 },
           },
           meta: baseMeta,
         })
-        prevLastGroupKey = buffer.length > 0
-          ? `${buffer[buffer.length - 1].nama_desa || 'BELUM DISET'}__${buffer[buffer.length - 1].nama_dusun || 'BELUM DISET'}`
-          : prevLastGroupKey
+        prevLastGroupKey =
+          buffer.length > 0
+            ? `${buffer[buffer.length - 1].nama_desa || 'BELUM DISET'}__${buffer[buffer.length - 1].nama_dusun || 'BELUM DISET'}`
+            : prevLastGroupKey
         buffer = []
         bufferCount = 0
       }
@@ -458,7 +495,7 @@ const buildPages = (res) => {
             config: baseConfig,
             items: marked,
             startIndex: globalIndex,
-            pageInfo: { current: pages.value.length + 1, total: 0 }
+            pageInfo: { current: pages.value.length + 1, total: 0 },
           },
           meta: baseMeta,
         })
@@ -486,7 +523,6 @@ const buildPages = (res) => {
           // Kalau menambah group ini akan overflow halaman aktif, flush dulu
           if (bufferCount + groupRows.length > limit && bufferCount > 0) {
             flushPage()
-            limit = currentRowsPerPage()
           }
           buffer = buffer.concat(groupRows)
           bufferCount += groupRows.length
@@ -499,11 +535,10 @@ const buildPages = (res) => {
       const total = pages.value.length
       pages.value = pages.value.map((p, i) => ({
         ...p,
-        payload: { ...p.payload, pageInfo: { ...p.payload.pageInfo, total }, isFirstPage: i === 0 }
+        payload: { ...p.payload, pageInfo: { ...p.payload.pageInfo, total }, isFirstPage: i === 0 },
       }))
     }
-  }
-  else if (res.view_target === 'neraca_saldo') {
+  } else if (res.view_target === 'neraca_saldo') {
     const items = Array.isArray(data?.items) ? data.items : []
     const summary = data?.summary || {}
     // Neraca Saldo punya header 2 baris dan 7 kolom (lebih lebar/padat).
@@ -511,7 +546,9 @@ const buildPages = (res) => {
     const chunkSize = 25
 
     if (items.length === 0) {
-      pages.value = [{ payload: { ...data, config: baseConfig, items: [], isFirstPage: true }, meta: baseMeta }]
+      pages.value = [
+        { payload: { ...data, config: baseConfig, items: [], isFirstPage: true }, meta: baseMeta },
+      ]
     } else {
       pages.value = []
       for (let i = 0; i < items.length; i += chunkSize) {
@@ -528,13 +565,25 @@ const buildPages = (res) => {
         })
       }
     }
-  }
-  else if (res.view_target === 'buku_besar') {
+  } else if (res.view_target === 'buku_besar') {
     const transactions = Array.isArray(data?.transactions) ? data.transactions : []
     const dataChunkSize = 20
 
     if (transactions.length === 0) {
-      pages.value = [{ payload: { ...data, config: baseConfig, transactions: [], showHeader: true, showFooter: true, isFirstPage: true, startIndex: 0 }, meta: baseMeta }]
+      pages.value = [
+        {
+          payload: {
+            ...data,
+            config: baseConfig,
+            transactions: [],
+            showHeader: true,
+            showFooter: true,
+            isFirstPage: true,
+            startIndex: 0,
+          },
+          meta: baseMeta,
+        },
+      ]
     } else {
       pages.value = []
       const totalChunks = Math.ceil(transactions.length / dataChunkSize)
@@ -546,7 +595,7 @@ const buildPages = (res) => {
         const bln = Number(data?.periode?.bulan || 1)
         const d = bln === 1 ? sa.debit : sb.debit
         const k = bln === 1 ? sa.kredit : sb.kredit
-        return String(data?.jenis_mutasi || '').toLowerCase() === 'kredit' ? (k - d) : (d - k)
+        return String(data?.jenis_mutasi || '').toLowerCase() === 'kredit' ? k - d : d - k
       })()
       for (let i = 0; i < transactions.length; i += dataChunkSize) {
         const chunkIndex = Math.floor(i / dataChunkSize)
@@ -562,7 +611,7 @@ const buildPages = (res) => {
             isFirstPage: i === 0,
             startIndex: i,
             startRunningSaldo: runningSaldo,
-            pageInfo: { current: chunkIndex + 1, total: totalChunks }
+            pageInfo: { current: chunkIndex + 1, total: totalChunks },
           },
           meta: baseMeta,
         })
@@ -574,25 +623,25 @@ const buildPages = (res) => {
           const nominal = Number(t.saldo || t.jumlah || 0)
           const debit = isDebitSide ? nominal : 0
           const kredit = !isDebitSide ? nominal : 0
-          const mutasi = isKredit ? (kredit - debit) : (debit - kredit)
+          const mutasi = isKredit ? kredit - debit : debit - kredit
           runningSaldo += mutasi
         })
       }
     }
-  }
-
-  else if (res.view_target === 'e_budgeting') {
-    const items = Array.isArray(data?.items) ? data.items : [];
+  } else if (res.view_target === 'e_budgeting') {
+    const items = Array.isArray(data?.items) ? data.items : []
     // chunkSize konservatif untuk BaseReportLayout height tetap (A4).
-    const chunkSize = 20;
+    const chunkSize = 20
 
     if (items.length === 0) {
-      pages.value = [{ payload: { ...data, config: baseConfig, items: [], isFirstPage: true }, meta: baseMeta }];
+      pages.value = [
+        { payload: { ...data, config: baseConfig, items: [], isFirstPage: true }, meta: baseMeta },
+      ]
     } else {
-      pages.value = [];
-      const totalChunks = Math.ceil(items.length / chunkSize);
+      pages.value = []
+      const totalChunks = Math.ceil(items.length / chunkSize)
       for (let i = 0; i < items.length; i += chunkSize) {
-        const chunkIndex = Math.floor(i / chunkSize);
+        const chunkIndex = Math.floor(i / chunkSize)
         pages.value.push({
           payload: {
             ...data,
@@ -600,14 +649,13 @@ const buildPages = (res) => {
             items: items.slice(i, i + chunkSize), // Potong data per halaman
             isFirstPage: i === 0,
             isLastPage: chunkIndex === totalChunks - 1,
-            pageInfo: { current: chunkIndex + 1, total: totalChunks }
+            pageInfo: { current: chunkIndex + 1, total: totalChunks },
           },
           meta: baseMeta,
-        });
+        })
       }
     }
-  }
-  else if (res.view_target === 'laba_rugi') {
+  } else if (res.view_target === 'laba_rugi') {
     const rawGroups = Array.isArray(data?.groups) ? data.groups : []
 
     // 1. Bongkar semua grup & items menjadi satu array baris flat
@@ -617,7 +665,7 @@ const buildPages = (res) => {
       flatRows.push({
         isHeader: true,
         type: group.type,
-        label: group.label
+        label: group.label,
       })
 
       // Masukkan anak-anak akun di dalamnya jika ada
@@ -625,7 +673,7 @@ const buildPages = (res) => {
         group.items.forEach((item) => {
           flatRows.push({
             isHeader: false,
-            ...item
+            ...item,
           })
         })
       }
@@ -635,7 +683,12 @@ const buildPages = (res) => {
     const chunkSize = 45
 
     if (flatRows.length === 0) {
-      pages.value = [{ payload: { ...data, config: baseConfig, flatRows: [], isFirstPage: true }, meta: baseMeta }]
+      pages.value = [
+        {
+          payload: { ...data, config: baseConfig, flatRows: [], isFirstPage: true },
+          meta: baseMeta,
+        },
+      ]
     } else {
       pages.value = []
       const totalChunks = Math.ceil(flatRows.length / chunkSize)
@@ -649,14 +702,13 @@ const buildPages = (res) => {
             flatRows: flatRows.slice(i, i + chunkSize),
             isFirstPage: i === 0,
             isLastPage: chunkIndex === totalChunks - 1,
-            pageInfo: { current: chunkIndex + 1, total: totalChunks }
+            pageInfo: { current: chunkIndex + 1, total: totalChunks },
           },
           meta: baseMeta,
         })
       }
     }
-  }
-  else if (res.view_target === 'tutup_buku_laba_rugi') {
+  } else if (res.view_target === 'tutup_buku_laba_rugi') {
     const rawGroups = Array.isArray(data?.groups) ? data.groups : []
 
     // 1. Bongkar semua grup & items menjadi satu array baris flat (sama dengan laba_rugi)
@@ -665,13 +717,13 @@ const buildPages = (res) => {
       flatRows.push({
         isHeader: true,
         type: group.type,
-        label: group.label
+        label: group.label,
       })
       if (Array.isArray(group.items)) {
         group.items.forEach((item) => {
           flatRows.push({
             isHeader: false,
-            ...item
+            ...item,
           })
         })
       }
@@ -681,7 +733,12 @@ const buildPages = (res) => {
     const chunkSize = 45
 
     if (flatRows.length === 0) {
-      pages.value = [{ payload: { ...data, config: baseConfig, flatRows: [], isFirstPage: true }, meta: baseMeta }]
+      pages.value = [
+        {
+          payload: { ...data, config: baseConfig, flatRows: [], isFirstPage: true },
+          meta: baseMeta,
+        },
+      ]
     } else {
       pages.value = []
       const totalChunks = Math.ceil(flatRows.length / chunkSize)
@@ -695,39 +752,56 @@ const buildPages = (res) => {
             flatRows: flatRows.slice(i, i + chunkSize),
             isFirstPage: i === 0,
             isLastPage: chunkIndex === totalChunks - 1,
-            pageInfo: { current: chunkIndex + 1, total: totalChunks }
+            pageInfo: { current: chunkIndex + 1, total: totalChunks },
           },
           meta: baseMeta,
         })
       }
     }
-  }
-  else if (res.view_target === 'jurnal_transaksi') {
-    const items = Array.isArray(data?.items) ? data.items : [];
+  } else if (res.view_target === 'jurnal_transaksi') {
+    const items = Array.isArray(data?.items) ? data.items : []
     // Jurnal menampilkan 2 baris per item (debit + kredit), jadi chunkSize 20 item
     // menghasilkan ~40 baris tabel. Dengan padding BaseReportLayout 60px atas/bawah,
     // chunkSize 20 item aman untuk A4 portrait.
-    const chunkSize = 20;
-    const parseNumber = (val) => parseFloat(String(val).replace(/[^0-9.-]+/g, '')) || 0;
-    const totalDebitAll = items.reduce((s, i) => s + parseNumber(i?.debet?.jumlah), 0);
-    const totalKreditAll = items.reduce((s, i) => s + parseNumber(i?.kredit?.jumlah), 0);
+    const chunkSize = 20
+    const parseNumber = (val) => parseFloat(String(val).replace(/[^0-9.-]+/g, '')) || 0
+    const totalDebitAll = items.reduce((s, i) => s + parseNumber(i?.debet?.jumlah), 0)
+    const totalKreditAll = items.reduce((s, i) => s + parseNumber(i?.kredit?.jumlah), 0)
     const totals = {
-      debit: totalDebitAll.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      kredit: totalKreditAll.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    };
+      debit: totalDebitAll.toLocaleString('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+      kredit: totalKreditAll.toLocaleString('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    }
 
     if (items.length === 0) {
-      pages.value = [{
-        payload: { ...data, config: baseConfig, items: [], totals, showHeader: true, showFooter: true, isFirstPage: true, startIndex: 0, pageInfo: { current: 1, total: 1 } },
-        meta: baseMeta
-      }];
+      pages.value = [
+        {
+          payload: {
+            ...data,
+            config: baseConfig,
+            items: [],
+            totals,
+            showHeader: true,
+            showFooter: true,
+            isFirstPage: true,
+            startIndex: 0,
+            pageInfo: { current: 1, total: 1 },
+          },
+          meta: baseMeta,
+        },
+      ]
     } else {
-      pages.value = [];
-      const totalChunks = Math.ceil(items.length / chunkSize);
+      pages.value = []
+      const totalChunks = Math.ceil(items.length / chunkSize)
 
       for (let i = 0; i < items.length; i += chunkSize) {
-        const chunkIndex = Math.floor(i / chunkSize);
-        const isLast = chunkIndex === totalChunks - 1;
+        const chunkIndex = Math.floor(i / chunkSize)
+        const isLast = chunkIndex === totalChunks - 1
 
         pages.value.push({
           payload: {
@@ -739,25 +813,26 @@ const buildPages = (res) => {
             showHeader: i === 0,
             showFooter: isLast,
             isFirstPage: i === 0,
-            pageInfo: { current: chunkIndex + 1, total: totalChunks }
+            pageInfo: { current: chunkIndex + 1, total: totalChunks },
           },
           meta: baseMeta,
-        });
+        })
       }
     }
-  }
-  else if (res.view_target === 'piutang_komisi') {
-    const items = Array.isArray(data?.items) ? data.items : [];
+  } else if (res.view_target === 'piutang_komisi') {
+    const items = Array.isArray(data?.items) ? data.items : []
     // chunkSize konservatif untuk BaseReportLayout height tetap (A4).
-    const chunkSize = 20;
+    const chunkSize = 20
 
     if (items.length === 0) {
-      pages.value = [{ 
-        payload: { ...data, config: baseConfig, items: [] }, 
-        meta: baseMeta 
-      }];
+      pages.value = [
+        {
+          payload: { ...data, config: baseConfig, items: [] },
+          meta: baseMeta,
+        },
+      ]
     } else {
-      pages.value = [];
+      pages.value = []
       for (let i = 0; i < items.length; i += chunkSize) {
         pages.value.push({
           payload: {
@@ -766,14 +841,13 @@ const buildPages = (res) => {
             items: items.slice(i, i + chunkSize),
             // Opsional: tambahkan flag jika perlu membedakan halaman awal/akhir
             isFirstPage: i === 0,
-            isLastPage: (i + chunkSize) >= items.length
+            isLastPage: i + chunkSize >= items.length,
           },
           meta: baseMeta,
-        });
+        })
       }
     }
-  }
-  else if (res.view_target === 'ati' || res.view_target === 'atb') {
+  } else if (res.view_target === 'ati' || res.view_target === 'atb') {
     const groups = Array.isArray(data?.items) ? data.items : []
 
     if (groups.length === 0) {
@@ -794,8 +868,7 @@ const buildPages = (res) => {
         })
       })
     }
-  }
-  else {
+  } else {
     pages.value = [{ payload: data, meta: baseMeta }]
   }
 
@@ -881,13 +954,6 @@ const onStageScroll = () => {
   }
 }
 
-const collectPageElements = async () => {
-  await nextTick()
-  await new Promise((r) => setTimeout(r, 250))
-  const els = pageRefs.value.filter(Boolean)
-  return els
-}
-
 /**
  * Setup probe off-screen untuk CaLK/TutupBukuCalk.
  *
@@ -958,8 +1024,12 @@ const setupCalkProbe = async () => {
   const orientation = cfg.orientation || 'portrait'
   const pageDimsMm =
     paperSize === 'F4'
-      ? (orientation === 'landscape' ? { w: 330, h: 215 } : { w: 215, h: 330 })
-      : (orientation === 'landscape' ? { w: 297, h: 210 } : { w: 210, h: 297 })
+      ? orientation === 'landscape'
+        ? { w: 330, h: 215 }
+        : { w: 215, h: 330 }
+      : orientation === 'landscape'
+        ? { w: 297, h: 210 }
+        : { w: 210, h: 297 }
 
   // Tinggi kertas dalam px.
   const pageHeightPx = pageDimsMm.h * PX_PER_MM
@@ -1002,7 +1072,9 @@ const setupCalkProbe = async () => {
 
   // Tinggi baris tabel aktual (exclude baris separator 2px).
   const rowsHeights = tbody
-    ? Array.from(tbody.querySelectorAll('tr')).map((tr) => tr.offsetHeight).filter((h) => h > 4)
+    ? Array.from(tbody.querySelectorAll('tr'))
+        .map((tr) => tr.offsetHeight)
+        .filter((h) => h > 4)
     : []
   const avgRowPx = rowsHeights.length
     ? rowsHeights.reduce((s, h) => s + h, 0) / rowsHeights.length
@@ -1026,16 +1098,14 @@ const setupCalkProbe = async () => {
 
   // Halaman terakhir: ada kop surat + thead + heading section + footer (pembagian+penutup+tfoot).
   const lastPageAvail = maxContentPx - kopHeightPx - theadPx - liTopMargin - afterTablePx
-  const lastPageRows = lastPageAvail > 0
-    ? Math.max(1, Math.floor(lastPageAvail / avgRowPx))
-    : perPageRows
+  const lastPageRows =
+    lastPageAvail > 0 ? Math.max(1, Math.floor(lastPageAvail / avgRowPx)) : perPageRows
 
   // Bangun pages:
   //   Page 1: rows[0..firstPageRows)
   //   Page 2..N-1: chunk perPageRows
   //   Page N: sisa rows (kalau muat di halaman terakhir, langsung pakai)
   const pagesNew = []
-  let cursor = 0
 
   // Halaman pertama
   const firstEnd = Math.min(firstPageRows, allRows.length)
@@ -1054,7 +1124,7 @@ const setupCalkProbe = async () => {
     },
     meta: baseMeta,
   })
-  cursor = firstEnd
+  let cursor = firstEnd
 
   // Halaman 2..N-1 (chunking murni perPageRows) + halaman terakhir (lastPageRows)
   while (cursor < allRows.length) {
@@ -1077,7 +1147,6 @@ const setupCalkProbe = async () => {
         },
         meta: baseMeta,
       })
-      cursor = allRows.length
       break
     }
 
@@ -1143,7 +1212,7 @@ onUnmounted(() => {
 
 <style scoped>
 .preview-shell {
-  background: #312c2c; 
+  background: #312c2c;
   height: 100vh;
   overflow: hidden;
   display: flex;
@@ -1156,7 +1225,7 @@ onUnmounted(() => {
   top: 0;
   z-index: 50;
   background: #424242;
-  border-bottom: 1px solid #424242; 
+  border-bottom: 1px solid #424242;
   padding: 12px 24px;
   display: flex;
   align-items: center;
@@ -1167,7 +1236,7 @@ onUnmounted(() => {
 .toolbar-left {
   display: flex;
   align-items: center;
-  padding-left: 8px; 
+  padding-left: 8px;
 }
 
 .toolbar-center {
@@ -1230,7 +1299,7 @@ onUnmounted(() => {
   user-select: none;
 }
 .zoom-btn:hover {
-  background: #525050; 
+  background: #525050;
 }
 .zoom-btn {
   width: 30px;
@@ -1247,7 +1316,6 @@ onUnmounted(() => {
   transition: background 0.15s ease;
 }
 
-
 .zoom-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1263,19 +1331,16 @@ onUnmounted(() => {
   padding: 0px 10px;
   border-radius: 999px;
   background: transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
-
 
 .zoom-percent.active {
   background: #242424;
   color: #ffffff;
-  border-radius:0;
+  border-radius: 0;
 }
-
-
-
-
 
 /* WORKSPACE */
 .workspace-container {
@@ -1285,7 +1350,7 @@ onUnmounted(() => {
   overflow: hidden;
 }
 .thumbnail-sidebar {
-  width: 300px; 
+  width: 300px;
   background: #2c2e31;
   border-right: 1px solid #979797;
   padding: 20px 0;
@@ -1306,23 +1371,23 @@ onUnmounted(() => {
 }
 
 .thumb-wrapper.portrait .thumb-paper {
-  width: 140px; 
-  height: 195px; 
+  width: 140px;
+  height: 195px;
 }
 .thumb-wrapper.portrait .thumb-scale-container {
-  width: 790px;  /* Sesuai A4/F4 lebar portrait */
+  width: 790px; /* Sesuai A4/F4 lebar portrait */
   height: 1120px;
-  transform: scale(0.177); 
+  transform: scale(0.177);
 }
 
 .thumb-wrapper.landscape .thumb-paper {
   width: 195px; /* Dibalik mendatar */
-  height: 140px; 
+  height: 140px;
 }
 .thumb-wrapper.landscape .thumb-scale-container {
   width: 1120px; /* Sesuai A4/F4 lebar landscape */
   height: 790px;
-  transform: scale(0.174); 
+  transform: scale(0.174);
 }
 
 .thumb-paper {
@@ -1331,7 +1396,7 @@ onUnmounted(() => {
   border: 2px solid #475569;
   border-radius: 3px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .thumb-wrapper:hover .thumb-paper {
@@ -1340,7 +1405,9 @@ onUnmounted(() => {
 
 .thumb-wrapper.active .thumb-paper {
   border-color: #38bdf8;
-  box-shadow: 0 0 0 2px #38bdf8, 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 2px #38bdf8,
+    0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .thumb-wrapper.active .thumb-number {
@@ -1352,7 +1419,7 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   transform-origin: top left;
-  pointer-events: none; 
+  pointer-events: none;
 }
 
 .thumb-real-component {
@@ -1483,7 +1550,6 @@ onUnmounted(() => {
   min-width: 100%;
   align-items: center;
   padding: 0 16px;
-
 }
 
 .report-page-wrap {
@@ -1566,8 +1632,16 @@ onUnmounted(() => {
   z-index: -1;
   overflow: visible;
 }
-.calk-probe.size-a4.portrait { width: 210mm; }
-.calk-probe.size-f4.portrait { width: 215mm; }
-.calk-probe.size-a4.landscape { width: 297mm; }
-.calk-probe.size-f4.landscape { width: 330mm; }
+.calk-probe.size-a4.portrait {
+  width: 210mm;
+}
+.calk-probe.size-f4.portrait {
+  width: 215mm;
+}
+.calk-probe.size-a4.landscape {
+  width: 297mm;
+}
+.calk-probe.size-f4.landscape {
+  width: 330mm;
+}
 </style>

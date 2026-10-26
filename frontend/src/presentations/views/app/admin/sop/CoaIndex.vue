@@ -20,18 +20,11 @@
           <i class="pi pi-spin pi-spinner text-cyan-600!" style="font-size: 1.5rem"></i>
         </div>
 
-        <div
-          v-if="!isLoading && !hasData"
-          class="text-center! py-10! text-slate-500! text-sm!"
-        >
+        <div v-if="!isLoading && !hasData" class="text-center! py-10! text-slate-500! text-sm!">
           Belum ada data akun.
         </div>
 
-        <div
-          v-show="!isLoading && hasData"
-          ref="treeEl"
-          class="coajs-tree!"
-        ></div>
+        <div v-show="!isLoading && hasData" ref="treeEl" class="coajs-tree!"></div>
       </div>
     </ContentCard>
   </div>
@@ -158,7 +151,7 @@ const fetchAccounts = async () => {
       },
     })
 
-    $(treeEl.value).on('click.jstree', '.jstree-anchor', function (e) {
+    $(treeEl.value).on('click.jstree', '.jstree-anchor', function () {
       const inst = $.jstree.reference(this)
       const node = inst && inst.get_node(this)
       if (!node) return
@@ -166,7 +159,7 @@ const fetchAccounts = async () => {
         inst.toggle_node(node)
       }
     })
-  } catch (err) {
+  } catch {
     hasData.value = false
   } finally {
     isLoading.value = false

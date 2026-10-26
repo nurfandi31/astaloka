@@ -117,6 +117,30 @@ const KATA_RUSAK = [
  */
 const DIRI_SENDIRI = fileURLToPath(import.meta.url)
 
+/**
+ * Karakter kontrol yang TIDAK BOLEH muncul di berkas teks.
+ *
+ * Damages yang satu ini yang paling repot, karena bukan merusak tampilan --
+ * ia merusak PARSER. `U+008D` (C1 control) yang terselip di dalam atribut
+ * HTML membuat `vue-eslint-parser` gagal dengan:
+ *
+ *     Parsing error: control-character-in-input-stream.
+ *
+ * Yang lebih menyebalkan: `vite build` tetap hijau. Vite hanya membundle,
+ * dan string itu keluar ke bundle apa adanya -- jadi build tidak pernah
+ * menemukan masalahnya. Yang gagal baru ketahuan saat lint, dan kalau lint
+ * tidak pernah dijalankan, tidak ada yang pernah tahu.
+ *
+ * Asalnya: commit `22abca2` menulis emoji (`📊`, `🔍`) sebagai UTF-8, lalu
+ * dibaca sebagai CP1252, lalu ditulis lagi sebagai UTF-8. Hasilnya tiap byte
+ * byte UTF-8 berubah jadi dua karakter CP1252, dan di antaranya ada byte
+ * `0x8D` yang jadi `U+008D` -- karakter kontrol, bukan huruf.
+ *
+ * Jadi aturan ini sengaja dibuat berdasarkan KODE, bukan berdasarkan
+ * "tampak aneh" -- karena byte `0x8D` itu sendiri tidak pernah tampil di layar.
+ */
+const KONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/
+
 let totalFiles = 0
 const suspect = []
 
@@ -137,6 +161,8 @@ for (const target of targets) {
       const problems = []
 
       if (CJK.test(line)) problems.push('CJK')
+
+      if (KONTROL.test(line)) problems.push('karakter kontrol')
 
       for (const kata of KATA_RUSAK) {
         if (line.includes(kata)) problems.push(`kata: ${kata}`)

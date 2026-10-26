@@ -100,7 +100,11 @@
                   <tr
                     v-for="(trx, index) in rows"
                     :key="trx._isHeader ? `hdr-${index}` : trx.id"
-                    :class="trx._isHeader ? 'bg-slate-50 font-semibold' : 'hover:bg-slate-50 transition-colors'"
+                    :class="
+                      trx._isHeader
+                        ? 'bg-slate-50 font-semibold'
+                        : 'hover:bg-slate-50 transition-colors'
+                    "
                   >
                     <td class="py-4! px-4! text-center text-slate-600">
                       {{ trx._isHeader ? '' : index + 1 }}
@@ -119,7 +123,7 @@
                       {{ trx._isHeader ? '' : kodeAkunTrx(trx) }}
                     </td>
                     <td class="py-4! px-4! text-slate-700">
-                      {{ trx._isHeader ? trx.label : (trx.keterangan_transaksi || '-') }}
+                      {{ trx._isHeader ? trx.label : trx.keterangan_transaksi || '-' }}
                     </td>
                     <td class="py-4! px-4! font-mono text-xs text-slate-500">
                       {{ trx._isHeader ? '' : trx.id }}
@@ -256,11 +260,6 @@ const deleteTransaction = (id) => {
 const kodeAkunTrx = (trx) => {
   return props.selectedAccount || trx.account_debet?.kode_akun || trx.account_debet
 }
-
-const namaAkunTrx = () => {
-  return ''
-}
-
 const debitTrx = (trx) => {
   if (!props.selectedAccount) return Number(trx.saldo) || 0
   const debet = trx.account_debet?.kode_akun || trx.account_debet

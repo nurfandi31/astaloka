@@ -1,23 +1,48 @@
 <template>
-  <BaseReportLayout :lembaga="payload?.lembaga" :config="payload?.config" :payload="payload" :no-meta-header="!isFirstPage">
-    <div v-if="isFirstPage" class="header-section" style="text-align:center; margin-bottom:12px; font-family:sans-serif;">
-      <h2 style="margin:0; font-size:14pt; font-weight:bold; text-transform:uppercase; color:#000;">
+  <BaseReportLayout
+    :lembaga="payload?.lembaga"
+    :config="payload?.config"
+    :payload="payload"
+    :no-meta-header="!isFirstPage"
+  >
+    <div
+      v-if="isFirstPage"
+      class="header-section"
+      style="text-align: center; margin-bottom: 12px; font-family: sans-serif"
+    >
+      <h2
+        style="
+          margin: 0;
+          font-size: 14pt;
+          font-weight: bold;
+          text-transform: uppercase;
+          color: #000;
+        "
+      >
         LAPORAN LABA RUGI
       </h2>
-      <h3 style="margin:-5px 0 0 0; font-size:12pt; font-weight:bold; color:#000; text-transform: uppercase;">
+      <h3
+        style="
+          margin: -5px 0 0 0;
+          font-size: 12pt;
+          font-weight: bold;
+          color: #000;
+          text-transform: uppercase;
+        "
+      >
         AWAL TAHUN {{ payload?.periode?.tahun }}
       </h3>
     </div>
 
     <table class="report-table">
       <colgroup>
-        <col style="width: 50%">
-        <col style="width: 17%">
-        <col style="width: 15%">
-        <col style="width: 15%">
+        <col style="width: 50%" />
+        <col style="width: 17%" />
+        <col style="width: 15%" />
+        <col style="width: 15%" />
       </colgroup>
       <thead>
-       <tr style="font-weight: bold;">
+        <tr style="font-weight: bold">
           <th class="text-center">Rekening</th>
           <th class="text-center">s.d. Bulan Lalu</th>
           <th class="text-center">Bulan Ini</th>
@@ -27,11 +52,11 @@
       <tbody>
         <template v-for="(row, rIndex) in rows" :key="rIndex">
           <tr v-if="row.isHeader" :class="row.type === 'main' ? 'summary-main' : 'summary-sub'">
-            <td colspan="4" class="text-left" style="font-weight: bold;">
+            <td colspan="4" class="text-left" style="font-weight: bold">
               {{ row.label }}
             </td>
           </tr>
-          <tr v-else-if="row.isTotal" class="total-row" style="font-weight: bold;">
+          <tr v-else-if="row.isTotal" class="total-row" style="font-weight: bold">
             <td class="text-left">{{ row.nama_akun }}</td>
             <td class="text-right">{{ format(row.sd_bulan_lalu) }}</td>
             <td class="text-right">{{ format(row.bulan_ini) }}</td>
@@ -77,12 +102,6 @@ const isFirstPage = computed(() => {
   if (info) return info.current === 1
   return props.payload?.isFirstPage !== false
 })
-
-const periodeText = computed(() => {
-  const p = props.payload?.periode || {}
-  return `01 ${p.bulan_name?.toUpperCase() || ''} ${p.tahun || ''} S.D 30 ${p.bulan_name?.toUpperCase() || ''} ${p.tahun || ''}`
-})
-
 const format = (value) => {
   const angka = Number(value || 0)
   return angka.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -90,52 +109,62 @@ const format = (value) => {
 </script>
 
 <style scoped>
-  .report-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    table-layout: fixed;
-    font-family: sans-serif;
-  }
-  
-  .report-table th,
-  .report-table td {
-    border: 0px solid #000;
-    padding: 2px 4px;
-    line-height: 1.2;
-  }
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+  font-family: sans-serif;
+}
 
-  .report-table th {
-    background: #e6e6e6;
-    text-align: center;
-    font-weight: bold;
-    padding: 8px 4px;
-  }
+.report-table th,
+.report-table td {
+  border: 0px solid #000;
+  padding: 2px 4px;
+  line-height: 1.2;
+}
 
-  .text-left { text-align: left !important; }
-  .text-right { text-align: right !important; }
-  .text-center { text-align: center !important; }
-  
-  .summary-main { 
-    background: #c9c9c9 !important; 
-    color: #000000 !important; 
-    font-weight: bold; 
-    text-transform: uppercase; 
-  }
+.report-table th {
+  background: #e6e6e6;
+  text-align: center;
+  font-weight: bold;
+  padding: 8px 4px;
+}
 
-  .summary-sub { 
-    background: #b1b1b1 !important; 
-    color: #000000 !important; 
-    font-weight: bold; 
-    text-transform: uppercase; 
-  }
+.text-left {
+  text-align: left !important;
+}
+.text-right {
+  text-align: right !important;
+}
+.text-center {
+  text-align: center !important;
+}
 
-  .total-row { 
-    background: #888888 !important; 
-    color: #000000 !important; 
-    font-weight: bold; 
-  }
-  
-  .row-white { background-color: #e6e6e6; }
-  .row-grey { background-color: #ffffff; }
+.summary-main {
+  background: #c9c9c9 !important;
+  color: #000000 !important;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.summary-sub {
+  background: #b1b1b1 !important;
+  color: #000000 !important;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.total-row {
+  background: #888888 !important;
+  color: #000000 !important;
+  font-weight: bold;
+}
+
+.row-white {
+  background-color: #e6e6e6;
+}
+.row-grey {
+  background-color: #ffffff;
+}
 </style>

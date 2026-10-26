@@ -43,6 +43,24 @@ export default defineConfig([
     },
   },
 
+  // Harness test dan skrip pemeriksaan juga berjalan di Node.
+  //
+  // Tanpa ini `Buffer` di `test/loaderSfc.mjs` dan `process` di
+  // `test/vueHarness.mjs` + `scripts/check-text.mjs` kena `no-undef` --
+  // padahal ketiganya memang kode Node, bukan browser. Globals Node
+  // yang dipakai di sini sengaja DAHULU tidak dideklarasikan karena
+  // `scripts/` ikut di-lint bersama `src/`, dan `src/` tidak boleh
+  // memakai `process`.
+  {
+    name: 'node-test-files',
+    files: ['test/**/*.js', 'test/**/*.mjs', 'scripts/**/*.js', 'scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,

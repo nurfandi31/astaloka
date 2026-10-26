@@ -2,7 +2,11 @@
   <div class="preview-shell" :class="orientationClass">
     <div class="preview-toolbar no-print">
       <div class="toolbar-left">
-        <button class="toolbar-menu-btn" @click="toggleSidebar" title="Tampilkan / sembunyikan thumbnail">
+        <button
+          class="toolbar-menu-btn"
+          @click="toggleSidebar"
+          title="Tampilkan / sembunyikan thumbnail"
+        >
           <span></span><span></span><span></span>
         </button>
         <h3 class="title">{{ title }}</h3>
@@ -10,9 +14,20 @@
 
       <div class="toolbar-right">
         <div class="zoom-controls no-print" v-if="pages.length > 0">
-          <button class="zoom-btn" @click="zoomOut" :disabled="zoomLevel <= minZoom" title="Zoom out">âˆ’</button>
-          <span class="zoom-percent active" @click="resetZoom" title="Reset zoom">{{ zoomPercent }}%</span>
-          <button class="zoom-btn" @click="zoomIn" :disabled="zoomLevel >= maxZoom" title="Zoom in">+</button>
+          <button
+            class="zoom-btn"
+            @click="zoomOut"
+            :disabled="zoomLevel <= minZoom"
+            title="Zoom out"
+          >
+            âˆ’
+          </button>
+          <span class="zoom-percent active" @click="resetZoom" title="Reset zoom"
+            >{{ zoomPercent }}%</span
+          >
+          <button class="zoom-btn" @click="zoomIn" :disabled="zoomLevel >= maxZoom" title="Zoom in">
+            +
+          </button>
         </div>
         <div class="page-indicator" v-if="pages.length > 0">
           <span>Halaman {{ activePage + 1 }} / {{ pages.length }}</span>
@@ -66,12 +81,12 @@
             :style="pageScaleStyle(PAGE_CONFIG)"
           >
             <div class="cells" :id="'page-' + i" :style="{ width: '100%', height: '100%' }">
-              <div
-                v-for="(row, j) in page.payload.items"
-                :key="'cell-' + i + '-' + j"
-                class="cell"
-              >
-                <ReportCellView :row="row" :lembaga="page.payload.lembaga" :config="page.payload.config" />
+              <div v-for="(row, j) in page.payload.items" :key="'cell-' + i + '-' + j" class="cell">
+                <ReportCellView
+                  :row="row"
+                  :lembaga="page.payload.lembaga"
+                  :config="page.payload.config"
+                />
               </div>
             </div>
           </div>
@@ -82,7 +97,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import ReportCellView from '@/presentations/views/app/admin/transaksi/jurnalUmum/partials/ReportCetakBuktiCell.vue'
 import { sopService } from '@/services/sop.service'
 import { usePdfPreview } from '@/composables/usePdfPreview'
@@ -100,26 +115,17 @@ const stageEl = ref(null)
 const activePage = ref(0)
 const showSidebar = ref(true)
 
-const {
-  zoomLevel,
-  zoomPercent,
-  minZoom,
-  maxZoom,
-  zoomIn,
-  zoomOut,
-  resetZoom,
-  pageNaturalWidth,
-  pageNaturalHeight,
-  pageScale,
-  pageScaleStyle,
-} = usePdfPreview(stageEl, PAGE_CONFIG)
+const { zoomLevel, zoomPercent, minZoom, maxZoom, zoomIn, zoomOut, resetZoom, pageScaleStyle } =
+  usePdfPreview(stageEl, PAGE_CONFIG)
 
 const orientationClass = computed(() => PAGE_CONFIG.orientation)
 const title = ref('Cetak Bukti Transaksi')
 
 const THUMB_TOTAL_W = PAGE_CONFIG.orientation === 'landscape' ? 1120 : 790
 const THUMB_TOTAL_H = PAGE_CONFIG.orientation === 'landscape' ? 790 : 1120
-const thumbPaper = { landscape: { w: 195, h: 140 }, portrait: { w: 140, h: 195 } }[PAGE_CONFIG.orientation]
+const thumbPaper = { landscape: { w: 195, h: 140 }, portrait: { w: 140, h: 195 } }[
+  PAGE_CONFIG.orientation
+]
 const thumbScale = computed(() => thumbPaper.w / THUMB_TOTAL_W)
 const thumbScaleStyle = () => ({
   width: THUMB_TOTAL_W + 'px',
@@ -134,7 +140,9 @@ const loadStorage = () => {
   try {
     const parsed = JSON.parse(raw)
     return parsed && typeof parsed === 'object' ? parsed : null
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 
 const loadLembaga = async () => {
@@ -145,7 +153,9 @@ const loadLembaga = async () => {
     const logo = data?.logo?.logo
     if (logo) lembaga.logo = logo
     return lembaga
-  } catch { return {} }
+  } catch {
+    return {}
+  }
 }
 
 const buildPages = async () => {
@@ -186,7 +196,10 @@ const onStageScroll = () => {
     const el = document.getElementById(`report-page-${i}`)
     if (!el) continue
     const dist = Math.abs(el.offsetTop - center)
-    if (dist < nearestDist) { nearestDist = dist; nearest = i }
+    if (dist < nearestDist) {
+      nearestDist = dist
+      nearest = i
+    }
   }
   if (activePage.value !== nearest) activePage.value = nearest
 }
@@ -205,7 +218,9 @@ onMounted(async () => {
   }
 })
 
-const toggleSidebar = () => { showSidebar.value = !showSidebar.value }
+const toggleSidebar = () => {
+  showSidebar.value = !showSidebar.value
+}
 </script>
 
 <style scoped>
@@ -227,71 +242,159 @@ const toggleSidebar = () => { showSidebar.value = !showSidebar.value }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
-.toolbar-left { display: flex; align-items: center; padding-left: 8px; }
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+}
 .toolbar-menu-btn {
-  display: flex; flex-direction: column; justify-content: center; gap: 4px;
-  width: 34px; height: 34px; padding: 8px;
-  margin-right: 12px; background: transparent; border: none;
-  border-radius: 6px; cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 34px;
+  height: 34px;
+  padding: 8px;
+  margin-right: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
-.toolbar-menu-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.toolbar-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
 .toolbar-menu-btn span {
-  display: block; height: 2px; width: 100%;
-  background: #f8fafc; border-radius: 2px;
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 2px;
 }
-.toolbar-right { display: flex; align-items: center; gap: 14px; }
-.title { font-size: 0.95rem; font-weight: 600; margin: 0; color: #f8fafc; letter-spacing: 0.5px; }
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: #f8fafc;
+  letter-spacing: 0.5px;
+}
 .page-indicator {
-  color: #cbd5e1; font-size: 0.85rem; background: #2c2e31;
-  padding: 4px 12px; border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  background: #2c2e31;
+  padding: 4px 12px;
+  border-radius: 6px;
 }
 
 .zoom-controls {
-  display: flex; align-items: center; gap: 6px;
-  background: #2c2e31; padding: 4px; border-radius: 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2c2e31;
+  padding: 4px;
+  border-radius: 9px;
   user-select: none;
 }
 .zoom-btn {
-  width: 30px; height: 30px; padding: 0;
-  background: transparent; color: #f8fafc;
-  border: none; border-radius: 77px;
-  font-size: 1.2rem; font-weight: 600; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  color: #f8fafc;
+  border: none;
+  border-radius: 77px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.15s ease;
 }
-.zoom-btn:hover { background: #525050; }
-.zoom-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.zoom-btn:hover {
+  background: #525050;
+}
+.zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .zoom-percent {
-  min-width: 56px; text-align: center; color: #f8fafc;
-  font-size: 0.9rem; font-weight: 600; cursor: pointer;
-  padding: 0 10px; border-radius: 0;
+  min-width: 56px;
+  text-align: center;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 10px;
+  border-radius: 0;
   background: #242424;
   font-variant-numeric: tabular-nums;
 }
-.zoom-percent.active { background: #242424; color: #ffffff; }
+.zoom-percent.active {
+  background: #242424;
+  color: #ffffff;
+}
 
-.workspace-container { display: flex; flex: 1; height: calc(100vh - 57px); overflow: hidden; }
+.workspace-container {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 57px);
+  overflow: hidden;
+}
 
 .thumbnail-sidebar {
-  width: 240px; background: #2c2e31; border-right: 1px solid #979797;
-  padding: 20px 0; display: flex; flex-direction: column; align-items: center;
-  gap: 18px; overflow-y: auto; user-select: none; flex-shrink: 0;
+  width: 240px;
+  background: #2c2e31;
+  border-right: 1px solid #979797;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  overflow-y: auto;
+  user-select: none;
+  flex-shrink: 0;
 }
-.thumb-wrapper { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-.thumb-wrapper.landscape .thumb-paper { width: 195px; height: 140px; }
-.thumb-wrapper.portrait .thumb-paper { width: 140px; height: 195px; }
+.thumb-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.thumb-wrapper.landscape .thumb-paper {
+  width: 195px;
+  height: 140px;
+}
+.thumb-wrapper.portrait .thumb-paper {
+  width: 140px;
+  height: 195px;
+}
 .thumb-scale-container {
-  position: absolute; top: 0; left: 0;
-  transform-origin: top left; pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  pointer-events: none;
 }
 .thumb-paper {
-  position: relative; background: #ffffff; border: 2px solid #475569;
-  border-radius: 3px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); overflow: hidden;
+  position: relative;
+  background: #ffffff;
+  border: 2px solid #475569;
+  border-radius: 3px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
 }
 .thumb-cells {
-  width: 100%; height: 100%;
+  width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
@@ -304,55 +407,117 @@ const toggleSidebar = () => { showSidebar.value = !showSidebar.value }
 .thumb-cell {
   border: 2px solid #727070;
   overflow: hidden;
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
 }
-.thumb-wrapper:hover .thumb-paper { border-color: #38bdf8; }
-.thumb-wrapper.active .thumb-paper { border-color: #38bdf8; box-shadow: 0 0 0 2px #38bdf8, 0 4px 10px rgba(0,0,0,0.4); }
-.thumb-wrapper.active .thumb-number { color: #38bdf8; }
-.thumb-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; background: transparent; }
-.thumb-number { color: #94a3b8; font-size: 0.78rem; font-weight: 600; max-width: 140px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.thumb-empty { color: #94a3b8; font-size: 0.8rem; padding: 24px 12px; text-align: center; font-style: italic; }
+.thumb-wrapper:hover .thumb-paper {
+  border-color: #38bdf8;
+}
+.thumb-wrapper.active .thumb-paper {
+  border-color: #38bdf8;
+  box-shadow:
+    0 0 0 2px #38bdf8,
+    0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.thumb-wrapper.active .thumb-number {
+  color: #38bdf8;
+}
+.thumb-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  background: transparent;
+}
+.thumb-number {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  max-width: 140px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.thumb-empty {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  padding: 24px 12px;
+  text-align: center;
+  font-style: italic;
+}
 
 .preview-stage {
-  flex: 1 1 0; min-width: 0; height: 100%;
-  overflow-y: auto; overflow-x: auto; padding: 10px 0;
-  display: flex; flex-direction: column; align-items: flex-start;
-  background: #2c2e31; scroll-behavior: smooth;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: #2c2e31;
+  scroll-behavior: smooth;
 }
-.preview-stage::-webkit-scrollbar { width: 14px; height: 14px; }
-.preview-stage::-webkit-scrollbar-track { background: #1f2123; border-radius: 8px; margin: 4px 0; }
-.preview-stage::-webkit-scrollbar-track:horizontal { margin: 0 4px; }
+.preview-stage::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+.preview-stage::-webkit-scrollbar-track {
+  background: #1f2123;
+  border-radius: 8px;
+  margin: 4px 0;
+}
+.preview-stage::-webkit-scrollbar-track:horizontal {
+  margin: 0 4px;
+}
 .preview-stage::-webkit-scrollbar-thumb {
-  background: #5a5e63; border-radius: 8px; border: 3px solid #1f2123;
-  min-height: 40px; min-width: 40px;
+  background: #5a5e63;
+  border-radius: 8px;
+  border: 3px solid #1f2123;
+  min-height: 40px;
+  min-width: 40px;
 }
-.preview-stage::-webkit-scrollbar-thumb:hover { background: #7a7e83; }
-.preview-stage::-webkit-scrollbar-thumb:active { background: #38bdf8; }
+.preview-stage::-webkit-scrollbar-thumb:hover {
+  background: #7a7e83;
+}
+.preview-stage::-webkit-scrollbar-thumb:active {
+  background: #38bdf8;
+}
 .preview-stage {
   scrollbar-width: thin;
   scrollbar-color: #5a5e63 #1f2123;
 }
 
 .report-root {
-  display: flex; flex-direction: column; gap: 24px;
-  width: max-content; min-width: 100%;
-  align-items: center; padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: max-content;
+  min-width: 100%;
+  align-items: center;
+  padding: 0 16px;
   box-sizing: border-box;
 }
 .report-page-wrap {
-  display: flex; justify-content: center; align-items: flex-start;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   width: 100%;
 }
 
 .cells {
-  width: 100%; 
+  width: 100%;
   height: 100%;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  row-gap: 2mm;        
-  column-gap: 2mm;    
+  row-gap: 2mm;
+  column-gap: 2mm;
   padding: 13mm;
   background: #ffffff;
   border: 0;
@@ -363,20 +528,38 @@ const toggleSidebar = () => { showSidebar.value = !showSidebar.value }
 .cell {
   border: 2px solid #727070;
   overflow: hidden;
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
 }
 
 .alert-error {
-  background: #fee2e2; color: #991b1b; border-radius: 12px;
-  padding: 10px 14px; margin: 16px; font-size: 0.9rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 16px;
+  font-size: 0.9rem;
 }
 
 @media print {
-  .no-print { display: none !important; }
-  .preview-shell { background: #ffffff; padding: 0; }
-  .workspace-container { height: auto; overflow: visible; }
-  .preview-stage { padding: 0; overflow: visible; }
-  .cells { page-break-after: always; }
+  .no-print {
+    display: none !important;
+  }
+  .preview-shell {
+    background: #ffffff;
+    padding: 0;
+  }
+  .workspace-container {
+    height: auto;
+    overflow: visible;
+  }
+  .preview-stage {
+    padding: 0;
+    overflow: visible;
+  }
+  .cells {
+    page-break-after: always;
+  }
 }
 </style>

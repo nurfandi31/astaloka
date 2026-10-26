@@ -97,7 +97,7 @@ const fetchInstallations = async () => {
       serverTotal.value = response.meta?.total ?? itemsList.value.length
       totalPages.value = response.meta?.last_page ?? 1
     }
-  } catch (error) {
+  } catch {
     // silent
   } finally {
     loading.value = false

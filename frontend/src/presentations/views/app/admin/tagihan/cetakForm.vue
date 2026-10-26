@@ -2,12 +2,14 @@
   <div class="preview-shell" :class="orientationClass">
     <div class="preview-toolbar no-print">
       <div class="toolbar-left">
-        <button class="toolbar-menu-btn no-print" @click="showSidebar = !showSidebar" title="Tampilkan / sembunyikan thumbnail">
+        <button
+          class="toolbar-menu-btn no-print"
+          @click="showSidebar = !showSidebar"
+          title="Tampilkan / sembunyikan thumbnail"
+        >
           <span></span><span></span><span></span>
         </button>
-        <h3 class="title">
-          Form Input {{ filter.bulan }} {{ filter.tahun }}
-        </h3>
+        <h3 class="title">Form Input {{ filter.bulan }} {{ filter.tahun }}</h3>
       </div>
 
       <div class="toolbar-right">
@@ -16,14 +18,17 @@
         </div>
 
         <div class="zoom-controls no-print" v-if="pages.length > 0">
-          <button class="zoom-btn" @click="zoomOut" :disabled="zoomLevel <= minZoom" title="Zoom Out">
+          <button
+            class="zoom-btn"
+            @click="zoomOut"
+            :disabled="zoomLevel <= minZoom"
+            title="Zoom Out"
+          >
             <span>âˆ’</span>
           </button>
-          <span
-            class="zoom-percent active"
-            @click="resetZoom"
-            title="Reset zoom"
-          >{{ zoomPercent }}%</span>
+          <span class="zoom-percent active" @click="resetZoom" title="Reset zoom"
+            >{{ zoomPercent }}%</span
+          >
           <button class="zoom-btn" @click="zoomIn" :disabled="zoomLevel >= maxZoom" title="Zoom In">
             <span>+</span>
           </button>
@@ -91,7 +96,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ReportView from '@/presentations/views/app/admin/tagihan/partials/ReportCetakForm.vue'
 import { usePemakaianAir } from '@/composables/usePemakaianAir'
@@ -101,7 +106,14 @@ import { useUiStore } from '@/stores/uiStore'
 
 const route = useRoute()
 const uiStore = useUiStore()
-const { tableData, filter, refreshData, groupedData, resolveTeknisiLabel, teknisiOptions, loadTeknisiOptions } = usePemakaianAir()
+const {
+  filter,
+  refreshData,
+  groupedData,
+  resolveTeknisiLabel,
+  teknisiOptions,
+  loadTeknisiOptions,
+} = usePemakaianAir()
 
 const caterName = computed(() => {
   const rawCater = route.query.cater
@@ -141,8 +153,6 @@ const {
   zoomIn,
   zoomOut,
   resetZoom,
-  pageNaturalWidth,
-  pageNaturalHeight,
   pageScale,
   pageScaledWidth,
   pageScaledHeight,
@@ -340,7 +350,9 @@ onMounted(async () => {
   padding: 0px 10px;
   border-radius: 999px;
   background: transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .zoom-percent.active {
@@ -486,7 +498,9 @@ onMounted(async () => {
 
 .thumb-wrapper.active .thumb-paper {
   border-color: #38bdf8;
-  box-shadow: 0 0 0 2px #38bdf8, 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 2px #38bdf8,
+    0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .thumb-wrapper.active .thumb-number {
