@@ -191,13 +191,87 @@ jobs:
 
       - name: Test SSH connection
         run: |
-          ssh -p "${{ secrets.SSH_PORT }}" \
+          # Output ssh yang mentah tidak bisa ditindaklanjuti.
+          #
+          # Kegagalan yang paling sering terjadi di sini adalah
+          # "Permission denied (publickey,...)" -- artinya server TIDAK
+          # recognise public key yang dipakai runner. Perbaikannya ada di
+          # server (tambah key ke authorized_keys), bukan di repo ini, dan
+          # tanpa petunjuk yang jelas, orang akan mengira workflow-nya yang
+          # salah.
+          #
+          # Jadi output ssh ditangkap dulu, lalu laporkan APA yang terjadi
+          # dan APA yang harus diperbaiki -- dengan FCS (GitHub issue
+          # summary) supaya mudah dibaca di halaman Actions.
+          #
+          # `set +e` di sekitar perintah ssh supaya statusnya tidak
+          # membatalkan step sebelum pesannya sempat ditulis.
+          set +e
+
+          SSH_OUT=$(ssh -p "${{ secrets.SSH_PORT }}" \
             -i ~/.ssh/id_ed25519 \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=10 \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            'echo "SSH OK: $(hostname)"; docker ps --format "{{.Names}}" | head -20'
+            'echo "SSH OK: $(hostname)"; docker ps --format "{{.Names}}" | head -20' 2>&1)
+
+          SSH_STATUS=$?
+
+          set -e
+
+          echo "$SSH_OUT"
+
+          if [ "$SSH_STATUS" -ne 0 ]; then
+            {
+              echo "## Deploy gagal: koneksi SSH ditolak"
+              echo ""
+              echo "Host \`${{ secrets.SSH_HOST }}:${{ secrets.SSH_PORT }}\` (port TCP terbuka), tapi autentikasi untuk user \`${{ secrets.SSH_USER }}\` gagal."
+              echo ""
+              echo "### Diagnosis"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if echo "$SSH_OUT" | grep -q "Permission denied"; then
+              {
+                echo "Server **tidak mengenali public key** yang dipakai runner."
+                echo ""
+                echo "Kuncinya valid (langkah \`Setup SSH key\` sudah memverifikasi), tapi public key-nya belum ada di server."
+                echo ""
+                echo "### Perbaikan (di server, bukan di repo)"
+                echo ""
+                echo "1. Ambil public key yang cocok dengan \`DEPLOY_SSH_KEY\` di repository settings."
+                echo "2. Tambahkan ke \`~/.ssh/authorized_keys\` milik user \`${{ secrets.SSH_USER }}\` di server:"
+                echo ""
+                echo "   \`\`\`bash"
+                echo "   echo '<public key>' >> ~/.ssh/authorized_keys"
+                echo "   chmod 600 ~/.ssh/authorized_keys"
+                echo "   chmod 700 ~/.ssh"
+                echo "   \`\`\`"
+                echo ""
+                echo "3. Jalankan ulang workflow ini (\`workflow_dispatch\`) -- tidak perlu commit baru."
+              } >> "$GITHUB_STEP_SUMMARY"
+            elif echo "$SSH_OUT" | grep -q "Host key verification failed"; then
+              {
+                echo "Public key host berubah, tapi \`known_hosts\` masih menyimpan yang lama."
+                echo ""
+                echo "### Perbaikan"
+                echo ""
+                echo "Jalankan ulang setelah \`known_hosts\` di-refresh, atau kosongkan entri lama untuk host tersebut."
+              } >> "$GITHUB_STEP_SUMMARY"
+            else
+              {
+                echo "Kesalahan SSH lain. Lihat output mentah di atas."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+
+            echo ""
+            echo "::error::koneksi SSH ditolak -- authenticate ulang public key deploy di server"
+            exit "$SSH_STATUS"
+          fi
+
+          echo "::add-mask::"
+          echo "Koneksi SSH berhasil."
 
       - name: Rsync frontend build to server
         run: |
