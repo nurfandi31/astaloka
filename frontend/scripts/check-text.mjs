@@ -139,6 +139,12 @@ const DIRI_SENDIRI = fileURLToPath(import.meta.url)
  * Jadi aturan ini sengaja dibuat berdasarkan KODE, bukan berdasarkan
  * "tampak aneh" -- karena byte `0x8D` itu sendiri tidak pernah tampil di layar.
  */
+/*
+ * `oxlint` punya aturan `no-control-regex` yang menolak regex yang
+ * sengaja mencocokkan karakter kontrol -- persis apa yang dilakukan
+ * di sini. Matikan khusus baris ini, bukan seluruh berkas.
+ */
+/* oxlint-disable-next-line no-control-regex -- memang tujuannya. */
 const KONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/
 
 let totalFiles = 0

@@ -37,6 +37,20 @@ jobs:
           VITE_API_BASE_URL: ''
         run: pnpm run build
 
+      - name: Lint (oxlint + eslint)
+        working-directory: frontend
+        # Tanpa `--fix`: di CI, linter tidak boleh memperbaiki diam-diam.
+        # Laporan saja, supaya yang pushed tetap sama dengan yang diuji.
+        run: |
+          pnpm exec oxlint .
+          pnpm exec eslint .
+
+      - name: Test (teks + unit)
+        working-directory: frontend
+        # `test:teks` menangkap berkas rusak encoding (karakter kontrol C0/C1).
+        # `test:unit` menjalankan 184 test, termasuk penjaga lisensi PrimeVue.
+        run: pnpm run test
+
   backend:
     name: Backend tests (Pest) — non-blocking
     # Non-blocking: 6 test gagal secara pre-existing (bug test/produk, mis.
