@@ -285,4 +285,134 @@ class HtmlSanitizerTest extends TestCase
 
         $this->assertStringNotContainsString('javascript', $out);
     }
+
+    /*
+     * ================= ENTITAS HTML =================
+     *
+     * Bagian ini menguji bahwa sanitizer membaca entity dengan cara
+     * yang sama seperti browser -- karena kalau tidak, `href="javascript&colon;..."`
+     * lolos sebagai "path relatif" dan baru jadi javascript: saat
+     * browser membacanya.
+     *
+     * Acuannya `html_entity_decode()` PHP: entity WAJIB diakhiri
+     * titik koma, dan pencocokan namanya sensitive-case.
+     */
+
+    public function test_entity_titik_koma_diperahankan_apa_adanya(): void
+    {
+        // `strip_tags()` tidak menyentuh isi teks, jadi entity di dalam
+        // teks tetap utuh -- persis seperti yang disimpan.
+        $this->assertSame('<p>a&nbsp;b</p>', HtmlSanitizer::clean('<p>a&nbsp;b</p>'));
+        $this->assertSame('<p>AT&amp;T</p>', HtmlSanitizer::clean('<p>AT&amp;T</p>'));
+        $this->assertSame('<p>&copy; 2026</p>', HtmlSanitizer::clean('<p>&copy; 2026</p>'));
+    }
+
+    public function test_skema_javascript_yang_disamarkan_dengan_entity_dibuang(): void
+    {
+        // `&colon;` adalah ":" yang di-decode browser, jadi ini sama
+        // dengan `javascript:alert(1)`.
+        $out = HtmlSanitizer::clean('<a href="javascript&colon;alert(1)">klik</a>');
+
+        $this->assertStringNotContainsString('javascript', $out);
+        $this->assertStringNotContainsString('alert(1)', $out);
+    }
+
+    public function test_skema_javascript_dengan_entity_numerik_dibuang(): void
+    {
+        foreach ([
+            'java&#115;cript:alert(1)',
+            'javascript&#58;alert(1)',
+            'javascript&#x3a;alert(1)',
+            '&#106;avascript:alert(1)',
+        ] as $href) {
+            $out = HtmlSanitizer::clean('<a href="'.$href.'">klik</a>');
+
+            $this->assertStringNotContainsString(
+                'alert(1)',
+                $out,
+                'Entity numerik lolos: '.$href.' -> '.$out
+            );
+        }
+    }
+
+    public function test_skema_javascript_dengan_karakter_kontrol_entity_dibuang(): void
+    {
+        // `&Tab;` adalah tab; browser mengabaikannya saat menafsirkan
+        // skema URL.
+        $out = HtmlSanitizer::clean('<a href="java&Tab;script:alert(1)">klik</a>');
+
+        $this->assertStringNotContainsString('alert(1)', $out);
+    }
+
+    public function test_url_dengan_ampersand_tetap_berfungsi(): void
+    {
+        // `&` harus jadi `&amp;` -- kalau tidak, tautannya rusak.
+        $this->assertSame(
+            '<a href="https://x.test/?a=1&amp;b=2">link</a>',
+            HtmlSanitizer::clean('<a href="https://x.test/?a=1&b=2">link</a>')
+        );
+
+        // Dan yang sudah `&amp;` tidak boleh jadi `&amp;amp;`.
+        $this->assertSame(
+            '<a href="https://x.test/?a=1&amp;b=2">link</a>',
+            HtmlSanitizer::clean('<a href="https://x.test/?a=1&amp;b=2">link</a>')
+        );
+    }
+
+    public function test_nilai_atribut_dengan_tanda_kurung_siku_utuh(): void
+    {
+        // `strip_tags()` memotong di `>` pertama, jadi atribut harus
+        // dibersihkan DULU. Kalau tidak, "Total > 500" jadi
+        // "Total  500" -- tanda `>` beserta "500" hilang.
+        $this->assertSame(
+            '<a title="Total &gt; 500">x</a>',
+            HtmlSanitizer::clean('<a title="Total > 500">x</a>')
+        );
+    }
+
+    public function test_pemotongan_nilai_atribut_tidak_membuat_skema_berbahaya(): void
+    {
+        // `strip_tags()` pernah memotong `href="java>script:alert(1)"`
+        // menjadi `href="javascript:alert(1)"`. Sekarang atribut
+        // dibersihkan lebih dulu, jadi nilainya utas -- dan skemanya
+        // ditolak karena "java>script" bukan skema yang sah.
+        //
+        // Yang diperiksa adalah SKEMANYA, bukan teks "alert(1)":
+        // nilai yang utas boleh memuat teks apa saja, termasuk
+        // "alert(1)", selama bukan skema yang bisa dieksekusi.
+        $out = HtmlSanitizer::clean('<a href="java>script:alert(1)">x</a>');
+
+        $this->assertStringNotContainsString('javascript:', $out);
+        $this->assertStringNotContainsString('href="javascript', $out);
+    }
+
+    public function test_entity_tanpa_titik_koma_dibiarkan_apa_adanya(): void
+    {
+        // PHP hanya mengenali entity yang diakhiri titik koma, dan
+        // frontend harus meniru backend -- bukan meniru browser.
+        $out = HtmlSanitizer::clean('<a href="javascript&#58alert(1)">klik</a>');
+
+        // Tidak ada javascript: yang bisa dieksekusi: nilainya tetap
+        // "javascript&#58alert(1)", tanpa titik dua.
+        $this->assertStringNotContainsString('javascript:', $out);
+    }
+
+    public function test_entity_nama_case_sensitive(): void
+    {
+        // `&AMP;` dan `&amp;` sama-sama dikenal -> keduanya jadi "&".
+        // `&Amp;` TIDAK dikenal PHP, jadi teksnya tetap utah dan `&`
+        // -nya di-escape jadi `&amp;`.
+        $out = HtmlSanitizer::clean('<a title="&Amp; &amp; &AMP;">x</a>');
+
+        $this->assertSame('<a title="&amp;Amp; &amp; &amp;">x</a>', $out);
+    }
+
+    public function test_sanitasi_dengan_entitas_idempoten(): void
+    {
+        $html = '<p>a&nbsp;b &amp; c</p><a href="https://x.test/?a=1&amp;b=2">link</a>';
+
+        $once = HtmlSanitizer::clean($html);
+
+        $this->assertSame($once, HtmlSanitizer::clean($once));
+    }
 }
