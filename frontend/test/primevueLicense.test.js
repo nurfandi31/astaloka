@@ -137,15 +137,41 @@ test('aplikasi tidak menampilkan banner "Invalid PrimeUI License"', async () => 
 })
 
 test('PrimeVue yang dipakai tetap MIT, atau lisensinya sudah diurus', () => {
-  if (Number(pkg.version.split('.')[0]) < 5) {
+  /*
+   * Dua paket yang bisa_selected ke PrimeUI:
+   *   - `primevue` >= 5
+   *   - `@primeuix/themes` >= 3
+   *
+   * Keduanya menarik `@primeui/license-manager` (atau setidaknya
+   * `@primeuix/styled` 1.x yang Depending-nya). Keduanya juga berubah
+   * lisensi dari MIT ke "SEE LICENSE IN LICENSE.md".
+   *
+   * Untuk `primevue` 5 ada banner yang menempel di halaman. Untuk
+   * `themes` 3.x yang dipakai bareng primevue 4, banner TIDAK muncul --
+   * tapi paketnya tetap non-MIT, dan kombinasi styled 1.x dengan
+   * primevue 4 (yang masih pakai styled 0.7.x) adalah kombinasi yang
+   * tidak didukung.
+   *
+   * Jadi untuk themes, pemeriksaan di sini bukan soal banner, tapi
+   * soal: jangan sampai repo ini diam-diam memakai paket non-MIT.
+   */
+  const themes = JSON.parse(
+    readFileSync(path.resolve('node_modules/@primeuix/themes/package.json'), 'utf8'),
+  )
+
+  const themesMajor = Number(themes.version.split('.')[0])
+  const themesNonMit = themes.license !== 'MIT'
+
+  if (Number(pkg.version.split('.')[0]) < 5 && themesMajor < 3) {
     assert.equal(pkg.license, 'MIT', 'primevue 4 dan sebelumnya harus tetap MIT')
+    assert.equal(themes.license, 'MIT', '@primeuix/themes 2.x harus tetap MIT')
     return
   }
 
   /*
-   * PrimeVue 5: lisensi tidak lagi MIT. Yang boleh terjadi adalah
-   * repo ini SUDAH sengaja pinning ke v5 DAN megaul-ul ulang kunci
-   * lisensinya di konfigurasi aplikasi.
+   * PrimeVue 5 / themes 3.x: lisensi tidak lagi MIT. Yang boleh terjadi
+   * adalah repo ini SUDAH sengaja pinning ke versi itu DAN sudah
+   * menyertakan kunci lisensinya di konfigurasi aplikasi.
    *
    * Karena kunci lisensi tidak ada di repo (benar -- ini rahasia),
    * yang bisa dicek di sini adalah: apakah ada tempat untuk menaruh
@@ -158,11 +184,15 @@ test('PrimeVue yang dipakai tetap MIT, atau lisensinya sudah diurus', () => {
 
   const adaSlotLisensi = /license\s*:/.test(mainSrc)
 
+  const paketNonMit = []
+  if (Number(pkg.version.split('.')[0]) >= 5) paketNonMit.push(`primevue ${pkg.version}`)
+  if (themesNonMit) paketNonMit.push(`@primeuix/themes ${themes.version}`)
+
   assert.ok(
     adaSlotLisensi,
-    `primevue ${pkg.version} butuh license key. ` +
+    `${paketNonMit.join(' dan ')} butuh license key. ` +
       'Tambahkan `license: <kunci>` pada app.use(PrimeVue, ...) di src/main.js, ' +
-      'atau turunkan ke primevue 4 (MIT). Tanpa itu, banner merah ' +
-      '"Invalid PrimeUI License" muncul di setiap halaman.',
+      'atau turunkan ke primevue 4 + themes 2.x (keduanya MIT). Tanpa itu, ' +
+      'banner merah "Invalid PrimeUI License" muncul di setiap halaman.',
   )
 })
