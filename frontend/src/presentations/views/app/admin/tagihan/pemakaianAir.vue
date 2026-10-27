@@ -70,7 +70,10 @@
         <div class="flex-1! min-w-[120px]!">
           <SelectSearch
             v-model="filter.teknisi"
-            :options="[{ id: '', text: 'Pilih Teknisi' }, ...teknisiOptions.map((t) => ({ id: t.id, text: t.name }))]"
+            :options="[
+              { id: '', text: 'Pilih Teknisi' },
+              ...teknisiOptions.map((t) => ({ id: t.id, text: t.name })),
+            ]"
             placeholder="Pilih Teknisi"
             no-margin
           />
@@ -145,8 +148,7 @@
           v-if="Number(row.denda || 0) > 0"
           class="mt-0.5! text-[10px]! font-semibold! text-red-500! leading-tight!"
         >
-          + denda <span v-if="row.denda_bulan"> {{ row.denda_bulan }}</span>
-          Rp.{{
+          + denda <span v-if="row.denda_bulan"> {{ row.denda_bulan }}</span> Rp.{{
             Number(row.denda).toLocaleString('id-ID', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -204,8 +206,8 @@
     <EditPemakaianModal
       :show="showEditModal"
       :data="selectedRow"
+      :on-save="handleSaveEdit"
       @close="showEditModal = false"
-      @save="handleSaveEdit"
     />
   </div>
 </template>

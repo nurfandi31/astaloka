@@ -21,7 +21,9 @@
       </div>
 
       <div v-if="uiStore.userRole !== 'teknisi'" class="shrink-0!">
-        <div class="flex! items-center! gap-2! text-xs! text-slate-500! bg-slate-50! px-3! py-2! rounded-xl!">
+        <div
+          class="flex! items-center! gap-2! text-xs! text-slate-500! bg-slate-50! px-3! py-2! rounded-xl!"
+        >
           <font-awesome-icon icon="info-circle" class="text-cyan-500!" />
           <span>Tagihan otomatis saat simpan meter</span>
         </div>
@@ -290,7 +292,10 @@ const fetchData = async () => {
         if (item.monthly_bills && item.monthly_bills.length > 0) {
           usageLalu = item.monthly_bills[0].usage_m3
         } else if (item.meter_readings && item.meter_readings.length > 0) {
-          usageLalu = Math.max(0, item.meter_readings[0].meter_value - (item.initial_meter_reading || 0))
+          usageLalu = Math.max(
+            0,
+            item.meter_readings[0].meter_value - (item.initial_meter_reading || 0),
+          )
         }
 
         const address = item.ticket?.address || ''
@@ -360,7 +365,11 @@ const handleSaveMeter = async (payload) => {
     const formData = new FormData()
     formData.append('customer_id', selectedCustomer.value.id)
     formData.append('meter_value', payload.meterValue)
-    formData.append('photo', payload.photo)
+    // Foto meteran hanya bukti pendukung dan boleh tidak ada. Backend
+    // menerima `photo` kosong, jadi field ini hanya dikirim kalau ada.
+    if (payload.photo) {
+      formData.append('photo', payload.photo)
+    }
     formData.append('reading_month', monthVal)
     formData.append('reading_year', yearVal)
 

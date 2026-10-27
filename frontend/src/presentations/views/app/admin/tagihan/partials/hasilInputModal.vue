@@ -43,20 +43,22 @@
           <div
             class="px-4! sm:px-6! py-3! sm:py-4! bg-slate-50/50! border-b! border-slate-100! flex flex-col! md:flex-row! md:items-center! justify-between! gap-3! sm:gap-4! shrink-0!"
           >
-          <div class="flex flex-col! gap-y-1! text-xs! sm:text-sm! min-w-0!">
-            <div class="flex items-center! gap-2! min-w-0!">
-              <span class="text-slate-500! whitespace-nowrap! w-24! sm:w-28! shrink-0!">Teknisi</span>
-              <span class="font-semibold! text-slate-700! truncate!"
-                >: {{ filter.cater || '-' }}</span
-              >
+            <div class="flex flex-col! gap-y-1! text-xs! sm:text-sm! min-w-0!">
+              <div class="flex items-center! gap-2! min-w-0!">
+                <span class="text-slate-500! whitespace-nowrap! w-24! sm:w-28! shrink-0!"
+                  >Teknisi</span
+                >
+                <span class="font-semibold! text-slate-700! truncate!"
+                  >: {{ filter.cater || '-' }}</span
+                >
+              </div>
+              <div class="flex items-center! gap-2! min-w-0!">
+                <span class="text-slate-500! whitespace-nowrap! w-24! sm:w-28! shrink-0!"
+                  >Maksimal Bayar</span
+                >
+                <span class="font-semibold! text-slate-700! truncate!">: {{ maksimalBayar }}</span>
+              </div>
             </div>
-            <div class="flex items-center! gap-2! min-w-0!">
-              <span class="text-slate-500! whitespace-nowrap! w-24! sm:w-28! shrink-0!">Maksimal Bayar</span>
-              <span class="font-semibold! text-slate-700! truncate!"
-                >: {{ maksimalBayar }}</span
-              >
-            </div>
-          </div>
 
             <div class="relative! w-full! md:w-72! shrink-0!">
               <div
@@ -82,51 +84,55 @@
             <table class="w-full min-w-[720px]! border-collapse text-xs md:text-sm!">
               <thead>
                 <tr class="bg-slate-700! text-white! sticky! top-0! z-20!">
-                <th
-                  class="py-3! px-4! text-center! w-12! bg-[#334155]!"
-                >
-                  <input
-                    type="checkbox"
-                    v-model="isAllSelected"
-                    class="cb-white"
-                  />
-                </th>
-                <th class="py-3! px-4! text-left! font-semibold! uppercase! tracking-wider! bg-[#334155]!">
-                  Nama
-                </th>
-                <th class="py-3! px-4! text-left! font-semibold! uppercase! tracking-wider! bg-[#334155]!">
-                  Desa
-                </th>
-                <th class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! bg-[#334155]!">
-                  RT
-                </th>
-                <th
-                  class="py-3! px-4! text-left! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
-                >
-                  No. Induk
-                </th>
-                <th
-                  class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
-                >
-                  Meter Awal
-                </th>
-                <th
-                  class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
-                >
-                  Meter Akhir
-                </th>
-                <th class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! bg-[#334155]!">
-                  Pemakaian
-                </th>
-                <th
-                  class="py-3! px-4! text-right! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
-                >
-                  Tagihan Air
-                </th>
-                <th class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! bg-[#334155]!">
-                  Status
-                </th>
-              </tr>
+                  <th class="py-3! px-4! text-center! w-12! bg-[#334155]!">
+                    <input type="checkbox" v-model="isAllSelected" class="cb-white" />
+                  </th>
+                  <th
+                    class="py-3! px-4! text-left! font-semibold! uppercase! tracking-wider! bg-[#334155]!"
+                  >
+                    Nama
+                  </th>
+                  <th
+                    class="py-3! px-4! text-left! font-semibold! uppercase! tracking-wider! bg-[#334155]!"
+                  >
+                    Desa
+                  </th>
+                  <th
+                    class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! bg-[#334155]!"
+                  >
+                    RT
+                  </th>
+                  <th
+                    class="py-3! px-4! text-left! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
+                  >
+                    No. Induk
+                  </th>
+                  <th
+                    class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
+                  >
+                    Meter Awal
+                  </th>
+                  <th
+                    class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
+                  >
+                    Meter Akhir
+                  </th>
+                  <th
+                    class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! bg-[#334155]!"
+                  >
+                    Pemakaian
+                  </th>
+                  <th
+                    class="py-3! px-4! text-right! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
+                  >
+                    Tagihan Air
+                  </th>
+                  <th
+                    class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! bg-[#334155]!"
+                  >
+                    Status
+                  </th>
+                </tr>
               </thead>
               <tbody>
                 <template v-for="(members, dusun) in filteredGroups" :key="dusun">
@@ -256,8 +262,18 @@ const searchQuery = ref('')
 const selectedIds = ref([])
 
 const bulanList = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
 ]
 
 const maksimalBayar = computed(() => {
@@ -308,7 +324,11 @@ const filteredGroups = computed(() => {
 
   Object.entries(props.groupedData).forEach(([dusun, members]) => {
     const matched = hidePending(members).filter(
-      (item) => item.nama.toLowerCase().includes(query) || item.id.toLowerCase().includes(query),
+      (item) =>
+        (item.nama || '').toLowerCase().includes(query) ||
+        String(item.id ?? '')
+          .toLowerCase()
+          .includes(query),
     )
     if (matched.length > 0) {
       result[dusun] = matched
@@ -389,7 +409,9 @@ onUnmounted(() => {
   border-radius: 4px;
   cursor: pointer;
   position: relative;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
   flex-shrink: 0;
 }
 .cb-white:hover {

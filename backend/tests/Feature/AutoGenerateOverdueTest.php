@@ -98,8 +98,21 @@ class AutoGenerateOverdueTest extends TestCase
             ->assertJsonStructure(['reason']);
     }
 
+    /**
+     * Generate boleh dijalankan BERULANG.
+     *
+     * Dulu ada flag `auto_gen_overdue_{bulan}_{user}` (TTL 35 hari) yang
+     * membuat panggilan kedua pada bulan yang sama dilewati. Flag itu
+     * dihapus karena menghambat kasus nyata: ada pelanggan yang lupa
+     * somehow, ada tagihan yang baru masuk belakangan, atau ada tagihan
+     * yang tadinya salah lalu diperbaiki admin. Semuanya butuh generate
+     * ULANG.
+     *
+     * Yang mencegah jurnal dobel bukan flag itu, melainkan command yang
+     * sudah idempotent (pasangan `reverence_id|account_kredit`).
+     */
     #[Test]
-    public function auto_generate_overdue_idempotent_per_user_di_bulan_yang_sama(): void
+    public function auto_generate_overdue_boleh_dijalankan_berulang_dan_tidak_membuat_jurnal_ganda(): void
     {
         Setting::create([
             'key' => 'sop',
@@ -109,21 +122,61 @@ class AutoGenerateOverdueTest extends TestCase
         ]);
 
         $user = $this->createUser('admin');
+        $headers = $this->authHeaders($user);
 
         // Panggilan ke-1 harus eksekusi (ran=true).
-        $first = $this->withHeaders($this->authHeaders($user))
+        $first = $this->withHeaders($headers)
             ->postJson('/api/dashboard/auto-generate-overdue');
-        $first->assertOk();
+        $first->assertOk()
+            ->assertJsonPath('ran', true);
 
-        // Panggilan ke-2 harus skip (ran=false) karena cache per (bulan,user).
-        $second = $this->withHeaders($this->authHeaders($user))
+        $jurnalSetelahPertama = Transaction::where('reverence_type', 'overdue_bill')->count();
+
+        // Panggilan ke-2 juga harus EKSEKUSI (ran=true) — inilah yang
+        // diminta: generate boleh diulang, termasuk di hari yang sama.
+        $second = $this->withHeaders($headers)
             ->postJson('/api/dashboard/auto-generate-overdue');
         $second->assertOk()
-            ->assertJson([
-                'success' => true,
-                'ran' => false,
-            ])
-            ->assertJsonStructure(['reason']);
+            ->assertJsonPath('ran', true);
+
+        // Tapi TIDAK boleh menambah jurnal: command-nya idempotent.
+        $this->assertSame(
+            $jurnalSetelahPertama,
+            Transaction::where('reverence_type', 'overdue_bill')->count(),
+            'Generate ulang tidak boleh membuat jurnal piutang ganda.'
+        );
+    }
+
+    /**
+     * Generate tetap boleh jalan setelah tanggal generate terlewat.
+     *
+     * Dulu gate-nya `hari ini === tanggal generate`, sehingga kalau tidak
+     * ada staff yang login tepat pada tanggal itu, generate TIDAK PERNAH
+     * jalan untuk bulan itu — tanpa error, tanpa log. Tagihan tetap
+     * `unpaid` tapi akun Piutang Usaha tidak pernah ditambah, sehingga
+     * Neraca dan daftar tagihan jadi dua sumber kebenaran yang berbeda.
+     */
+    #[Test]
+    public function auto_generate_overdue_tetap_jalan_setelah_tanggal_generate_terlewat(): void
+    {
+        // Tanggal generate = 1, sedangkan "hari ini" sengaja dip-ahead
+        // supaya pastilah LEWAT dari tanggal generate.
+        $this->travelTo(now()->startOfDay()->addDays(10));
+        $this->travelBack();
+
+        Setting::create([
+            'key' => 'sop',
+            'batas_tagihan' => 27,
+            'toleransi_tunggakan' => 1,
+        ]);
+
+        $user = $this->createUser('admin');
+
+        $response = $this->withHeaders($this->authHeaders($user))
+            ->postJson('/api/dashboard/auto-generate-overdue');
+
+        $response->assertOk()
+            ->assertJsonPath('ran', true);
     }
 
     #[Test]
