@@ -4,8 +4,20 @@ import { billingService } from '@/services/billing.service'
 import { confirmDelete } from '@/utils/deleteHandler'
 import { MySwal } from '@/utils/swal'
 import api from '@/utils/axios'
+import { useUiStore } from '@/stores/uiStore'
 
 export function usePemakaianAir() {
+  const uiStore = useUiStore()
+
+  // Role pemanggil.
+  //
+  // Admin memakai halaman "Data Pemakaian Air" yang punya filter teknisi
+  // (bisa lihat semua / pilih satu teknisi). Teknisi memakai halaman
+  // "Input Pemakaian Air" yang datanya otomatis dibatasi ke pelanggan
+  // miliknya sendiri -- jadi dia TIDAK punya filter teknisi, dan nama
+  // teknisi yang tampil di kop/cetak adalah nama dia sendiri.
+  const isTechnician = computed(() => uiStore.userRole === 'teknisi')
+
   const bulanOptions = [
     'Januari',
     'Februari',
@@ -91,6 +103,24 @@ export function usePemakaianAir() {
 
   const selectedTeknisiName = computed(() => selectedTeknisi.value?.name || 'Admin')
 
+  /**
+   * Nama petugas yang harus tampil di kop / metadata cetakan.
+   *
+   * - Admin    → "Admin" (nama filter teknisi yang dipilih, atau default)
+   * - Teknisi  → nama dia sendiri, karena datanya sudah otomatis dibatasi
+   *              ke pelanggan miliknya oleh backend.
+   *
+   * Halaman cetak (cetakForm / cetakStruk / cetakDaftarTagihan) memakai
+   * nilai ini supaya hasil cetak teknisi mencantumkan namanya sendiri --
+   * sama seperti admin yang mencantumkan teknisi yang dipilihnya.
+   */
+  const currentUserLabel = computed(() => {
+    if (isTechnician.value) {
+      return uiStore.userData?.name || uiStore.userData?.nama || 'Teknisi'
+    }
+    return selectedTeknisiName.value
+  })
+
   const resolveTeknisiLabel = (rawValue) => {
     if (rawValue === '' || rawValue == null) return ''
     const asString = String(rawValue).trim()
@@ -101,8 +131,18 @@ export function usePemakaianAir() {
     return asString
   }
 
-  // Ambil daftar teknisi dari backend (admin-only endpoint)
+  /**
+   * Ambil daftar teknisi dari backend (admin-only endpoint).
+   *
+   * Teknisi TIDAK memanggil ini: endpoint `/users?role=teknisi` hanya
+   * dibuka untuk admin, dan teknisi memang tidak butuh memilih teknisi
+   * karena datanya sudah otomatis miliknya sendiri.
+   */
   const loadTeknisiOptions = async () => {
+    if (isTechnician.value) {
+      teknisiOptions.value = []
+      return
+    }
     teknisiError.value = ''
     try {
       const res = await api.get('/users', { params: { role: 'teknisi' } })
@@ -172,10 +212,20 @@ export function usePemakaianAir() {
             denda_bulan: item.denda_bulan || null,
             abodemen: Number(item.abodemen ?? 0),
             jatuhTempo: item.due_date || null,
+            // Tanggal akhir pemakaian (batas akhir input meter untuk periode
+            // ini). Dipakai di modal edit sebagai nilai awal date picker
+            // "TANGGAL AKHIR". Kalau backend tidak mengirimnya, fallback ke
+            // jatuh tempo tagihan.
+            tanggalAkhir: item.reading_recorded_at || item.due_date || null,
             status: statusLabel,
             paid_amount: Number(item.paid_amount ?? 0),
             is_paid: item.is_paid ?? statusLabel === 'PAID',
             package_name: item.package_name || '-',
+            // Periode tagihan dari backend. Dipakai saat edit supaya
+            // perubahan terkirim ke periode yang benar, bukan ke periode
+            // dari filter halaman yang kebetulan sedang aktif.
+            periodeBulan: Number(item.billing_period_month ?? 0) || null,
+            periodeTahun: Number(item.billing_period_year ?? 0) || null,
             reading_photo: item.reading_photo || null,
             technician_id: item.technician_id || null,
             technician_name: item.technician_name || null,
@@ -254,20 +304,86 @@ export function usePemakaianAir() {
     currentPage.value = 1
     return loadTableData()
   }
-  const handleCetakFormInput = () => { /* debug log removed */ }
-  const handleHasilInput = () => { /* debug log removed */ }
-  const handleInputPemakaian = () => { /* debug log removed */ }
+  const handleCetakFormInput = () => {
+    /* debug log removed */
+  }
+  const handleHasilInput = () => {
+    /* debug log removed */
+  }
+  const handleInputPemakaian = () => {
+    /* debug log removed */
+  }
   const handleEdit = (row) => {
     selectedRow.value = { ...row }
     showEditModal.value = true
   }
 
-  const handleSaveEdit = (updatedRow) => {
-    const index = tableData.value.findIndex((item) => item.id === updatedRow.id)
-    if (index !== -1) {
-      tableData.value[index] = { ...tableData.value[index], ...updatedRow }
+  /**
+   * Simpan perubahan pemakaian.
+   *
+   * Tagihan dihitung ulang di BACKEND (tarif progresif paket + abodemen +
+   * denda beku), lalu tabel dimuat ulang dari server. Sengaja TIDAK
+   * menebak tagihannya di frontend: kalau frontend yang menghitung,
+   * nomor yang tampil bisa berbeda dari yang tersimpan di database.
+   *
+   * Versi lama hanya mengubah state lokal (`tableData[index] = {...}`),
+   * jadi NOTHING terkirim ke server. Akibatnya:
+   *   - angka meter di layar berubah, tapi meter di database tetap lama,
+   *   - tagihan di server tetap memakai meter lama,
+   *   - begitu halaman di-refresh, perubahannya hilang.
+   */
+  const handleSaveEdit = async (updatedRow) => {
+    const row = selectedRow.value
+    if (!row) return
+
+    isLoading.value = true
+
+    try {
+      const res = await billingService.updateUsage({
+        customer_id: row.id,
+        // Pakai periode tagihan dari server. Kalau baris ini belum punya
+        // tagihan (mis. PENDING), jatuh ke periode filter halaman.
+        month: row.periodeBulan || parseMonth(filter.value.bulan),
+        year: row.periodeTahun || parseYear(filter.value.tahun),
+        meter_value: Number(updatedRow.meterAkhir),
+      })
+
+      if (!res?.success) {
+        throw new Error(res?.message || 'Gagal menyimpan perubahan pemakaian.')
+      }
+
+      showEditModal.value = false
+
+      // Muat ulang dari server supaya angka pemakaian, tagihan, dan
+      // status yang tampil pasti sama dengan yang tersimpan.
+      await loadTableData()
+
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil diperbarui',
+        text: res?.message || 'Pemakaian dan tagihan berhasil diperbarui.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+        customClass: {
+          popup: 'swal-toast-custom',
+        },
+      })
+    } catch (err) {
+      const message =
+        err?.response?.data?.message || err?.message || 'Tidak dapat menyimpan perubahan pemakaian.'
+
+      MySwal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan',
+        text: message,
+        confirmButtonColor: '#ef4444',
+      })
+    } finally {
+      isLoading.value = false
     }
-    showEditModal.value = false
   }
 
   const handleDelete = async (row) => {
@@ -292,6 +408,10 @@ export function usePemakaianAir() {
     showEditModal,
     selectedRow,
     isLoading,
+
+    // Role
+    isTechnician,
+    currentUserLabel,
 
     // Pilihan opsi
     tahunOptions,

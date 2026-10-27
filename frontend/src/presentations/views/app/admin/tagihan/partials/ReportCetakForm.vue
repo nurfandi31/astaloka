@@ -3,11 +3,11 @@
     <template v-if="showMeta">
       <div class="page-header">
         <h2>FORM INPUT PEMAKAIAN AIR</h2>
-        <h2 class="mt-1 mb-0 leading-tight" style="font-size: 19px;">
+        <h2 class="mt-1 mb-0 leading-tight" style="font-size: 19px">
           "TIRTO MULO" BUMDes BANGUN KENCANA
         </h2>
-        <p class="page-subtitle" style="font-size: 14px;">KALURAHAN MULO KAPANEWON WONOSARI</p>
-        <hr class="kop-single-divider">
+        <p class="page-subtitle" style="font-size: 14px">KALURAHAN MULO KAPANEWON WONOSARI</p>
+        <hr class="kop-single-divider" />
       </div>
 
       <div class="meta-grid">
@@ -40,13 +40,13 @@
 
     <table class="data-table data-table-fixed">
       <colgroup>
-        <col style="width: 5%">
-        <col style="width: 30%">
-        <col style="width: 16%">
-        <col style="width: 6%">
-        <col style="width: 8%">
-        <col style="width: 8%">
-        <col style="width: 28%">
+        <col style="width: 5%" />
+        <col style="width: 30%" />
+        <col style="width: 16%" />
+        <col style="width: 6%" />
+        <col style="width: 8%" />
+        <col style="width: 8%" />
+        <col style="width: 28%" />
       </colgroup>
       <thead>
         <tr>
@@ -102,14 +102,14 @@ const tanggalCetak = computed(() =>
     day: '2-digit',
     month: 'long',
     year: 'numeric',
-  })
+  }),
 )
 
 const jamCetak = computed(() =>
   now.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
-  })
+  }),
 )
 </script>
 
@@ -238,31 +238,46 @@ const jamCetak = computed(() =>
   break-inside: avoid;
 }
 
-/* Page-break setelah .report-page */
+/* Page-break setelah .report-page
+   CATATAN: pemenggalan halaman saat print dilakukan oleh .report-page-wrap
+   (parent-nya) di cetakForm.vue. Kalau break-after juga dipasang di sini,
+   Chrome menghasilkan satu halaman kosong di antara setiap halaman laporan
+   karena ada dua page-break berturut-turut. */
 .report-page,
 .report-page.surat-page {
-  page-break-after: always;
-  break-after: page;
+  page-break-after: auto;
+  break-after: auto;
 }
 
 .report-page:last-child {
   page-break-after: auto;
   break-after: auto;
 }
+
+/* Margin cetak & preview.
+   Padding WAJIB sama antara layar dan print. Kalau preview memakai padding
+   lebih besar (mis. bawaan BaseReportLayout 60px/90px) sementara print
+   memakai 12mm/15mm, area cetak di preview jadi lebih sempit -> baris
+   terakhir tabel terpotong saat ganti halaman di tampilan preview.
+
+   Rule ini scoped (punya [data-v-...]) jadi hanya berlaku untuk halaman
+   laporan form input ini, tidak mengubah laporan lain. */
+.report-page.surat-page {
+  padding: 12mm 15mm !important;
+}
 </style>
 
 <style>
-.report-page.surat-page {
-  padding: 60px !important;
-}
-
+/* Ukuran halaman cetak.
+   `height: auto` (bukan 297mm) supaya baris tabel terakhir tidak
+   terpotong -- halaman tetap minimal setinggi A4 lewat `min-height`,
+   tapi isinya boleh lebih panjang dan tidak dipotong diam-diam.
+   Padding TIDAK diatur di sini supaya tidak bentrok dengan aturan
+   scoped `padding: 12mm 15mm` di atas. */
 @media print {
-  .report-page.surat-page {
-    padding: 0 !important;
-  }
   .report-page.surat-page.size-a4.portrait {
     width: 210mm !important;
-    height: 297mm !important;
+    height: auto !important;
     min-height: 297mm !important;
     margin: 0 !important;
   }

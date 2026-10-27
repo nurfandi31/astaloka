@@ -3,11 +3,11 @@
     <template v-if="showMeta">
       <div class="page-header">
         <h2>DAFTAR TAGIHAN PEMAKAIAN AIR</h2>
-        <h2 class="mt-1 mb-0 leading-tight " style="font-size: 19px;">
+        <h2 class="mt-1 mb-0 leading-tight" style="font-size: 19px">
           "TIRTO MULO" BUMDes BANGUN KENCANA
         </h2>
-        <p class="page-subtitle" style="font-size: 14px;">KALURAHAN MULO KAPANEWON WONOSARI</p>
-        <hr class="kop-single-divider">
+        <p class="page-subtitle" style="font-size: 14px">KALURAHAN MULO KAPANEWON WONOSARI</p>
+        <hr class="kop-single-divider" />
       </div>
 
       <div class="meta-grid">
@@ -27,7 +27,6 @@
             <span class="meta-sep">:</span>
             <span class="meta-value">{{ tanggalCetak }}, Pukul {{ jamCetak }}</span>
           </div>
-          
         </div>
         <div class="meta-col meta-col-right">
           <div class="meta-row">
@@ -46,15 +45,15 @@
 
     <table class="data-table data-table-fixed">
       <colgroup>
-        <col style="width: 6%">
-        <col style="width: 23%">
-        <col style="width: 14%">
-        <col style="width: 5%">
-        <col style="width: 7%">
-        <col style="width: 7%">
-        <col style="width: 12%">
-        <col style="width: 14%">
-        <col style="width: 14%">
+        <col style="width: 6%" />
+        <col style="width: 23%" />
+        <col style="width: 14%" />
+        <col style="width: 5%" />
+        <col style="width: 7%" />
+        <col style="width: 7%" />
+        <col style="width: 12%" />
+        <col style="width: 14%" />
+        <col style="width: 14%" />
       </colgroup>
       <thead>
         <tr>
@@ -77,7 +76,10 @@
           <td class="text-center">{{ item.rt || '-' }}</td>
           <td class="text-center">{{ Number(item.meterAwal || 0).toLocaleString('id-ID') }}</td>
           <td class="text-center">{{ Number(item.meterAkhir || 0).toLocaleString('id-ID') }}</td>
-          <td class="text-center">{{ item.pemakaian }} - {{ String(item.status || '').toUpperCase() === 'PAID' ? 'L' : 'B' }}</td>
+          <td class="text-center">
+            {{ item.pemakaian }} -
+            {{ String(item.status || '').toUpperCase() === 'PAID' ? 'L' : 'B' }}
+          </td>
           <td class="text-right col-dibayar">
             {{
               Number(item.paid_amount || 0).toLocaleString('id-ID', {
@@ -99,9 +101,9 @@
           <td colspan="9" class="empty">Tidak ada data pelanggan pada dusun ini.</td>
         </tr>
         <tr v-if="isLastPage && items && items.length > 0" class="total-row">
-          <td colspan="6" class="text-center" style="font-weight: 700;">Total</td>
-          <td class="text-center" style="font-weight: 700;">{{ totalPemakaian }}</td>
-          <td class="text-right col-dibayar" style="font-weight: 700;">
+          <td colspan="6" class="text-center" style="font-weight: 700">Total</td>
+          <td class="text-center" style="font-weight: 700">{{ totalPemakaian }}</td>
+          <td class="text-right col-dibayar" style="font-weight: 700">
             {{
               Number(totalDibayar).toLocaleString('id-ID', {
                 minimumFractionDigits: 2,
@@ -109,7 +111,7 @@
               })
             }}
           </td>
-          <td class="text-right" style="font-weight: 700;">
+          <td class="text-right" style="font-weight: 700">
             {{
               Number(totalTagihan).toLocaleString('id-ID', {
                 minimumFractionDigits: 2,
@@ -152,8 +154,18 @@ const totalDibayar = computed(() => {
 })
 
 const bulans = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
 ]
 
 const bulanIndex = (val) => {
@@ -170,14 +182,14 @@ const tanggalCetak = computed(() =>
     day: '2-digit',
     month: 'long',
     year: 'numeric',
-  })
+  }),
 )
 
 const jamCetak = computed(() =>
   now.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
-  })
+  }),
 )
 
 const tanggalAkhir = computed(() => {
@@ -267,7 +279,7 @@ const tanggalAkhir = computed(() => {
 
 /* Mengatur label sebelah kanan agar rata kiri sejajar vertikal dan memiliki lebar tetap */
 .meta-col-right .meta-label {
-  min-width: 135px; 
+  min-width: 135px;
   display: inline-block;
 }
 
@@ -345,31 +357,46 @@ const tanggalAkhir = computed(() => {
   break-before: avoid;
 }
 
-/* Page-break setelah .report-page */
+/* Page-break setelah .report-page
+   CATATAN: pemenggalan halaman saat print dilakukan oleh .report-page-wrap
+   (parent-nya) di cetakDaftarTagihan.vue. Kalau break-after juga dipasang
+   di sini, Chrome menghasilkan satu halaman kosong di antara setiap halaman
+   laporan karena ada dua page-break berturut-turut. */
 .report-page,
 .report-page.surat-page {
-  page-break-after: always;
-  break-after: page;
+  page-break-after: auto;
+  break-after: auto;
 }
 
 .report-page:last-child {
   page-break-after: auto;
   break-after: auto;
 }
+
+/* Margin cetak & preview.
+   Padding WAJIB sama antara layar dan print. Kalau preview memakai padding
+   lebih besar (mis. bawaan BaseReportLayout 60px/90px) sementara print
+   memakai 12mm/15mm, area cetak di preview jadi lebih sempit -> baris
+   terakhir tabel terpotong saat ganti halaman di tampilan preview.
+
+   Rule ini scoped (punya [data-v-...]) jadi hanya berlaku untuk halaman
+   laporan daftar tagihan ini, tidak mengubah laporan lain. */
+.report-page.surat-page {
+  padding: 12mm 15mm !important;
+}
 </style>
 
 <style>
-.report-page.surat-page {
-  padding: 60px !important;
-}
-
+/* Ukuran halaman cetak.
+   `height: auto` (bukan 297mm) supaya baris tabel terakhir tidak
+   terpotong -- halaman tetap minimal setinggi A4 lewat `min-height`,
+   tapi isinya boleh lebih panjang dan tidak dipotong diam-diam.
+   Padding TIDAK diatur di sini supaya tidak bentrok dengan aturan
+   scoped `padding: 12mm 15mm` di atas. */
 @media print {
-  .report-page.surat-page {
-    padding: 0 !important;
-  }
   .report-page.surat-page.size-a4.portrait {
     width: 210mm !important;
-    height: 297mm !important;
+    height: auto !important;
     min-height: 297mm !important;
     margin: 0 !important;
   }

@@ -11,6 +11,7 @@ use App\Services\TenantCache;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -448,42 +449,65 @@ class DashboardController extends Controller
      */
     public function checkAutoGenerateOverdue(Request $request)
     {
-        $today        = now();
-        $todayYmd     = $today->toDateString();
-        $todayDay     = (int) $today->format('d');
+        $today = now();
+        $todayYmd = $today->toDateString();
+        $todayDay = (int) $today->format('d');
         $scheduledDay = (int) (Setting::first()?->toleransi_tunggakan ?? 0);
 
-        $configured     = $scheduledDay >= 1 && $scheduledDay <= 28;
-        $isScheduledDay = $todayDay === $scheduledDay;
+        $configured = $scheduledDay >= 1 && $scheduledDay <= 28;
+
+        // Gate `>=` BUKAN `===`.
+        //
+        // Dulu gate-nya "hari ini PERSIS sama dengan tanggal generate".
+        // Konsekuensinya: kalau tidak ada staff yang login tepat pada
+        // tanggal itu, generate TIDAK PERNAH jalan untuk bulan itu -- dan
+        // tidak ada error, tidak ada log, tidak ada tanda di mana pun.
+        // Tagihan tetap `unpaid` di `monthly_bills` tapi akun Piutang
+        // Usaha `1.1.03.01` tidak pernah ditambah, sehingga Neraca dan
+        // pelaporan under-report sementara `monthly_bills` menunjukkan
+        // angka berbeda -- dua sumber kebenaran yang tidak sinkron.
+        //
+        // Gate `===` juga membuat tanggal 29, 30, dan 31 tidak pernah bisa
+        // menjadi tanggal generate.
+        //
+        // Sekarang: begitu tanggal generate terlewat, generate tetap boleh
+        // jalan. Hasilnya sama apakah dijalankan pagi atau malam.
+        $isScheduledDay = $configured && $todayDay >= $scheduledDay;
 
         return response()->json([
-            'success'       => true,
-            'configured'    => $configured,
-            'is_scheduled'  => $isScheduledDay,
+            'success' => true,
+            'configured' => $configured,
+            'is_scheduled' => $isScheduledDay,
             // Dipertahankan supaya frontend lama yang membaca field ini
             // tidak rusak, tapi nilainya sudah tidak dipakai sebagai penentu.
-            'already_ran'   => false,
-            'will_run'      => $configured && $isScheduledDay,
+            'already_ran' => false,
+            'will_run' => $isScheduledDay,
             'scheduled_day' => $scheduledDay,
-            'today_day'     => $todayDay,
-            'date'          => $todayYmd,
+            'today_day' => $todayDay,
+            'date' => $todayYmd,
         ]);
     }
 
     /**
      * Auto-generate piutang/abodemen/denda untuk tagihan menunggak.
      *
-     * Dipanggil dari frontend setiap kali halaman dashboard di-mount.
-     * - Hanya jalan bila hari ini == `toleransi_tunggakan` (tanggal di
-     *   kolom SOP, range 1-28) DAN proses untuk bulan ini belum pernah
-     *   dijalankan (cache `auto_gen_overdue_{YYYY-MM}_{userId}`).
+     * Dipanggil dari frontend setiap kali halaman dashboard di-mount, dan
+     * juga otomatis dari `POST /api/login` lewat `ReceivableGenerator`.
+     * - Hanya jalan bila hari ini SUDAH MELEWATI tanggal generate
+     *   (`toleransi_tunggakan`, range 1-28). Gate `>=`, bukan `===`.
      * - Menjalankan command `billing:generate-overdue-transactions`
      *   dengan `--tanggal=today` dan `--force=false`.
      * - Hasil dikembalikan ke frontend untuk ditampilkan di pop up.
      *
-     * Catatan: bila dijalankan berulang pada hari yang sama untuk user
-     * berbeda, command akan skip tagihan yang sudah punya jurnal
-     * overdue_bill (lihat flag `--force=false`). Aman.
+     * Boleh dijalankan BERULANG. Dulu ada flag `auto_gen_overdue_{YYYY-MM}`
+     * (TTL 35 hari) yang mengunci generate untuk seluruh bulan setelah
+     * jalannya yang pertama -- sehingga pelanggan yang lupa somehow, tagihan
+     * yang baru masuk belakangan, atau tagihan yang tadinya salah lalu
+     * diperbaiki, tidak pernah bisa tertangani tanpa intervensi manual.
+     *
+     * Flag itu dihapus. Yang mencegah jurnal dobel adalah command itu
+     * sendiri yang sudah idempotent: tagihan yang sudah punya jurnal
+     * piutang untuk akun kredit tertentu akan dilewati.
      */
     public function autoGenerateOverdue(Request $request)
     {
@@ -500,12 +524,11 @@ class DashboardController extends Controller
         $userId = auth()->id();
         $today = now();
         $todayYmd = $today->toDateString();
-        $todayYm = $today->format('Y-m');
 
         $setting = Setting::first();
         $scheduledDay = (int) ($setting?->toleransi_tunggakan ?? 0);
 
-        // 1) Kalau SOP belum di-set / 0 â†’ tidak ada generate otomatis.
+        // 1) Kalau SOP belum di-set / 0 -> tidak ada generate otomatis.
         if ($scheduledDay < 1 || $scheduledDay > 28) {
             return response()->json([
                 'success' => true,
@@ -517,48 +540,63 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 2) Hanya jalan di tanggal yang sesuai SOP.
+        // 2) Gate `>=`, bukan `===`.
+        //
+        //    Dulu: "hari ini PERSIS sama dengan tanggal generate". Kalau
+        //    tidak ada staff yang login tepat pada tanggal itu, generate
+        //    TIDAK PERNAH jalan untuk bulan itu -- tanpa error, tanpa log.
+        //    Tagihan tetap `unpaid` tapi akun Piutang Usaha `1.1.03.01`
+        //    tidak pernah ditambah, sehingga Neraca dan daftar tagihan jadi
+        //    dua sumber kebenaran yang berbeda.
+        //
+        //    Sekarang: begitu tanggal generate terlewat, generate tetap
+        //    boleh jalan. Hasilnya sama apakah dijalankan pagi atau malam.
         $todayDay = (int) $today->format('d');
-        if ($todayDay !== $scheduledDay) {
+        if ($todayDay < $scheduledDay) {
             return response()->json([
                 'success' => true,
                 'ran' => false,
-                'reason' => 'Hari ini bukan tanggal generate yang dijadwalkan.',
+                'reason' => 'Belum tanggal generate piutang bulan ini.',
                 'scheduled_day' => $scheduledDay,
                 'today_day' => $todayDay,
                 'date' => $todayYmd,
             ]);
         }
 
-        // 3) Idempotent per (bulan, lokasi).
-        //
-        //    Kuncinya lewat `TenantCache` sehingga tidak lagi milik user.
-        //    Versi lama memakai `auto_gen_overdue_{bulan}_{userId}`: karena
-        //    seeder demo memakai email yang sama di semua lokasi, `admin@gmail.com`
-        //    punya id 1 di setiap database. Lokasi kedua yang membuka dashboard
-        //    akan membaca flag milik lokasi pertama dan SKIP generate
-        //    tunggakannya sendiri -- tanpa error, hanya tanpa jurnal piutang.
-        //
-        //    Kunci juga tidak lagi menyertakan user: generate tunggakan
-        //    menulis ke tabel `transactions` yang sifatnya GLOBAL per lokasi,
-        //    bukan milik akun yang|time executing. Kalau dua admin login di
-        //    tanggal yang sama, keduanya akan menjalankan proses atas nama
-        //    lokasi yang sama.
-        $runCacheKey = 'auto_gen_overdue_'.$todayYm;
-        $alreadyRan = $this->cache->flagGet($runCacheKey, false);
+        /*
+         * 3) Generate TIDAK lagi dikunci per bulan.
+         *
+         *    Versi lama memakai flag `auto_gen_overdue_{YYYY-MM}` (TTL 35
+         *    hari) plus gate tanggal. Efeknya: begitu generate jalan sekali
+         *    pada tanggal 6, SELURUH bulan berikutnya di lokasi itu tidak
+         *    pernah bisa generate lagi.
+         *
+         *    Itu persis skenario yang harus dicegah: ada pelanggan yang
+         *    lupa somehow, ada tagihan yang baru masuk belakangan, atau ada
+         *    tagihan yang tadinya salah lalu diperbaiki admin. Semua itu
+         *    butuh generate ULANG, bukan generate yang terkunci.
+         *
+         *    Yang PEGANG duplikatnya adalah command itu sendiri, yang sudah
+         *    idempotent: setiap tagihan punya paling banyak satu jurnal
+         *    piutang per akun kredit (dicek lewat pasangan
+         *    `reverence_id|account_kredit`). Menjalankan berkali-kali pada
+         *    hari yang sama tidak menghasilkan jurnal dobel.
+         *
+         *    Yang tersisa di sini hanya BUSY-GUARD: mencegah dua proses
+         *    agregasi tabel `amount` berjalan bersamaan (lock wait timeout),
+         *    BUKAN mencegah generate.
+         */
+        $lockKey = $this->cache->flagKey('overdue_gen_lock_'.$todayYmd);
 
-        if ($alreadyRan) {
-            // Ambil hasil terakhir dari cache notifikasi (kalau ada).
-            $lastNotif = $this->cache->flagGet('overdue_gen_run_summary');
-
+        if (! Cache::add($lockKey, 1, now()->addMinutes(10))) {
             return response()->json([
                 'success' => true,
                 'ran' => false,
-                'reason' => 'Generate sudah pernah dijalankan bulan ini untuk lokasi ini.',
+                'busy' => true,
+                'reason' => 'Generate sedang berjalan di proses lain. Coba lagi sebentar lagi.',
                 'scheduled_day' => $scheduledDay,
                 'today_day' => $todayDay,
                 'date' => $todayYmd,
-                'previous' => $lastNotif,
             ]);
         }
 
@@ -570,6 +608,10 @@ class DashboardController extends Controller
             $exit = Artisan::call('billing:generate-overdue-transactions', $opts);
             $output = Artisan::output();
         } catch (\Throwable $e) {
+            // Lepas kunci supaya percobaan berikutnya tidak terkunci hanya
+            // karena satu kegagalan.
+            Cache::forget($lockKey);
+
             Log::error('autoGenerateOverdue gagal: '.$e->getMessage());
 
             return response()->json([
@@ -580,14 +622,13 @@ class DashboardController extends Controller
                 'today_day' => $todayDay,
                 'date' => $todayYmd,
             ], 500);
+        } finally {
+            // Lepas kunci juga setelah sukses: generate berikutnya
+            // (login berikutnya, atau klik ulang tombol) harus BOLEH jalan.
+            Cache::forget($lockKey);
         }
 
         $duration = (int) ((microtime(true) - $start) * 1000);
-
-        // Tandai sudah pernah dijalankan untuk lokasi ini selama 35 hari.
-        // Pakai kunci FLAG (tanpa versi): bump cache yang baru saja
-        // dipanggil di bawah harus tidak ikut menggeser penanda ini.
-        $this->cache->flagPut($runCacheKey, true, now()->addDays(35));
 
         // Reset flag dismiss notifikasi supaya pop up baru bisa muncul.
         $this->cache->flagForget('overdue_gen_dismissed_'.$userId);

@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\ReceivableGenerator;
 use App\Services\TenantCache;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Mockery;
@@ -278,7 +279,7 @@ class LoginGeneratePiutangTest extends TestCase
         {
             public int $calls = 0;
 
-            public function execute(?\Carbon\Carbon $now = null): ?array
+            public function execute(?Carbon $now = null): ?array
             {
                 $this->calls++;
 
@@ -308,8 +309,23 @@ class LoginGeneratePiutangTest extends TestCase
         );
     }
 
+    /**
+     * Generate boleh dijalankan ulang di hari yang sama.
+     *
+     * Dulu ada mutex "sekali per tanggal generate" yang membuat login kedua
+     * pada tanggal yang sama dilewati. Mutex itu diturunkan menjadi
+     * BUSY-GUARD saja (mencegah dua proses agregasi `amount` berjalan
+     * bersamaan), bukan penghalang generate.
+     *
+     * Alasan operasionalnya: kadang ada pelanggan yang lupa digenerate, atau
+     * tagihannya lewat dari tanggal generate. Generate ulang harus bisa
+     * menutup kekurangan itu tanpa intervensi manual.
+     *
+     * Yang tetap dijaga: TIDAK boleh ada jurnal dobel. Command-nya sudah
+     * idempotent lewat pasangan `reverence_id|account_kredit`.
+     */
     #[Test]
-    public function generate_hanya_dijalankan_sekali_per_tanggal_generate(): void
+    public function generate_boleh_dijalankan_ulang_di_hari_yang_sama_tanpa_jurnal_ganda(): void
     {
         Setting::create([
             'key' => 'sop',
@@ -325,15 +341,47 @@ class LoginGeneratePiutangTest extends TestCase
         $jurnalSetelahLoginPertama = Transaction::where('reverence_type', 'overdue_bill')->count();
         $this->assertSame(2, $jurnalSetelahLoginPertama);
 
-        // Login kedua di hari yang sama: mutex harus menahan, dan Command-nya
-        // sendiri sudah idempotent lewat pasangan `reverence_id|account_kredit`.
+        // Login kedua di hari yang sama: generate TETAP dijalankan.
         $kedua = $this->login($admin);
-        $kedua->assertOk();
+        $kedua->assertOk()
+            ->assertJsonPath('data.piutang_tunggakan.ran', true);
 
+        // Tapi tidak boleh menambah jurnal: command-nya idempotent.
         $this->assertSame(
             $jurnalSetelahLoginPertama,
             Transaction::where('reverence_type', 'overdue_bill')->count(),
             'Login kedua tidak boleh menambah jurnal piutang.'
+        );
+    }
+
+    /**
+     * Generate tetap jalan setelah tanggal generate terlewat.
+     *
+     * Gate `>=` (bukan `===`): kalau tanggal generate terlewat, generate
+     * tetap boleh jalan. Dulu gate `===` membuat bulan tanpa staff yang
+     * login tepat pada tanggal itu TIDAK PERNAH punya jurnal piutang --
+     * tanpa error, tanpa log, tanpa jejak.
+     */
+    #[Test]
+    public function generate_tetap_jalan_setelah_tanggal_generate_terlewat(): void
+    {
+        // Tanggal generate = 1, "hari ini" sengaja lebih besar supaya
+        // pastilah sudah lewat dari tanggal generate.
+        Setting::create([
+            'key' => 'sop',
+            'batas_tagihan' => 27,
+            'toleransi_tunggakan' => 1,
+        ]);
+
+        [$admin] = $this->seedLokasiDenganTagihanMenunggak();
+
+        $this->login($admin)->assertOk()
+            ->assertJsonPath('data.piutang_tunggakan.ran', true);
+
+        $this->assertSame(
+            2,
+            Transaction::where('reverence_type', 'overdue_bill')->count(),
+            'Tanggal generate yang terlewat tidak boleh menggagalkan generate.'
         );
     }
 

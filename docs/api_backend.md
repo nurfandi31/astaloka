@@ -167,7 +167,7 @@ photo                 : [file gambar]
 | Method | Endpoint | Role | Keterangan |
 |---|---|---|---|
 | GET | `/meter-readings/pending` | Teknisi | Daftar pelanggan belum dicatat bulan ini |
-| POST | `/meter-readings` | Teknisi | Input angka meter bulanan + foto |
+| POST | `/meter-readings` | Teknisi | Input angka meter bulanan + foto (opsional) |
 
 **Response GET `/meter-readings/pending`:**
 ```json
@@ -179,9 +179,11 @@ photo                 : [file gambar]
 
 **Request POST `/meter-readings` (form-data):**
 ```
-customer_id : 1
-meter_value : 25
-photo       : [file gambar]
+customer_id   : 1
+meter_value   : 25
+reading_month : 3
+reading_year  : 2026
+photo         : [file gambar]  (OPSIONAL — bukti pendukung, boleh tidak dikirim)
 ```
 
 **Response POST `/meter-readings`:**
@@ -193,6 +195,10 @@ photo       : [file gambar]
 ```
 
 > Validasi: angka meter baru tidak boleh lebih kecil dari bulan sebelumnya.
+>
+> `photo` bersifat opsional — foto meteran hanya bukti pendukung, jadi
+> pencatatan tetap berhasil tanpa foto (`meter_readings.photo_url` = null).
+> Field `meter_value`, `reading_month`, dan `reading_year` tetap wajib.
 
 ---
 
@@ -203,7 +209,10 @@ photo       : [file gambar]
 | GET | `/bills/recap` | Admin | Rekap tagihan |
 | POST | `/bills/generate` | Admin | Generate tagihan bulanan (dengan parameter) |
 | GET | `/bills/{id}` | Admin | Detail tagihan |
-| GET | `/monthly-bills` | Admin | Daftar tagihan |
+| GET | `/monthly-bills` | Admin, Teknisi | Daftar tagihan (teknisi: hanya pelanggan di wilayahnya) |
+| GET | `/monthly-bills/{id}` | Admin, Teknisi | Detail tagihan (teknisi: hanya pelanggan di wilayahnya) |
+| GET | `/monthly-bills/usage` | Admin, Teknisi | Rekap pemakaian air |
+| PUT | `/monthly-bills/usage` | Admin, Teknisi | Ubah meter akhir + hitung ulang tagihan |
 | POST | `/monthly-bills/generate` | Admin | Generate tagihan bulanan (otomatis bulan ini) |
 | POST | `/monthly-bills/{id}/pay` | Admin | Konfirmasi pembayaran tagihan |
 | GET | `/reports/bills` | Admin | Laporan tagihan per periode |

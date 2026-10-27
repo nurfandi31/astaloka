@@ -35,26 +35,45 @@ use Illuminate\Support\Facades\Log;
  *   - Gate `===` juga membuat tanggal 29, 30, dan 31 tidak pernah bisa
  *     menjadi tanggal generate.
  *
- * Yang dipakai di sini
- * --------------------
+ * KONSEP BARU: generate boleh diulang, bukan sekali-sekali
+ * -------------------------------------------------------
  *
- * Gate berubah dari "hari ini PERSIS sama dengan tanggal generate" menjadi
- * "tanggal hari ini sudah lewat atau sama dengan tanggal generate". begitu
- * tanggalnya lewat, generate tetap boleh jalan -- dijalankan pagi atau
- * malam tidak berpengaruh, karena hasilnya sama.
+ * Permintaan operasionalnya jelas: "kalau bulan ini sudah generate, jangan
+ * halangi generate lagi; kalau hari ini adalah hari generate, setiap login
+ * boleh memicu generate ulang -- supaya pelanggan yang lupa somehow tetap
+ * tertangani".
  *
- * Jendela ini juga yang membuat proses idempotent: setiap tagihan punya
- * paling banyak satu jurnal piutang per akun kredit (dicek command lewat
- * pasangan `reverence_id|account_kredit`), jadi menjalankan berkali-kali
- * pada hari yang sama tidak menghasilkan jurnal dobel.
+ * Karena itu tiga lapis penghalang yang tadinya ada DILETAKHKAN:
+ *
+ *   1. Gate `===` (tanggal hari ini HARUS PERSIS sama)  -> jadi `>=`.
+ *      Tanggal yang terlewat tidak lagi menggagalkan generate selamanya.
+ *
+ *   2. Cache "sudah pernah dijalankan bulan ini" (TTL 35 hari)
+ *      -> DIHAPUS. Ini penghalang palingKetat: begitu generate jalan sekali
+ *      pada tanggal 6, seluruh bulan berikutnya di lokasi itu tidak pernah
+ *      bisa generate lagi -- termasuk kasus tagihan baru yang masuk lewat
+ *      salesperson, atau tagihan yang tadinya salah dan sudah diperbaiki.
+ *
+ *   3. Mutex "sudah dijalankan hari ini" (TTL 1 jam)
+ *      -> diturunkan menjadi BUSY-GUARD SAJA. Gunanya hanya mencegah dua
+ *      proses agregasi `amount` berjalan bersamaan (lock wait timeout),
+ *      BUKAN mencegah generate.
+ *
+ * Yang PEGANG rumoredup-nya tetap command itu sendiri, yang sudah
+ * idempotent: setiap tagihan punya paling banyak satu jurnal piutang per
+ * akun kredit (dicek lewat pasangan `reverence_id|account_kredit`).
+ * Menjalankan berkali-kali pada hari yang sama tidak menghasilkan jurnal
+ * dobel.
+ *
+ * Efek samping yang diinginkan: kalau ada pelanggan yang lupa dicatat
+ * meternya, atau tagihannya baru saja diperbaiki admin, generate ulang
+ * akan看出来 dan menagihnya tanpa perlu intervensi manual.
  *
  * Kapan TIDAK berjalan
  * --------------------
  *
  * 1. Tanggal generate bulan ini belum tercapai. Contoh: `toleransi 6`,
  *    hari ini tanggal 3 -> belum jalan.
- * 2. Sudah dikunci untuk tanggal tersebut di lokasi ini (mutex), supaya
- *    dua login bersamaan tidak menjalankan proses dua kali.
  *
  * Kegagalan
  * ---------
@@ -120,33 +139,41 @@ class ReceivableGenerator
         $lockKey = $this->cache->flagKey('overdue_gen_lock_'.$this->scheduledDate($now));
 
         /*
-         * Mutex dengan TTL 1 jam.
+         * BUSY-GUARD, bukan blocker.
          *
-         * Dua admin yang login pada detik yang sama akan menjalankan
-         * `billing:generate-overdue-transactions` bersamaan kalau tanpa ini.
-         * Command-nya sendiri sudah idempotent sehingga tidak ada jurnal
-         * dobel -- tapi dua proses agregasi tabel `amount` di atas tabel
-         * `transactions` yang bisa mencapai puluhan ribu baris adalah
-         * pemborosan mahal, dan bisa memicu lock wait timeout.
+         * Fungsinya hanya mencegah dua proses agregasi tabel `amount` di atas
+         * tabel `transactions` berjalan bersamaan. Dua proses itu bukan
+         * merusak data (command-nya idempotent), tapi boros mahal dan bisa
+         * memicu lock wait timeout -- terutama di lokasi besar dengan
+         * puluhan ribu tagihan.
          *
-         * TTL-nya satu jam, bukan sampai akhir hari: kalau proses pertama
-         * mati di tengah jalan (timeout, OOM, koneksi putus), tagihan yang
-         * belum sempat dijurnal harus tetap punya kesempatan dicoba lagi
-         * pada login berikutnya di hari yang sama.
+         * PENTING: kegagalan acquiring lock TIDAK berarti "generate sudah
+         * pernah jalan, jadi jangan jalan lagi". Itu semantics yang
+         * lama -- dan justru alasan generate tidak pernah bisa dijalankan
+         * ulang dalam sebulan.
+         *
+         * TTL-nya 10 menit, bukan 1 jam: kalau proses pertama mati di
+         * tengah jalan (timeout, OOM, koneksi putus), percobaan berikutnya
+         * tidak perlu menunggu satu jam penuh.
+         *
+         * Dan kalau proses yang sedang jalan BENAR-BENAR selesai, kuncinya
+         * dilepas di akhir supaya generate berikutnya (login berikutnya)
+         * langsung boleh jalan.
          */
-        if (! Cache::add($lockKey, 1, now()->addHour())) {
+        if (! Cache::add($lockKey, 1, now()->addMinutes(10))) {
             return [
                 'ran' => false,
-                'reason' => 'Generate sudah dijalankan atau sedang berjalan hari ini.',
+                'reason' => 'Generate sedang berjalan di proses lain. Coba lagi sebentar lagi.',
                 'summary' => null,
+                'busy' => true,
             ];
         }
 
         try {
             $summary = $this->execute($now);
         } catch (\Throwable $e) {
-            // Lepas kunci supaya percobaan berikutnya di hari yang sama
-            // tidak terkunci selama satu jam hanya karena satu kegagalan.
+            // Lepas kunci supaya percobaan berikutnya tidak terkunci hanya
+            // karena satu kegagalan.
             Cache::forget($lockKey);
 
             Log::error('Generate piutang tunggakan gagal: '.$e->getMessage(), [
@@ -159,6 +186,10 @@ class ReceivableGenerator
                 'reason' => 'Generate gagal: '.$e->getMessage(),
                 'summary' => null,
             ];
+        } finally {
+            // Lepas kunci juga setelah sukses: generate berikutnya
+            // (misalnya login berikutnya) harus BOLEH jalan lagi.
+            Cache::forget($lockKey);
         }
 
         return [
