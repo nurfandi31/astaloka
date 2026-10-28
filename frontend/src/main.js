@@ -281,6 +281,11 @@ import {
   // pengganti: bentuknya gedung, dan yang dimaksud di sini adalah kolom
   // gerbang bank tempat nomor rekening dibaca.
   faBuildingColumns,
+  // Halaman SOP > Pemakaian Air. Ikon "ketik manual" untuk pilihan kamera
+  // yang TIDAK dibuka otomatis. Ikon yang tidak terdaftar di `library` TIDAK
+  // gagal -- komponennya merender kosong, jadi kartu pilihan kehilangan
+  // ikonnya tanpa ada error di console.
+  faKeyboard,
 } from '@fortawesome/free-solid-svg-icons'
 
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons'
@@ -498,6 +503,7 @@ library.add(
   faCloudArrowUp,
   faCircleXmark,
   faTableList,
+  faKeyboard,
 )
 
 export { MySwal } from './utils/swal'

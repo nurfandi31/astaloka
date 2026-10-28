@@ -28,21 +28,25 @@ class SopController extends Controller
             'sistemTagihan' => [
                 'batasTagihan' => $s?->batas_tagihan ?? 27,
                 'toleransiTunggakan' => $s?->toleransi_tunggakan ?? 0,
-
-                /*
-                 * Batas tagihan menunggak sebelum sambungan diputus.
-                 *
-                 * Dikirim sebagai `null`, bukan angka fallback, supaya
-                 * frontend bisa membedakan "belum diisi" dari "sengaja diisi
-                 * dengan angka yang sama seperti toleransi". Tanpa itu,
-                 * mengisi form dengan angka yang sama tidak bisa dibedakan
-                 * dari membiarkannya kosong -- dan tidak ada jalan untuk
-                 * kembali ke perilaku lama.
-                 */
-                'batasTagihanTunggak' => $s?->billing_unpaid_limit,
             ],
             'pasangBaru' => [
                 'statusPembayaran' => (bool) ($s?->status_pembayaran ?? false),
+            ],
+            'pemakaianAir' => [
+                /*
+                 * Kamera meteran dibuka otomatis saat popup input pemakaian?
+                 *
+                 * `null` = belum pernah diatur -> pakai perilaku bawaan,
+                 * yaitu kamera TIDAK dibuka otomatis. Yang wajib diisi cuma
+                 * angka meter akhir; foto dan scan OCR sama-sama opsional,
+                 * jadi memaksa teknisi menunggu kamera terbuka setiap kali
+                 * popup muncul hanya menambah waktu, bukan data.
+                 *
+                 * `null` sengaja tidak dipaksa jadi `false` di sini: "belum
+                 * diisi" dan "sengaja dimatikan" itu dua hal berbeda, dan
+                 * hanya admin yang boleh membedakan lewat halaman SOP.
+                 */
+                'autoOpenMeterCamera' => $s?->auto_open_meter_camera,
             ],
             'logo' => [
                 'logo' => $s?->logo ?? null,
@@ -72,8 +76,15 @@ class SopController extends Controller
      * Halaman pelanggan (mis. Lapor Gangguan) sebelumnya menampilkan nomor
      * hardcode `0812-3456-7890` yang tidak pernah sama dengan yang diisi
      * admin — jadi pelanggan menghubungi nomor yang bukan sebenarnya.
-     * Field yang sensitif lain (email, alamat, SK) tetap khusus admin lewat
-     * `index()` di atas.
+     *
+     * Field kop (nama_lembaga, alamat, email, sk_kemenkumham, logo) juga
+     * ikut dikembalikan. Semuanya berisi data publik institution yang
+     * memang dicetak di kop surat resmi — tidak ada data pelanggan atau
+     * rahasia di dalamnya. Ini penting karena kop surat dirender untuk
+     * teknisi/surveyor juga, sementara `GET /settings/sop` (`index()` di
+     * atas) khusus admin dan akan 403 untuk role lain. Tanpa field ini,
+     * halaman cetak form input yang dipakai teknisi hanya bisa menampilkan
+     * nama usaha hardcode yang bisa kedaluwarsa.
      */
     public function publicIdentity()
     {
@@ -83,8 +94,12 @@ class SopController extends Controller
             'success' => true,
             'data' => [
                 'nama' => $s?->nama ?? '',
-                'logo' => $s?->logo ?? null,
+                'nama_lembaga' => $s?->nama_lembaga ?? '',
+                'alamat' => $s?->alamat ?? '',
+                'email' => $s?->email ?? '',
                 'telepon' => $s?->telepon ?? '',
+                'sk_kemenkumham' => $s?->sk_kemenkumham ?? '',
+                'logo' => $s?->logo ?? null,
             ],
         ]);
     }
@@ -149,32 +164,70 @@ class SopController extends Controller
                  * yang berarti "tanpa maf toleransi".
                  */
                 'toleransiTunggakan' => 'required|integer|min:0|max:120',
-
-                /*
-                 * Batas tagihan menunggak sebelum sambungan diputus.
-                 *
-                 * `nullable` karena kosong berarti "pakai nilai
-                 * `toleransi_tunggakan` seperti sebelumnya". Frontend
-                 * mengirim `null` selama admin tidak menyentuh field ini,
-                 * sehingga semua lokasi yang sudah ada perilakunya tidak
-                 * berubah sampai mereka mengisinya secara sadar.
-                 *
-                 * Rentang 0-120: 0 berarti "tidak pernah diputus otomatis",
-                 * yang utile untuk lokasi yang memeriksa tunggakan manual.
-                 */
-                'batasTagihanTunggak' => 'nullable|integer|min:0|max:120',
             ]);
 
             $s = Setting::firstOrNew([]);
             $s->key = $s->key ?: 'sop';
             $s->batas_tagihan = (int) $data['batasTagihan'];
             $s->toleransi_tunggakan = (int) $data['toleransiTunggakan'];
-            $s->billing_unpaid_limit = $data['batasTagihanTunggak'] !== null
-                ? (int) $data['batasTagihanTunggak']
-                : null;
             $s->save();
 
             return $this->success('Sistem tagihan berhasil disimpan');
+        } catch (\Throwable $e) {
+            return $this->error($e);
+        }
+    }
+
+    /**
+     * GET /settings/pemakaian-air
+     * Ambil pengaturan pencatatan meteran.
+     *
+     * Berbeda dari `index()` yang `role:admin`, endpoint ini terbuka untuk
+     * semua role yang sudah login -- karena yang membacanya bukan cuma admin
+     * yang menyetelnya, tapi juga TEKNISI yang memakai popup input meter.
+     *
+     * `GET /settings/sop` tidak bisa dipakai untuk itu: route-nya `role:admin`,
+     * jadi teknisi selalu kena 403. Akibatnya kalau flag ini hanya ada di
+     * sana, frontend popup meter tidak pernah tahu harusnya kamera dibuka
+     * atau tidak -- dan gejalanya bukan "403", melainkan kamera yang diam-diam
+     * tidak pernah terbuka.
+     */
+    public function getPemakaianAir()
+    {
+        $s = Setting::first();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'autoOpenMeterCamera' => (bool) ($s?->auto_open_meter_camera ?? false),
+            ],
+        ]);
+    }
+
+    /**
+     * POST /settings/sop/pemakaian-air
+     * Simpan pengaturan pencatatan meteran.
+     *
+     * Payload: { autoOpenMeterCamera: boolean }
+     *
+     * `autoOpenMeterCamera` menentukan apakah kamera scan langsung terbuka
+     * begitu popup "Input Pemakaian" muncul. Yang wajib diisi tetap hanya
+     * angka meter akhir -- foto dan scan OCR tetap opsional, dan tombol scan
+     * tetap bisa dipakai kapan saja.
+     */
+    public function updatePemakaianAir(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'autoOpenMeterCamera' => 'required|boolean',
+            ]);
+
+            $s = Setting::firstOrNew([]);
+            $s->key = $s->key ?: 'sop';
+            $s->auto_open_meter_camera = (bool) $data['autoOpenMeterCamera'];
+            $s->save();
+
+            return $this->success('Pengaturan pemakaian berhasil disimpan');
         } catch (\Throwable $e) {
             return $this->error($e);
         }

@@ -53,10 +53,32 @@ export const sopService = {
 
   /**
    * Sistem Tagihan
-   * Payload: { jatuhTempo, toleransiTunggakan }
+   * Payload: { batasTagihan, toleransiTunggakan }
    */
   async saveSistemTagihan(payload) {
     const response = await api.post('/settings/sop/sistem-tagihan', payload)
+    return response.data
+  },
+
+  /**
+   * Pengaturan pencatatan meteran (kamera otomatis atau tidak).
+   *
+   * Endpoint ini BUKAN `role:admin` seperti `getAll()` -- popup input meter
+   * membacanya, dan popup itu dipakai teknisi juga. Kalau hanya ada di
+   * `settings/sop`, teknisi selalu kena 403 dan camerasnya tidak pernah
+   * terbuka untuk mereka.
+   */
+  async getPemakaianAir() {
+    const response = await api.get('/settings/pemakaian-air')
+    return response.data
+  },
+
+  /**
+   * Simpan pengaturan pencatatan meteran.
+   * Payload: { autoOpenMeterCamera: boolean }
+   */
+  async savePemakaianAir(payload) {
+    const response = await api.post('/settings/sop/pemakaian-air', payload)
     return response.data
   },
 

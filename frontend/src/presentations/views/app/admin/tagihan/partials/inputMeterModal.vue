@@ -23,7 +23,7 @@
             <div>
               <h2 class="text-lg! font-black! text-slate-800! leading-none!">Input Pemakaian</h2>
               <p class="text-[10px]! uppercase! tracking-widest! text-slate-400! mt-0.5!">
-                Instalasi Air Bersih
+                Instalasi Layanan Umum
               </p>
             </div>
           </div>
@@ -147,7 +147,29 @@
                     playsinline
                     muted
                   ></video>
+
+                  <!--
+                    Placeholder saat kamera belum dibuka.
+
+                    Kotak hijau (reticle) disembunyikan kalau kamera mati:
+                    memunculkan garis_target di atas layar hitam yang kosong
+                    menyiratkan "kamera aktif tapi tidak dapat apa-apa", padahal
+                    yang sebenarnya adalah "kamera belum dinyalakan".
+                  -->
                   <div
+                    v-if="!isScanCameraOpen"
+                    class="absolute! inset-0! flex! items-center! justify-center! z-10! bg-slate-900!"
+                  >
+                    <div
+                      class="flex! items-center! gap-2! px-3! py-1.5! rounded-full! bg-white/10! text-slate-400! text-[9px]! font-black! uppercase! tracking-widest!"
+                    >
+                      <font-awesome-icon icon="camera" class="text-[9px]!" />
+                      <span>Kamera Belum Aktif</span>
+                    </div>
+                  </div>
+
+                  <div
+                    v-else
                     class="absolute! inset-0! flex! items-center! justify-center! pointer-events-none! z-10!"
                   >
                     <div
@@ -159,6 +181,25 @@
                       ></div>
                     </div>
                   </div>
+
+                  <!--
+                    Tombol tutup kamera scan.
+
+                    Same seperti kamera foto di sebelah kanan: tanpa tombol
+                    tutup, kamera yang sudah menyala terus berjalan sampai
+                    popup ditutup -- membiarkan kamera HP menyala saat
+                    teknisi sedang mengetik angka meteran.
+                  -->
+                  <button
+                    v-if="isScanCameraOpen"
+                    @click="stopScanCamera"
+                    type="button"
+                    class="absolute! top-2! right-2! w-6! h-6! bg-white/20! hover:bg-red-500! backdrop-blur-md! text-white! rounded-full! flex! items-center! justify-center! shadow-lg! transition-all! z-20!"
+                    title="Matikan Kamera Scan"
+                  >
+                    <font-awesome-icon icon="times" class="text-[9px]!" />
+                  </button>
+
                   <div class="absolute! bottom-0.5! inset-x-0! flex! justify-center! z-20!">
                     <span
                       class="px-2! py-0.5! rounded-full! bg-black/60! text-emerald-300! text-[8px]! font-black! uppercase! tracking-widest! flex! items-center! gap-1!"
@@ -186,11 +227,16 @@
                   tidak langsung dipakai: user harus MENGAKUI dulu lewat
                   dialog konfirmasi yang menampilkan angka hasil bacaan
                   (dengan bandingan ke meter awal).
+
+                  Kamera scan TIDAK dibuka otomatis lagi. Yang wajib diisi
+                  cuma angka meter akhir; scan dan foto sama-sama opsional.
+                  Jadi tombol ini yang membuka kamera -- dan kamera yang
+                  belum menyala akan dinyalakan dulu sebelum frame diambil.
                 -->
                 <button
                   type="button"
                   @click="handleScanClick"
-                  :disabled="isScanning || !isScanCameraOpen"
+                  :disabled="isScanning"
                   class="mt-2! w-full! flex! items-center! justify-center! gap-2! py-2! px-4! rounded-lg! bg-indigo-600! text-white! font-black! text-[10px]! uppercase! tracking-wider! shadow-md! hover:bg-indigo-700! transition-all! active:scale-95! disabled:opacity-50! disabled:cursor-not-allowed!"
                 >
                   <font-awesome-icon :icon="isScanning ? 'spinner' : 'camera'" :spin="isScanning" />
@@ -378,9 +424,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick, onMounted } from 'vue'
 import BaseButton from '@/presentations/components/ui/BaseButton.vue'
 import { MySwal } from '@/utils/swal'
+import { useSettingsStore } from '@/stores/settingsStore.js'
+import { bukaKameraPadaVideo, matikanKamera, jelaskanErrorKamera } from '@/utils/cameraStream.js'
 
 const props = defineProps({
   show: Boolean,
@@ -391,6 +439,16 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'save'])
+
+/*
+ * Pengaturan "kamera meteran terbuka otomatis".
+ *
+ * Store yang sama dipakai form pembayaran dan halaman tagihan bulanan, jadi
+ * ini bukan request tambahan per popup: nilainya sudah diambil sekali saat
+ * halaman dimuat. Endpoint-nya juga bukan `settings/sop` yang `role:admin` --
+ * popup ini dipakai teknisi juga, jadi technisi harus bisa membacanya.
+ */
+const settingsStore = useSettingsStore()
 
 const meterAkhir = ref(0)
 const fileInputRef = ref(null)
@@ -423,7 +481,7 @@ let videoStream = null
 
 watch(
   () => props.show,
-  (newVal) => {
+  async (newVal) => {
     if (newVal) {
       meterAkhir.value = props.customer.meterAwal
       photoPreview.value = null
@@ -436,7 +494,35 @@ watch(
       scanFacingMode.value = 'environment'
       stopScanCamera()
       document.body.style.overflow = 'hidden'
-      openScanCamera()
+
+      /*
+       * Kamera scan TIDAK dibuka otomatis.
+       *
+       * Dulu `openScanCamera()` dipanggil di sini, jadi setiap popup input
+       * meter langsung menyalakan kamera. Padahal yang wajib diisi cuma
+       * angka meter akhir -- foto dan scan OCR sama-sama opsional. Efeknya
+       * di lapangan: tiap pencatatan meter harus menunggu kamera siap,
+       * lalu menutup kamera yang tidak pernah dipakai.
+       *
+       * Sekarang kamera hanya menyala kalau admin menyalakannya lewat
+       * pengaturan "Kamera Otomatis" di halaman SOP. Tanpa pengaturan itu,
+       * popup ini langsung siap diisi.
+       *
+       * Setting-nya dibaca dari store, bukan dari props: yang perlu tahu
+       * perilaku ini sama untuk seluruh role -- teknisi maupun admin -- dan
+       * store sudah dipakai bersama di halaman lain.
+       *
+       * `await` di sini penting. Pengaturan diambil dari server saat popup
+       * ini di-mount, jadi ada jendela waktu di mana request-nya belum
+       * selesai. Kalau pemanggilannya tidak ditunggu, popup yang kebetulan
+       * dibuka duluan akan membaca nilai bawaan (`false`) -- dan kameranya
+       * tidak menyala padahal admin sudah menyalakannya.
+       */
+      await settingsStore.loadPemakaianAir()
+
+      if (settingsStore.autoOpenMeterCamera) {
+        openScanCamera()
+      }
     } else {
       document.body.style.overflow = ''
       stopLiveCamera()
@@ -445,57 +531,63 @@ watch(
   },
 )
 
+/**
+ * Nyalakan kamera foto dan pasang ke pratinjau.
+ *
+ * `facingMode` yang dipakai adalah `ideal` -- bukan nilai string persis.
+ * Alasannya ada di `utils/cameraStream.js`: `facingMode` sebagai string
+ * diperlakukan `{ exact: true }` oleh browser, jadi di laptop yang kameranya
+ * cuma webcam depan, permintaan "kamera belakang" gagal even though ada
+ * kamera yang bisa dipakai. Dengan `ideal`, browser bebas memakai webcam
+ * depan -- dan teknisi tetap bisa scan.
+ */
 const openLiveCamera = async () => {
   try {
     isCameraOpen.value = true
     await nextTick() // wait for video element to render
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode.value },
+    videoStream = await bukaKameraPadaVideo({
+      facingMode: facingMode.value,
+      video: videoRef.value,
     })
-    videoStream = stream
-    if (videoRef.value) {
-      videoRef.value.srcObject = stream
-    }
-  } catch {
+  } catch (error) {
     isCameraOpen.value = false
+    const pesan = jelaskanErrorKamera(error)
     MySwal.fire({
       icon: 'error',
-      title: 'Kamera Gagal',
-      text: 'Pastikan browser memiliki izin untuk mengakses kamera (Webcam/HP).',
+      title: pesan.title,
+      text: pesan.text,
       confirmButtonColor: '#f59e0b',
     })
   }
 }
 
 const toggleCamera = async () => {
-  if (videoStream) {
-    videoStream.getTracks().forEach((track) => track.stop())
-  }
+  // Stream lama harus berhenti dulu: di HP, kamera depan dan belakang itu
+  // SATU perangkat fisik, jadi kamera yang belum dilepas akan membuat
+  // permintaan berikutnya ditolak dengan `NotReadableError`.
+  matikanKamera(videoStream, videoRef.value)
+  videoStream = null
   facingMode.value = facingMode.value === 'environment' ? 'user' : 'environment'
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode.value },
+    videoStream = await bukaKameraPadaVideo({
+      facingMode: facingMode.value,
+      video: videoRef.value,
     })
-    videoStream = stream
-    if (videoRef.value) {
-      videoRef.value.srcObject = stream
-    }
-  } catch {
+  } catch (error) {
+    const pesan = jelaskanErrorKamera(error)
     MySwal.fire({
       icon: 'warning',
       title: 'Tukar Kamera Gagal',
-      text: 'Perangkat ini mungkin hanya memiliki satu kamera aktif.',
+      text: pesan.text,
       confirmButtonColor: '#f59e0b',
     })
   }
 }
 
 const stopLiveCamera = () => {
-  if (videoStream) {
-    videoStream.getTracks().forEach((track) => track.stop())
-    videoStream = null
-  }
+  matikanKamera(videoStream, videoRef.value)
+  videoStream = null
   isCameraOpen.value = false
 }
 
@@ -597,31 +689,27 @@ const openScanCamera = async () => {
   try {
     isScanCameraOpen.value = true
     await nextTick()
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: scanFacingMode.value },
+    scanStream = await bukaKameraPadaVideo({
+      facingMode: scanFacingMode.value,
+      video: scanVideoRef.value,
     })
-    scanStream = stream
-    if (scanVideoRef.value) {
-      scanVideoRef.value.srcObject = stream
-      // TIDAK ada auto-scan di sini. Kamera hanya menampilkan pratinjau;
-      // pembacaan OCR jalan saat user menekan tombol "Scan Meteran Sekarang".
-    }
-  } catch {
+    // TIDAK ada auto-scan di sini. Kamera hanya menampilkan pratinjau;
+    // pembacaan OCR jalan saat user menekan tombol "Scan Meteran Sekarang".
+  } catch (error) {
     isScanCameraOpen.value = false
+    const pesan = jelaskanErrorKamera(error)
     MySwal.fire({
       icon: 'error',
-      title: 'Kamera Gagal',
-      text: 'Pastikan browser memiliki izin akses kamera.',
+      title: pesan.title,
+      text: pesan.text,
       confirmButtonColor: '#f59e0b',
     })
   }
 }
 
 const stopScanCamera = () => {
-  if (scanStream) {
-    scanStream.getTracks().forEach((t) => t.stop())
-    scanStream = null
-  }
+  matikanKamera(scanStream, scanVideoRef.value)
+  scanStream = null
   isScanCameraOpen.value = false
 }
 
@@ -667,7 +755,13 @@ const captureAndScan = async () => {
 /**
  * Scan dipicu user (tombol), bukan otomatis.
  *
- * Alur: ambil frame → OCR → cek hasilnya → minta konfirmasi ke user.
+ * Alur: nyalakan kamera (kalau belum) → ambil frame → OCR → cek hasilnya →
+ * minta konfirmasi ke user.
+ *
+ * Kamera dinyalakan di sini, bukan saat popup dibuka, karena yang memicu
+ * scan adalah tombolnya -- bukan kemunculan popup. Kalau kameranya belum
+ * menyala, `captureAndScan()` akan mengembalikan `null` dan user akan melihat
+ * "Gagal Membaca Meter" padahal masalahnya cuma kamera yang belum dinyalakan.
  *
  * Konfirmasi wajib karena OCR sering salah baca (angka di belakang, kode
  * QR, label di meter). Tanpa konfirmasi, angka salah bisa langsung
@@ -675,6 +769,15 @@ const captureAndScan = async () => {
  */
 const handleScanClick = async () => {
   if (isScanning.value) return
+
+  if (!isScanCameraOpen.value) {
+    await openScanCamera()
+
+    // Kamera gagal dinyalakan (izin ditolak, perangkat tidak punya kamera).
+    // `openScanCamera` sudah memberi tahu user lewat dialog, jadi di sini
+    // cukup berhenti -- jangan lanjut ke OCR dengan kamera yang mati.
+    if (!isScanCameraOpen.value) return
+  }
 
   const detected = await captureAndScan()
 
@@ -691,7 +794,7 @@ const handleScanClick = async () => {
 
   const meterAwal = Number(props.customer.meterAwal) || 0
 
-  // Sanity check: meteran air tidak pernah mundur. Hasil OCR yang lebih
+  // Sanity check: meteran tidak pernah mundur. Hasil OCR yang lebih
   // kecil dari meter awal hampir pasti salah baca (mis. "87" terbaca "8").
   if (detected < meterAwal) {
     ocrStatus.value = 'fail'
@@ -701,7 +804,7 @@ const handleScanClick = async () => {
       html: `
         <div class="text-left! text-sm! leading-relaxed!">
           <p class="mb-2!">Angka yang terbaca <strong>${detected}</strong> lebih kecil dari
-            meter awal <strong>${meterAwal}</strong>. Meteran air tidak boleh mundur, jadi
+            meter awal <strong>${meterAwal}</strong>. Meteran tidak boleh mundur, jadi
             hasil ini kemungkinan salah baca.</p>
           <p class="text-slate-500!">Coba scan ulang dengan angka lebih jelas, atau ketik manual.</p>
         </div>
@@ -765,7 +868,7 @@ const loadTesseract = () => {
 /**
  * Bersihkan teks hasil OCR jadi angka.
  *
- * Memakai pola 7-segment: meter air biasanya menampilkan 1-6 digit
+ * Memakai pola 7-segment: meter biasanya menampilkan 1-6 digit
  * berurutan (mis. "00187"). Ambil digit TERAKHIR yang membentuk
  * rangkaian panjang, lalu buang digit yang obviously bukan meter (mis.
  * tahun pada stempel).
@@ -806,6 +909,25 @@ const scanMeterFromPhoto = async (dataUrl) => {
     isScanning.value = false
   }
 }
+
+onMounted(() => {
+  /*
+   * Ambil pengaturan kamera otomatis.
+   *
+   * Dipanggil di sini, bukan hanya di watcher `props.show`, karena popup-nya
+   * bisa dibuka berkali-kali dan pemanggilannya tidak perlu berulang --
+   * store sendiri yang menahan request kedua (sudah pernah di-load).
+   *
+   * Yang dipanggil `loadPemakaianAir()`, bukan `loadSettings()`: endpoint
+   * yang terakhir itu `role:admin`, sementara popup ini dipakai teknisi
+   * juga. Kalau popup bergantung pada `loadSettings()`, teknisi selalu
+   * kena 403 dan pengaturannya tidak pernah masuk.
+   *
+   * Kegagalan tidak menggagalkan apa pun: store sudah menyimpan nilai bawaan
+   * (`false` = kamera tidak dibuka otomatis), jadi popup tetap bisa dipakai.
+   */
+  settingsStore.loadPemakaianAir()
+})
 
 onUnmounted(() => {
   stopLiveCamera()

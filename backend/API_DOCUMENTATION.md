@@ -433,8 +433,51 @@ php artisan billing:generate-overdue-transactions --force
 | POST | `/api/settings/sop/lembaga` | SopController | Perbarui lembaga |
 | POST | `/api/settings/sop/pasang-baru` | SopController | Perbarui pasang baru |
 | POST | `/api/settings/sop/sistem-tagihan` | SopController | Perbarui sistem tagihan |
+| POST | `/api/settings/sop/pemakaian-air` | SopController | Perbarui pengaturan pemakaian |
 | POST | `/api/settings/sop/logo` | SopController | Perbarui logo |
 | POST | `/api/settings/sop/whatsapp` | SopController | Perbarui whatsapp |
+
+**Pengaturan pemakaian (`autoOpenMeterCamera`)**
+
+Aturan ini mengatur apakah kamera scan langsung terbuka begitu popup "Input
+Pemakaian" muncul. Yang WAJIB diisi di popup itu tetap hanya angka meter
+akhir -- foto meteran dan hasil scan OCR sama-sama opsional, dan tombol scan
+tetap bisa dipakai kapan saja. Setting ini hanya mengatur KAPAN kamera dibuka
+otomatis, bukan apakah fitur scan boleh dipakai.
+
+| Method | Endpoint | Role | Keterangan |
+|---|---|---|---|
+| GET | `/api/settings/pemakaian-air` | Semua role login | Baca pengaturan pemakaian |
+| POST | `/api/settings/sop/pemakaian-air` | Admin | Simpan pengaturan pemakaian |
+
+**Response GET `/api/settings/pemakaian-air`:**
+```json
+{
+    "success": true,
+    "data": {
+        "autoOpenMeterCamera": false
+    }
+}
+```
+
+**Request POST `/api/settings/sop/pemakaian-air`:**
+```json
+{
+    "autoOpenMeterCamera": true
+}
+```
+
+> `GET /api/settings/pemakaian-air` sengaja TERPISA dari `GET /api/settings/sop`.
+> Endpoint `settings/sop` itu `role:admin`, sementara popup input meter dibaca
+> TEKNISI juga. Kalau flag ini hanya hidup di sana, teknisi selalu kena 403 --
+> dan gejalanya bukan "403", melainkan kamera yang diam-diam tidak pernah
+> terbuka.
+>
+> Kolomnya nullable: `NULL` = belum pernah diisi (bawaan: kamera TIDAK dibuka
+> otomatis), `false` = admin sengaja mematikan. Keduanya sengaja tidak
+> digabung supaya "belum pernah disentuh" dan "sengaja dimatikan" masih bisa
+> dibedakan.
+
 
 ---
 

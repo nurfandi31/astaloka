@@ -1,21 +1,24 @@
 import { ref, computed, onMounted } from 'vue'
 import { showSuccessToast, showErrorToast } from '@/utils/swal'
-import { storageUrl } from '@/utils/storage'
+import { storageLogoUrl } from '@/utils/storage'
 import sopService from '@/services/sop.service'
-import { refreshKontak } from '@/composables/useKontakLembaga'
+import { refreshIdentitas } from '@/composables/useIdentitasLembaga'
 import { useUiStore } from '@/stores/uiStore'
+import { useSettingsStore } from '@/stores/settingsStore.js'
 
 export function useSop() {
   const activeSection = ref('wellcome')
   const isSaving = ref(false)
   const isLoading = ref(false)
   const uiStore = useUiStore()
+  const settingsStore = useSettingsStore()
 
   const menuList = [
     { key: 'wellcome', label: 'Selamat Datang', icon: 'home' },
     { key: 'lembaga', label: 'Profil Lembaga', icon: 'building' },
     { key: 'pasangBaru', label: 'Pasang Baru', icon: 'user-plus' },
     { key: 'sistemTagihan', label: 'Sistem Tagihan', icon: 'file-invoice-dollar' },
+    { key: 'pemakaianAir', label: 'Pemakaian', icon: 'tachometer-alt' },
     { key: 'calk', label: 'Pengaturan CALK', icon: 'book-open' },
     { key: 'logo', label: 'Logo & Branding', icon: 'image' },
     { key: 'whatsapp', label: 'Whatsapp API', icon: ['fab', 'whatsapp'] },
@@ -42,22 +45,42 @@ export function useSop() {
   })
 
   /*
-   * `batasTagihanTunggak` sengaja `null`, bukan angka.
+   * Pengaturan pencatatan meteran.
    *
-   * Kolom ini dulu dipaksa berbagi angka dengan `toleransiTunggakan`, padahal
-   * satuannya berbeda total: `toleransiTunggakan` dibaca sebagai TANGGAL
-   * dalam bulan (untuk generate piutang) dan sebagai JUMLAH HARI (untuk
-   * ambang piutang), sedangkan yang ini adalah JUMLAH TAGIHAN sebelum
-   * sambungan pelanggan diputus.
+   * `autoOpenMeterCamera` menentukan apakah kamera scan langsung terbuka
+   * begitu popup "Input Pemakaian" muncul.
    *
-   * `null` berarti "pakai nilai `toleransiTunggakan` seperti sebelumnya",
-   * sehingga semua lokasi yang sudah ada perilakunya tidak berubah sampai
-   * admin mengisi field ini secara sadar.
+   * Bawaannya `false` (tidak dibuka otomatis), dan itu bukan sekadar
+   * "-- yang wajib diisi cuma meter akhir". Popup ini dipakai teknisi yang
+   * sering sudah mencatat angka meteran secara manual; memaksa kamera
+   * menyala tiap popup hanya menambah waktu, bukan data.
+   *
+   * Bedanya dengan setting lain di halaman ini: `false` di sini berarti
+   * "kamera TIDAK dibuka otomatis", bukan "fiturnya dimatikan". Tombol scan
+   * tetap bisa dipakai kapan saja.
+   */
+  const pemakaianAirForm = ref({
+    autoOpenMeterCamera: false,
+  })
+
+  /*
+   * Pengaturan tagihan.
+   *
+   * Hanya DUA angka di sini, dan keduanya sudah punya tempat yang jelas:
+   *
+   *   - `batasTagihan`        : tanggal jatuh tempo tagihan bulanan.
+   *   - `toleransiTunggakan`  : tanggal (1-28) generate piutang tiap bulan.
+   *
+   * Dulu ada angka ketiga di sini -- "Batas Tagihan Menunggak" -- yang
+   * sebenarnya ambang auto-suspend (berapa tagihan unpaid sebelum sambungan
+   * pelanggan diputus). Satuannya beda total: ini JUMLAH TAGIHAN, bukan
+   * tanggal. Berdampingan dengan "Toleransi Menunggak" di kartu yang sama,
+   * keduanya terlihat saling menimpa padahal tidak pernah bergerak
+   * bersama, jadi angka ketiga itu dihapus dari halaman ini.
    */
   const sistemTagihanForm = ref({
     batasTagihan: 10,
     toleransiTunggakan: 0,
-    batasTagihanTunggak: null,
   })
 
   // ---- CALK ----
@@ -96,9 +119,39 @@ export function useSop() {
 
       if (data.lembaga) lembagaForm.value = { ...lembagaForm.value, ...data.lembaga }
       if (data.pasangBaru) pasangBaruForm.value = { ...pasangBaruForm.value, ...data.pasangBaru }
-      if (data.sistemTagihan)
-        sistemTagihanForm.value = { ...sistemTagihanForm.value, ...data.sistemTagihan }
+
+      /*
+       * Pengaturan tagihan.
+       *
+       * Dipetakan eksplisit ke angka, bukan di-spread apa adanya: backend
+       * mengirim nilai yang sudah di-cast jadi integer, tapi `null` bisa
+       * muncul kalau baris `settings` belum ada sama sekali, dan `null` di
+       * dalam `<input type="number">` tampil sebagai string kosong yang
+       * tidak bisa di-submit sebagai angka.
+       */
+      if (data.sistemTagihan) {
+        sistemTagihanForm.value = {
+          batasTagihan: Number(data.sistemTagihan.batasTagihan ?? 10),
+          toleransiTunggakan: Number(data.sistemTagihan.toleransiTunggakan ?? 0),
+        }
+      }
+
       if (data.whatsapp) whatsappForm.value = { ...whatsappForm.value, ...data.whatsapp }
+
+      /*
+       * Pengaturan pemakaian.
+       *
+       * Backend mengirim `null` kalau kolomnya belum pernah diisi (lihat
+       * `SopController::index()`). `null` dipetakan ke `false` di sini --
+       * artinya "tidak dibuka otomatis" -- karena itu satu-satunya bawaan
+       * yang aman: membiarkan `null` lolos ke checkbox akan membuat form
+       * tampil dalam keadaan yang tidak pernah disetujui admin.
+       */
+      if (data.pemakaianAir) {
+        pemakaianAirForm.value = {
+          autoOpenMeterCamera: Boolean(data.pemakaianAir.autoOpenMeterCamera),
+        }
+      }
 
       // CALK config (persentase bagian + laba ditahan + point_a)
       if (data.calk) {
@@ -123,20 +176,6 @@ export function useSop() {
         }
       }
 
-      if (data.sistemTagihan) {
-        sistemTagihanForm.value = {
-          batasTagihan: Number(data.sistemTagihan.batasTagihan ?? 10),
-          toleransiTunggakan: Number(data.sistemTagihan.toleransiTunggakan ?? 0),
-          // `null` berarti belum diisi: backend memakai `toleransiTunggakan`
-          // sebagai gantinya, sama seperti sebelum kolom ini ada.
-          batasTagihanTunggak:
-            data.sistemTagihan.batasTagihanTunggak === null ||
-            data.sistemTagihan.batasTagihanTunggak === undefined
-              ? null
-              : Number(data.sistemTagihan.batasTagihanTunggak),
-        }
-      }
-
       if (data.whatsapp) {
         whatsappForm.value = {
           templateTagihan: data.whatsapp.templateTagihan ?? '',
@@ -146,7 +185,7 @@ export function useSop() {
 
       if (data.logo) {
         const fileName = data.logo.logo || ''
-        logoForm.value.preview = fileName ? storageUrl(`storage/sop/logo/${fileName}`) : ''
+        logoForm.value.preview = fileName ? storageLogoUrl(fileName) : ''
         logoForm.value.previewName = fileName
       }
     } catch (error) {
@@ -161,10 +200,16 @@ export function useSop() {
       isSaving.value = true
       await sopService.saveLembaga({ ...lembagaForm.value })
       uiStore.bumpSettings()
-      // Nomor telepon yang baru disimpan di sini yang dipakai halaman
-      // pelanggan (Lapor Gangguan, dst). Segarkan cache-nya supaya perubahan
-      // langsung berlaku tanpa hard refresh.
-      refreshKontak()
+      /*
+       * Segarkan cache identitas.
+       *
+       * Satu refresh cukup untuk dua hal: nomor telepon yang dipakai
+       * halaman pelanggan (Lapor Gangguan, dst) dan data kop surat/cetak.
+       * Keduanya membaca cache yang sama -- memanggil `refreshKontak()`
+       * dan `refreshIdentitas()` dua-duanya hanya menembak endpoint yang
+       * sama dua kali.
+       */
+      refreshIdentitas()
       showSuccessToast('Profil Lembaga berhasil disimpan')
     } catch (error) {
       showErrorToast(error)
@@ -188,25 +233,33 @@ export function useSop() {
   const saveSistemTagihan = async () => {
     try {
       isSaving.value = true
-      /*
-       * Input yang kosong harus dikirim sebagai `null`, bukan `''` atau `NaN`.
-       *
-       * Backend memakai `nullable|integer` untuk field ini, dan nilai kosong
-       * berarti "pakai `toleransiTunggakan` seperti sebelumnya". `Number('')`
-       * menghasilkan `0`, yang berarti "tidak pernah memutus sambungan" --
-       * dua arti yang sama sekali berbeda, jadi mengosongkan form diam-diam
-       * mengubah perilaku sistem.
-       */
       await sopService.saveSistemTagihan({
-        ...sistemTagihanForm.value,
-        batasTagihanTunggak:
-          sistemTagihanForm.value.batasTagihanTunggak === null ||
-          sistemTagihanForm.value.batasTagihanTunggak === '' ||
-          Number.isNaN(Number(sistemTagihanForm.value.batasTagihanTunggak))
-            ? null
-            : Number(sistemTagihanForm.value.batasTagihanTunggak),
+        batasTagihan: Number(sistemTagihanForm.value.batasTagihan),
+        toleransiTunggakan: Number(sistemTagihanForm.value.toleransiTunggakan),
       })
       showSuccessToast('Sistem Tagihan berhasil disimpan')
+    } catch (error) {
+      showErrorToast(error)
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  /**
+   * Simpan pengaturan pencatatan meteran.
+   *
+   * Setelah disimpan, store `settings` ikut diperbarui supaya popup input
+   * meter yang SEDANG terbuka ikut memakai nilai terbaru -- tanpa perlu
+   * memuat ulang halaman.
+   */
+  const savePemakaianAir = async () => {
+    try {
+      isSaving.value = true
+      await sopService.savePemakaianAir({
+        autoOpenMeterCamera: Boolean(pemakaianAirForm.value.autoOpenMeterCamera),
+      })
+      settingsStore.setAutoOpenMeterCamera(pemakaianAirForm.value.autoOpenMeterCamera)
+      showSuccessToast('Pengaturan Pemakaian berhasil disimpan')
     } catch (error) {
       showErrorToast(error)
     } finally {
@@ -247,10 +300,12 @@ export function useSop() {
       const res = await sopService.saveLogo(logoForm.value.file)
       const data = res?.data?.data ?? res?.data ?? res
       if (data?.logo) {
-        logoForm.value.preview = storageUrl(`storage/sop/logo/${data.logo}`)
+        logoForm.value.preview = storageLogoUrl(data.logo)
         logoForm.value.previewName = data.logo
       }
       logoForm.value.file = null
+      // Logo baru harus langsung dipakai di kop surat yang sedang tampil.
+      refreshIdentitas()
       showSuccessToast('Logo berhasil disimpan')
     } catch (error) {
       showErrorToast(error)
@@ -279,6 +334,8 @@ export function useSop() {
         return savePasangBaru()
       case 'sistemTagihan':
         return saveSistemTagihan()
+      case 'pemakaianAir':
+        return savePemakaianAir()
       case 'calk':
         return saveCalk()
       case 'logo':
@@ -303,6 +360,7 @@ export function useSop() {
     lembagaForm,
     pasangBaruForm,
     sistemTagihanForm,
+    pemakaianAirForm,
     calkForm,
     logoForm,
     whatsappForm,
@@ -312,6 +370,7 @@ export function useSop() {
     saveLembaga,
     savePasangBaru,
     saveSistemTagihan,
+    savePemakaianAir,
     saveCalk,
     saveLogo,
     saveWhatsapp,

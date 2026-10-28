@@ -200,6 +200,67 @@ photo         : [file gambar]  (OPSIONAL — bukti pendukung, boleh tidak dikiri
 > pencatatan tetap berhasil tanpa foto (`meter_readings.photo_url` = null).
 > Field `meter_value`, `reading_month`, dan `reading_year` tetap wajib.
 
+### Kamera otomatis saat input meter
+
+Popup "Input Pemakaian" punya kamera scan. Kamera itu **tidak** menyala
+otomatis — yang wajib diisi tetap hanya angka meter akhir. Kamera hanya
+dibuka kalau teknisi menekan tombol scan (atau tombol kamera foto), atau
+kalau admin menyalakannya lewat pengaturan di bawah.
+
+| Method | Endpoint | Role | Keterangan |
+|---|---|---|---|
+| GET | `/settings/pemakaian-air` | Admin, Teknisi, Surveyor | Baca pengaturan kamera otomatis |
+| POST | `/settings/sop/pemakaian-air` | Admin | Simpan pengaturan kamera otomatis |
+
+**Response GET `/settings/pemakaian-air`:**
+```json
+{
+    "success": true,
+    "data": {
+        "autoOpenMeterCamera": false
+    }
+}
+```
+
+**Request POST `/settings/sop/pemakaian-air`:**
+```json
+{
+    "autoOpenMeterCamera": true
+}
+```
+
+> `GET /settings/pemakaian-air` sengaja terpisah dari `GET /settings/sop`
+> yang `role:admin` — popup input meter dipakai teknisi juga, dan kalau
+> hanya ada di `settings/sop` maka teknisi selalu kena 403 tanpa melihat
+> gejalanya.
+>
+> `autoOpenMeterCamera` nullable di database: `null` = belum pernah diisi
+> (bawaan: kamera tidak dibuka otomatis), `false` = sengaja dimatikan.
+
+### Kamera gagal — penyebab dan cara memperbaikinya
+
+Popup input meter dan modal kamera memakai helper yang sama
+(`frontend/src/utils/cameraStream.js`). Dulunya semua kegagalan kamera
+menghasilkan pesan yang SAMA, padahal penyebabnya berbeda-beda dan cara
+memperbaikinya juga berbeda. Sekarang pesannya menyebut penyebabnya.
+
+| Gejala di layar | Penyebab | Cara memperbaiki |
+|---|---|---|
+| "Kamera Perlu HTTPS" | Halaman dibuka lewat HTTP di LAN (mis. `http://192.168.1.10:5173`) | Buka lewat HTTPS, atau lewat `localhost` di komputer sendiri |
+| "Izin Kamera Ditolak" | Izin belum diberikan / sudah diblokir browser | Pengaturan situs di browser → Izin → Kamera → Allow, lalu muat ulang |
+| "Kamera Tidak Ditemukan" | Tidak ada kamera di perangkat | Ketik angka meteran manual, atau pilih foto dari galeri (tombol File) |
+| "Kamera Sedang Dipakai" | Kamera dipakai aplikasi lain (video call) | Tutup aplikasi itu, lalu coba lagi |
+| "Kamera Tidak Kompatibel" | Mode kamera yang diminta tidak didukung | Coba kamera lainnya, atau ketik manual |
+
+> `getUserMedia` hanya tersedia di **secure context**: HTTPS atau
+> `localhost`. Di LAN HTTP objek `navigator.mediaDevices` memang tidak ada
+> sama sekali — jadi ini bukan soal izin browser, dan izinnya sudah benar.
+>
+> Permintaan kamera memakai `facingMode` sebagai `ideal`, bukan string
+> persis. String diperlakukan `{ exact: true }` oleh browser, sehingga di
+> laptop yang kameranya hanya webcam depan, permintaan "kamera belakang"
+> ditolak padahal kamera yang tersedia bisa dipakai.
+
 ---
 
 ## Tagihan
@@ -211,7 +272,7 @@ photo         : [file gambar]  (OPSIONAL — bukti pendukung, boleh tidak dikiri
 | GET | `/bills/{id}` | Admin | Detail tagihan |
 | GET | `/monthly-bills` | Admin, Teknisi | Daftar tagihan (teknisi: hanya pelanggan di wilayahnya) |
 | GET | `/monthly-bills/{id}` | Admin, Teknisi | Detail tagihan (teknisi: hanya pelanggan di wilayahnya) |
-| GET | `/monthly-bills/usage` | Admin, Teknisi | Rekap pemakaian air |
+| GET | `/monthly-bills/usage` | Admin, Teknisi | Rekap pemakaian |
 | PUT | `/monthly-bills/usage` | Admin, Teknisi | Ubah meter akhir + hitung ulang tagihan |
 | POST | `/monthly-bills/generate` | Admin | Generate tagihan bulanan (otomatis bulan ini) |
 | POST | `/monthly-bills/{id}/pay` | Admin | Konfirmasi pembayaran tagihan |

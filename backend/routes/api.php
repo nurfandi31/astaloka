@@ -144,6 +144,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/lembaga-identity', [SopController::class, 'publicIdentity']);
 
     /*
+     * Pengaturan pencatatan meteran -- dibaca popup input meter.
+     *
+     * Terpisah dari `GET /settings/sop` yang `role:admin`, karena yang
+     * membacanya bukan cuma admin: teknisi juga membutuhkannya, dan popup
+     * meter dipakai keduanya. Kalau hanya ada di `settings/sop`, teknisi
+     * selalu kena 403 dan kamera tidak pernah terbuka untuk mereka --
+     * gejalanya bukan "403", melainkan opsi yang diam-diam hilang.
+     */
+    Route::get('settings/pemakaian-air', [SopController::class, 'getPemakaianAir']);
+
+    /*
      * Ringkasan tagihan belum bayar untuk badge icon lonceng di navbar.
      *
      * Sengaja TIDAK memakai `role:` di sini. Endpoint ini dipakai bersama
@@ -291,6 +302,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::post('/lembaga', [SopController::class, 'updateLembaga']);
         Route::post('/pasang-baru', [SopController::class, 'updatePasangBaru']);
         Route::post('/sistem-tagihan', [SopController::class, 'updateSistemTagihan']);
+        Route::post('/pemakaian-air', [SopController::class, 'updatePemakaianAir']);
         Route::post('/logo', [SopController::class, 'updateLogo']);
         Route::post('/whatsapp', [SopController::class, 'updateWhatsapp']);
 
