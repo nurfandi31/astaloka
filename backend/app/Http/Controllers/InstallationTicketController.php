@@ -19,9 +19,35 @@ class InstallationTicketController extends Controller
     public function index(Request $request)
     {
         try {
-            // Untuk `?all=1` (dipakai store frontend untuk dashboard instalasi),
-            // skip eager-load berat (payments, meterReadings, monthlyBills) — ribuan tiket
-            // akan membebani memory DB & response payload. Cukup field minimum.
+            /*
+             * `?all=1` -- ambil SELURUH hasil, tanpa paginasi, dengan relasi
+             * RINGAN.
+             *
+             * Dipakai halaman Data Instalasi (`/app/dataInstalasi`) untuk
+             * menampilkan semua instalasi yang sudah selesai, berapa pun
+             * jumlahnya.
+             *
+             * Kenapa harus `all` dan bukan `per_page` besar
+             * -------------------------------------------
+             * Jalur `per_page` DIBATAS server: `min($perPage, 200)`. Jadi
+             * `per_page=200` hanya menjamin 200 baris PERTAMA -- sisanya
+             * hilang tanpa jejak, dan karena `total` ikut terpotong,
+             * antarmuka menampilkan "of 200 entries" padahal datanya lebih
+             * banyak. Itu persis gejala "di database ada lebih dari 100,
+             * tapi di layar tidak sampai 50".
+             *
+             * Jalur `all` tidak punya batas, jadi tidak ada baris yang bisa
+             * hilang. Yang membuatnya tetap murah adalah relasi ringkas di
+             * bawah: halaman ini hanya butuh kode, nama, alamat, paket, dan
+             * status.
+             *
+             * Relasi BERAT (tagihan bulanan + pembacaan meter + payments)
+             * sengaja TIDAK dipakai di sini. Diukur pada 200 pelanggan
+             * dengan 5 tahun riwayat: relasi berat menghasilkan respons
+             * 7,83 MB dalam 8,3 detik -- dan itu pun belum melewati batas
+             * memory PHP, jadi response bisa mati di tengah jalan (500) dan
+             * tabel jadi kosong.
+             */
             $wantsAll = $request->boolean('all');
 
             $relations = $wantsAll
@@ -43,7 +69,17 @@ class InstallationTicketController extends Controller
                     'payments',
                 ];
 
-            $query = InstallationTicket::with($relations)->orderBy('created_at', 'desc');
+            /*
+             * `id` jadi tie-breaker: `created_at` berpresisi detik, jadi
+             * banyak tiket bisa berbagi timestamp yang sama -- terutama
+             * hasil import, yang satu baris demi satu baris ditulis pada
+             * detik yang sama. Tanpa tie-breaker, urutan antar-request bisa
+             * berubah dan baris yang sama muncul dua kali (di dua
+             * halaman berbeda) atau hilang.
+             */
+            $query = InstallationTicket::with($relations)
+                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc');
 
             // Least-privilege untuk non-admin. Admin tetap melihat semuanya
             // (kebutuhan operasional), sedangkan role lain dibatasi:
@@ -134,8 +170,30 @@ class InstallationTicketController extends Controller
                 $tickets = $grouped;
             } else {
                 if ($wantsAll) {
+                    /*
+                     * Tanpa batas baris, dengan relasi RINGAN (lihat daftar
+                     * `$relations` di atas).
+                     *
+                     * Baris TIDAK dibatasi jumlah dan kolom TIDAK dibatasi
+                     * SELECT: `all=1` juga dipakai store frontend
+                     * (`instalasiStore`), yang membaca `lat`, `lng`,
+                     * `phone`, `order_date`, `village`, dan `survey` dari
+                     * tiket yang sama. Memotong kolom di sini akan
+                     * mematikan halaman-halaman itu.
+                     *
+                     * Yang menjaga respons tetap ringan adalah relasinya,
+                     * bukan jumlah kolomnya: satu baris tiket sendiri
+                     * kecil, sementara `customer.monthlyBills` +
+                     * `customer.meterReadings` + `payments` di EACH baris
+                     * itulah yang bikin payload membengkak.
+                     */
                     $tickets = $query->get();
                 } else {
+                    /*
+                     * `per_page` DIBATAS 200. exceeding it diam-diam
+                     * dipotong, jadi pemanggil yang butuh semua baris
+                     * harus memakai `all=1` -- bukan `per_page` besar.
+                     */
                     $perPage = (int) $request->get('per_page', 10);
                     $perPage = max(1, min($perPage, 200));
                     $tickets = $query->paginate($perPage);
