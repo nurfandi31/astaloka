@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Console\Commands\MigrateCentral;
+use App\Listeners\BridgeConsoleCommandEvents;
 use App\Listeners\GuardCentralDatabaseWrites;
 use App\Listeners\GuardDestructiveCommands;
+use App\Listeners\GuardProtectedDatabaseDestructiveSql;
 use App\Models\BillPayment;
 use App\Models\Customer;
 use App\Models\MonthlyBill;
@@ -15,8 +17,10 @@ use App\Observers\PaymentObserver;
 use App\Observers\TransactionObserver;
 use App\Services\TenantManager;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\ArtisanStarting;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -61,6 +65,8 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiters();
         $this->registerDestructiveCommandGuard();
         $this->registerCentralDatabaseWriteGuard();
+        $this->registerProtectedDatabaseSqlGuard();
+        $this->registerConsoleEventBridge();
         Relation::enforceMorphMap([
             'payment' => Payment::class,
             'monthly_bill' => MonthlyBill::class,
@@ -121,7 +127,7 @@ class AppServiceProvider extends ServiceProvider
      * {@see GuardCentralDatabaseWrites}, yang menolak perintah yang menulis
      * ke salah satu database dengan folder milik yang lain.
      *
-     * @see \App\Console\Commands\MigrateCentral
+     * @see MigrateCentral
      */
 
     /**
@@ -132,19 +138,39 @@ class AppServiceProvider extends ServiceProvider
      * untuk HTTP request, sehingga `migrate:fresh` yang dijalankan di terminal
      * akan lolos tanpa ada yang menghentikannya.
      *
-     * Syarat `runningInConsole()` saja TIDAK cukup. Saat PHPUnit berjalan,
-     * aplikasi di-boots ulang di dalam proses dan `runningInConsole()`
-     * bisa bernilai false -- sehingga guard diam-diam tidak aktif, dan
-     * `php artisan test` bisa menjatuhkan database yang tidak seharusnya.
-     * Karena itu `runningUnitTests()` ikut diperiksa.
+     *PENDAFTARANNYA TIDAK BERGANTUNG KONDISI APAPUN, dan itu justru inti
+     * perbaikannya.
+     *
+     * Sebelumnya guard ini hanya terdaftar saat `runningInConsole()` atau
+     * `runningUnitTests()` bernilai true. Dua-duanya terlihat logis, tapi
+     * keduanya TIDAK menjamin event-nya benar-benar terkirim.
+     *
+     * `CommandStarting` hanya dikirim oleh
+     * `Illuminate\Foundation\Console\Kernel::rerouteSymfonyCommandEvents()`,
+     * dan method itu SENGAJA dilewati saat `runningUnitTests()` true --
+     * framework menganggap event console tidak relevan di dalam test.
+     *
+     * Akibatnya, di DALAM `php artisan test`, kedua penjaga ini terdaftar tapi
+     * TIDAK PERNAH DIPANGGIL. Bukan "kurang ketat" -- benar-benar mati.
+     *
+     * Dan itu bukan cacat teoretis: `RefreshDatabase` menjalankan
+     * `migrate:fresh`, yang memanggil `db:wipe` secara internal, yang
+     * memanggil `dropAllTables()` -- menjatuhkan SELURUH tabel database
+     * pusat dalam satu statement. Tidak ada penjaga yang menyadarinya,
+     * dan tidak ada pesan error apa pun.
+     *
+     * Verifikasi: `php artisan test` yang memanggil `Artisan::call()` dan
+     * `$this->artisan()` TIDAK PERNAH menerima satu pun `CommandStarting`.
+     *
+     * Karena itu penjaga ketiga yang benar-benar tidak bergantung pada
+     * perintah -- {@see GuardProtectedDatabaseDestructiveSql} -- dipasang
+     * sebagai jaring pengaman terakhir. See juga {@see registerConsoleEventBridge()}.
      *
      * @see GuardDestructiveCommands
      */
     private function registerDestructiveCommandGuard(): void
     {
-        if ($this->app->runningInConsole() || $this->app->runningUnitTests()) {
-            Event::listen(CommandStarting::class, GuardDestructiveCommands::class);
-        }
+        Event::listen(CommandStarting::class, GuardDestructiveCommands::class);
     }
 
     /**
@@ -160,9 +186,42 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerCentralDatabaseWriteGuard(): void
     {
-        if ($this->app->runningInConsole() || $this->app->runningUnitTests()) {
-            Event::listen(CommandStarting::class, GuardCentralDatabaseWrites::class);
-        }
+        Event::listen(CommandStarting::class, GuardCentralDatabaseWrites::class);
+    }
+
+    /**
+     * Pasang penjaga SQL tingkat-tinggi -- jaring pengaman terakhir.
+     *
+     * Berbeda dengan dua penjaga di atas, penjaga ini tidak简章 perintah
+     * apa pun. Ia memasang kait pada setiap koneksi MySQL, sehingga setiap
+     * statement `drop` yang akan dijalankan diperiksa terhadap nama database
+     * yang BENAR-BENAR dibuka koneksi itu.
+     *
+     * Karena tidak bergantung pada event console, ia tetap aktif di dalam
+     * `php artisan test` -- di situlah dua penjaga lain mati.
+     *
+     * @see GuardProtectedDatabaseDestructiveSql
+     */
+    private function registerProtectedDatabaseSqlGuard(): void
+    {
+        Event::listen(ConnectionEstablished::class, GuardProtectedDatabaseDestructiveSql::class);
+    }
+
+    /**
+     * Pasang jembatan event console.
+     *
+     * Tanpa ini, `CommandStarting` TIDAK PERNAH terkirim di dalam test --
+     * dan dua penjaga command yang terdaftar tapi tidak pernah dipanggil
+     * sama saja dengan tidak ada penjaga.
+     *
+     * Di luar test, dispatcher milik Kernel menimpa dispatcher yang dipasang
+     * jembatan ini, jadi event tidak terkirim dua kali.
+     *
+     * @see BridgeConsoleCommandEvents
+     */
+    private function registerConsoleEventBridge(): void
+    {
+        Event::listen(ArtisanStarting::class, BridgeConsoleCommandEvents::class);
     }
 
     /**
