@@ -150,7 +150,7 @@ import { useUiStore } from '@/stores/uiStore'
 import { useMenuAccessStore } from '@/stores/menuAccessStore'
 import BaseButton from '@/presentations/components/ui/BaseButton.vue'
 import AbtAstaBrataModal from '@/presentations/components/ui/AbtAstaBrataModal.vue'
-import sopService from '@/services/sop.service'
+import { useIdentitasLembaga, ensureIdentitas } from '@/composables/useIdentitasLembaga'
 import { getDashboardRoute } from '@/router/dashboardRoutes'
 
 /**
@@ -258,6 +258,8 @@ const roleSubtitle = computed(() => {
   }
 })
 
+const { namaUsaha } = useIdentitasLembaga()
+
 const loadLembagaName = async () => {
   try {
     // PENTING: pakai endpoint identitas publik, bukan getAll().
@@ -265,10 +267,18 @@ const loadLembagaName = async () => {
     // SidebarView ini dirender untuk semua role — memakai getAll() membuat
     // teknisi/surveyor/pelanggan kena 403 di setiap halaman, dan karena
     // error-nya ditelan `catch`, judulnya diam-diam jatuh ke teks hardcoded.
-    const res = await sopService.getPublicIdentity()
-    const data = res?.data ?? res
-    const name = data?.nama?.trim()
-    uiStore.setLembagaName(name || '')
+    //
+    // Data diambil dari `useIdentitasLembaga`, bukan request sendiri:
+    // endpoint yang dipakai sama persis dengan yang dipakai kop surat, dan
+    // `useIdentitasLembaga` menyimpan satu cache modul. Kalau sidebar
+    // request sendiri, satu sesi yang membuka halaman ber-sidebar dan
+    // halaman cetak akan menembak endpoint yang sama dua kali.
+    //
+    // `ensureIdentitas()` (bukan membaca `namaUsaha` langsung) karena
+    // nilainya baru ada setelah request selesai — kalau langsung dibaca,
+    // judulnya selalu kosong saat komponen baru mount.
+    await ensureIdentitas()
+    uiStore.setLembagaName(namaUsaha.value.trim())
   } catch {
     // silent: fallback ke judul role
   }
