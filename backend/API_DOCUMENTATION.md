@@ -188,7 +188,7 @@
 | PUT | `/api/transactions/{id}` | TransactionController | Perbarui transaksi |
 | DELETE | `/api/transactions/{id}` | TransactionController | Hapus transaksi |
 | POST | `/api/generate-amount` | GenerateAmountController | Generate jumlah akun |
-| POST | `/api/tunggakan/generate` | TunggakanController | Trigger manual generate jurnal piutang untuk tagihan menunggak |
+| POST | `/api/piutang/generate` | PiutangController | Trigger manual generate jurnal piutang untuk tagihan menunggak |
 
 #### Amount
 | Method | Endpoint | Controller | Response |
@@ -358,11 +358,11 @@ Response:
 }
 ```
 
-#### Generate Tunggakan (Manual Trigger)
+#### Generate Piutang (Manual Trigger)
 
 | Method | Endpoint | Auth | Controller | Respons |
 |--------|----------|------|------------|---------|
-| POST | `/api/tunggakan/generate` | admin | TunggakanController | `{ success, tanggal, force, duration_ms, output }` |
+| POST | `/api/piutang/generate` | admin | PiutangController | `{ success, tanggal, force, duration_ms, output }` |
 
 **Body (semua field opsional):**
 ```json
@@ -582,7 +582,7 @@ otomatis, bukan apakah fitur scan boleh dipakai.
 - [x] `bill_payments` - model BillPayment (digunakan oleh MonthlyBillController)
 - [x] `settings` - SettingController + model Setting
 - [x] `transactions` - TransactionController + model Transaction
-- [x] `monthly_bills` (generate tunggakan) - TunggakanController (manual trigger endpoint) + GenerateOverdueTransactions (Artisan command + scheduler harian)
+- [x] `monthly_bills` (generate piutang) - PiutangController (manual trigger endpoint) + GenerateOverdueTransactions (Artisan command + scheduler harian)
 - [x] `jenis_transactions` - JenisTransactionController + model JenisTransaction
 - [x] `jenis_laporans` - model JenisLaporan (digunakan oleh PelaporanController)
 - [x] `sub_laporans` - model SubLaporan (digunakan oleh PelaporanController)
@@ -606,17 +606,17 @@ otomatis, bukan apakah fitur scan boleh dipakai.
 | **Tabel tanpa model** | **1** (`amount` — diakses via DB::table) |
 | **Tabel tanpa controller/rute** | **5** (`accounts` read-only via `AccountController`, `akun_level_1/2/3`, `master_arus_kas`) |
 | **Masalah kritis** | **1** (view `resources/views/pelaporan/pdf_template.blade.php` hilang — `preview()` masih stub) |
-| Generate tunggakan | Scheduler harian `00:01` + endpoint manual `POST /api/tunggakan/generate` (admin). Command `billing:generate-overdue-transactions` support `--tanggal` dan `--force`. |
+| Generate piutang | Scheduler harian `00:01` + endpoint manual `POST /api/piutang/generate` (admin). Command `billing:generate-overdue-transactions` support `--tanggal` dan `--force`. |
 
 ---
 
 ## 3. Changelog
 
-### v1.2 (2026-07-25) — Generate Tunggakan API
+### v1.2 (2026-07-25) — Generate Piutang API
 
 **Baru:**
-- `POST /api/tunggakan/generate` — Trigger manual generate jurnal piutang untuk tagihan menunggak (admin only). Delegasi ke `Artisan::call('billing:generate-overdue-transactions')`.
-- Controller baru: `app/Http/Controllers/TunggakanController.php`
+- `POST /api/piutang/generate` — Trigger manual generate jurnal piutang untuk tagihan menunggak (admin only). Delegasi ke `Artisan::call('billing:generate-overdue-transactions')`.
+- Controller baru: `app/Http/Controllers/PiutangController.php`
 
 **Diubah:**
 - `php artisan billing:generate-overdue-transactions` — Tambah opsi `--tanggal=Y-m-d` (default hari ini) dan `--force` (hapus jurnal lama sebelum insert). Hormati `settings.toleransi_tunggakan` untuk threshold `due_date`. Return `FAILURE` bukan silent exit saat `User admin` tidak ditemukan.

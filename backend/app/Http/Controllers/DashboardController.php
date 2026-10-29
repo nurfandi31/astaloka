@@ -6,7 +6,7 @@ use App\Models\Customer;
 use App\Models\InstallationTicket;
 use App\Models\MonthlyBill;
 use App\Models\Transaction;
-use App\Services\ArsipTunggakanService;
+use App\Services\ArsipPiutangService;
 use App\Services\BillingTolerance;
 use App\Services\ReceivableGenerator;
 use App\Services\TenantCache;
@@ -58,14 +58,14 @@ class DashboardController extends Controller
                     /*
                      * Jumlah piutang tunggakan yang tercatat.
                      *
-                     * Dihitung lewat `ArsipTunggakanService` supaya angka di kotak
-                     * dashboard sama persis dengan isi tabel Arsip Tunggakan.
+                     * Dihitung lewat `ArsipPiutangService` supaya angka di kotak
+                     * dashboard sama persis dengan isi tabel Arsip Piutang.
                      *
                      * Sebelumnya dipakai `penalty_amount > 0` -- proxy yang
                      * menyesatkan: tagihan menunggak tanpa denda ikut hilang,
                      * padahal piutangnya sudah membebani akun 1.1.03.01.
                      */
-                    'tunggakan_total' => app(ArsipTunggakanService::class)->countFiltered(null, null),
+                    'tunggakan_total' => app(ArsipPiutangService::class)->countFiltered(null, null),
                     'latest_tickets' => InstallationTicket::with('package:id,name')
                         ->orderBy('created_at', 'desc')
                         ->limit(5)
@@ -276,11 +276,11 @@ class DashboardController extends Controller
     }
 
     /**
-     * Arsip Tunggakan: piutang pelanggan yang belum tertagih.
+     * Arsip Piutang: piutang pelanggan yang belum tertagih.
      *
-     * DITERUSKAN ke `ArsipTunggakanService`, bukan dihitung sendiri.
+     * DITERUSKAN ke `ArsipPiutangService`, bukan dihitung sendiri.
      *
-     * Alasannya: popup dashboard dan halaman Arsip Tunggakan (/app/arsip/
+     * Alasannya: popup dashboard dan halaman Arsip Piutang (/app/arsip/
      * tunggakan) menampilkan HAL YANG SAMA, dan versi lama menghitungnya
      * sendiri dengan `penalty_amount > 0` -- proxy yang sudah ditolak di
      * `MonthlyBillController::pay` ("jurnal overdue_bill adalah satu-satunya
@@ -290,7 +290,7 @@ class DashboardController extends Controller
      */
     private function popupTunggakan(int $perPage, int $page, string $search)
     {
-        $arsip = app(ArsipTunggakanService::class);
+        $arsip = app(ArsipPiutangService::class);
 
         $total = $arsip->countFiltered(null, null, $search);
         $items = $arsip->items(null, null, $search, $page, $perPage);
@@ -611,7 +611,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 4) Eksekusi command (sama seperti endpoint /tunggakan/generate).
+        // 4) Eksekusi command (sama seperti endpoint /piutang/generate).
         $start = microtime(true);
         $opts = ['--tanggal' => $todayYmd];
 

@@ -2,9 +2,9 @@
   <!--
     POPUP dashboard (kotak "TUNGGAKAN" -> Lihat Detail).
 
-    Halaman mandiri ada di `ArsipTunggakanPage.vue`; komponen ini hanya
+    Halaman mandiri ada di `ArsipPiutangPage.vue`; komponen ini hanya
     untuk popup. Keduanya memakai tabel yang sama
-    (`parts/ArsipTunggakanTable.vue`) supaya angka yang muncul di popup
+    (`parts/ArsipPiutangTable.vue`) supaya angka yang muncul di popup
     dan di halaman tidak pernah berbeda.
 
     TIDAK pakai `ContentCard` di sini.
@@ -38,7 +38,7 @@
       Gagal memuat data: {{ errorMessage }}
     </div>
 
-    <ArsipTunggakanTable
+    <ArsipPiutangTable
       popup
       :items-list="itemsList"
       :columns="columns"
@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import ArsipTunggakanTable from './parts/ArsipTunggakanTable.vue'
+import ArsipPiutangTable from './parts/ArsipPiutangTable.vue'
 import { usePopupData } from '@/composables/usePopupData'
 
 const columns = [
@@ -75,16 +75,16 @@ const columns = [
 
 /*
  * Popup ini memakai endpoint `dashboard/popup-data?type=tunggakan`, BUKAN
- * `GET /tunggakan/arsip` seperti halaman mandiri.
+ * `GET /piutang/arsip` seperti halaman mandiri.
  *
  * Alasannya: popup dashboard memakai endpoint yang SELALU dibolehkan
- * (`dashboard/*` ada di `always_allowed_api`), sedangkan `tunggakan/arsip`
- * dikunci oleh menu `arsip.tunggakan`. Kalau popup memakai endpoint yang
- * dikunci, admin yang jabatannya tidak punya "Arsip Tunggakan" akan
+ * (`dashboard/*` ada di `always_allowed_api`), sedangkan `piutang/arsip`
+ * dikunci oleh menu `arsip.piutang`. Kalau popup memakai endpoint yang
+ * dikunci, admin yang jabatannya tidak punya "Arsip Piutang" akan
  * melihat kotak dashboard-nya error -- padahal kotak itu bukan halamannya.
  *
  * Datanya tetap sama persis: `DashboardController::popupTunggakan()`
- * meneruskan ke `ArsipTunggakanService`, service yang sama dengan yang
+ * meneruskan ke `ArsipPiutangService`, service yang sama dengan yang
  * dipakai halaman mandiri. Yang berbeda hanya FILTER: popup tidak punya
  * filter periode (kotak dashboard bersifat ringkasan "sekarang"), halaman
  * mandiri punya filter bulan/tahun pencatatan piutang.

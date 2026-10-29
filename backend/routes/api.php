@@ -24,6 +24,7 @@ use App\Http\Controllers\MonthlyBillController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PelangganPortalController;
 use App\Http\Controllers\PelaporanController;
+use App\Http\Controllers\PiutangController;
 use App\Http\Controllers\PublicBrandingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
@@ -33,7 +34,6 @@ use App\Http\Controllers\SopController;
 use App\Http\Controllers\SurveyResultController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TroubleReportController;
-use App\Http\Controllers\TunggakanController;
 use App\Http\Controllers\TutupBukuController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VillageController;
@@ -390,16 +390,16 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::apiResource('transactions', TransactionController::class);
     Route::get('jenis-transactions', [JenisTransactionController::class, 'index']);
     Route::post('generate-amount', [GenerateAmountController::class, 'generate']);
-    Route::post('tunggakan/generate', [TunggakanController::class, 'generate']);
+    Route::post('piutang/generate', [PiutangController::class, 'generate']);
     /*
-     * Arsip Tunggakan (daftar piutang pelanggan yang belum tertagih).
+     * Arsip Piutang (daftar piutang pelanggan yang belum tertagih).
      *
-     * Punya prefix `tunggakan/` yang sama dengan `tunggakan/generate`
-     * di atas, jadi keduanya dikunci oleh menu `arsip.tunggakan` --
-     * mencabut hak akses Arsip Tunggakan sekaligus menutup jalannya
+     * Punya prefix `piutang/` yang sama dengan `piutang/generate`
+     * di atas, jadi keduanya dikunci oleh menu `arsip.piutang` --
+     * mencabut hak akses Arsip Piutang sekaligus menutup jalannya
      * generate manual.
      */
-    Route::get('tunggakan/arsip', [TunggakanController::class, 'arsip']);
+    Route::get('piutang/arsip', [PiutangController::class, 'arsip']);
     Route::get('accounts', [AccountController::class, 'index']);
     Route::get('accounts/by-level/{level}', [AccountController::class, 'byLevel']);
     Route::get('amount/total-saldo', [AmountController::class, 'getTotalSaldo']);

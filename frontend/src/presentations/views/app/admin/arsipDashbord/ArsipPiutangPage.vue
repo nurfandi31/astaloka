@@ -1,10 +1,10 @@
-﻿<template>
-  <div class="arsip-tunggakan-root">
+<template>
+  <div class="arsip-piutang-root">
     <!-- Judul + penjelasan -->
     <div class="flex! flex-col! lg:flex-row! lg:items-start! lg:justify-between! gap-4! mb-6!">
       <div class="flex-1!">
         <h1 class="text-xl md:text-2xl font-bold text-slate-900! tracking-tight mb-1!">
-          Arsip Tunggakan
+          Arsip Piutang
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed">
           Daftar piutang pelanggan yang belum tertagih. Piutang masuk pembukuan saat
@@ -54,13 +54,13 @@
         -->
         <div class="flex! flex-col! gap-1!">
           <label
-            for="arsip-tunggakan-bulan"
+            for="arsip-piutang-bulan"
             class="text-[11px]! font-bold! text-slate-500! uppercase! tracking-wider!"
           >
             Bulan Pencatatan
           </label>
           <BaseSelect
-            id="arsip-tunggakan-bulan"
+            id="arsip-piutang-bulan"
             v-model="bulanTerpilih"
             :options="opsiBulan"
             option-label="label"
@@ -74,13 +74,13 @@
 
         <div class="flex! flex-col! gap-1!">
           <label
-            for="arsip-tunggakan-tahun"
+            for="arsip-piutang-tahun"
             class="text-[11px]! font-bold! text-slate-500! uppercase! tracking-wider!"
           >
             Tahun
           </label>
           <BaseSelect
-            id="arsip-tunggakan-tahun"
+            id="arsip-piutang-tahun"
             v-model="tahunTerpilih"
             :options="opsiTahun"
             option-label="label"
@@ -201,7 +201,7 @@
         Gagal memuat data: {{ errorMessage }}
       </div>
 
-      <ArsipTunggakanTable
+      <ArsipPiutangTable
         :items-list="itemsList"
         :columns="columns"
         :search-query="searchQuery"
@@ -228,8 +228,8 @@ import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/presentations/components/ui/BaseButton.vue'
 import BaseSelect from '@/presentations/components/ui/BaseSelect.vue'
 import ContentCard from '@/presentations/components/ui/ContentCard.vue'
-import ArsipTunggakanTable from './parts/ArsipTunggakanTable.vue'
-import { useArsipTunggakan } from '@/composables/useArsipTunggakan'
+import ArsipPiutangTable from './parts/ArsipPiutangTable.vue'
+import { useArsipPiutang } from '@/composables/useArsipPiutang'
 
 const route = useRoute()
 const router = useRouter()
@@ -308,7 +308,7 @@ const {
   errorMessage,
   ringkasan,
   fetchData,
-} = useArsipTunggakan({ bulan: bulanTerpilih, tahun: tahunTerpilih })
+} = useArsipPiutang({ bulan: bulanTerpilih, tahun: tahunTerpilih })
 
 /*
  * Reset filter.
@@ -364,7 +364,7 @@ const sinkronkanQuery = () => {
 }
 
 // `watch` di sini sengaja TIDAK dipakai untuk memanggil fetchData: filter
-// sudah reaktif di `useArsipTunggakan`, jadi perubahan-nya sudah memicu
+// sudah reaktif di `useArsipPiutang`, jadi perubahan-nya sudah memicu
 // fetch sendiri. Yang perlu di sini hanya menyelaraskan URL.
 watch([bulanTerpilih, tahunTerpilih], sinkronkanQuery)
 
@@ -404,7 +404,7 @@ const formatTanggal = (value) => {
 }
 
 onMounted(() => {
-  // `useArsipTunggakan` sudah mengambil data saat mount. Fungsi ini
+  // `useArsipPiutang` sudah mengambil data saat mount. Fungsi ini
   // sengaja hanya ada supaya halaman yang dibuka dari tautan dengan
   // query string juga punya filter yang sesuai di URL.
   sinkronkanQuery()
@@ -427,7 +427,7 @@ onMounted(() => {
  * 2.35rem, justru tombolnya yang jadi terlalu pendek -- masalahnya cuma
  * pindah tempat.
  */
-.arsip-tunggakan-root {
+.arsip-piutang-root {
   width: 100%;
   --arsip-filter-height: 2.75rem;
 }
@@ -437,14 +437,14 @@ onMounted(() => {
  *
  * WAJIB lewat `:deep()`. `BaseSelect.vue` merender elemen
  * `<div class="p-select ...">` dari dalam file-nya sendiri, jadi elemen itu
- * punya `data-v-BASESELECT`, bukan `data-v-ARSIPTUNGGAKANPAGE`.
+ * punya `data-v-BASESELECT`, bukan `data-v-ARSIPPIUTANGPAGE`.
  *
  * Dan elemen root komponen anak TIDAK mewarisi scope-id parent kalau
  * komponennya punya lebih dari satu root -- dan `BaseSelect` punya dua
  * (`<Select>` + `<small>` untuk pesan validasi). Akibatnya aturan
  * `.arsip-filter-select` yang ditulis scoped dikompilasi jadi
  *
- *     .arsip-filter-select[data-v-ARSIPTUNGGAKANPAGE] { ... }
+ *     .arsip-filter-select[data-v-ARSIPPIUTANGPAGE] { ... }
  *
  * dan tidak pernah cocok dengan elemen yang benar-benar dirender. Gejalanya
  * persis seperti "CSS-nya ada tapi tidak jalan", tanpa satu pun error.
@@ -456,14 +456,14 @@ onMounted(() => {
  * bawah: kalau isinya lebih tinggi, select akan tumbuh melebihi tombol --
  * dan masalahnya balik lagi, tapi di arah sebaliknya.
  */
-.arsip-tunggakan-root :deep(.arsip-filter-select) {
+.arsip-piutang-root :deep(.arsip-filter-select) {
   width: 11rem;
   max-width: 100%;
   height: var(--arsip-filter-height);
 }
 
 /* Tahun lebih pendek -- digitnya jauh lebih sedikit dari nama bulan. */
-.arsip-tunggakan-root :deep(.arsip-filter-select--tahun) {
+.arsip-piutang-root :deep(.arsip-filter-select--tahun) {
   width: 8rem;
 }
 
@@ -477,7 +477,7 @@ onMounted(() => {
  * Border tipis dipakai supaya tombol ini terbaca sebagai bagian dari
  * kelompok filter, bukan tombol aksi utama yang berdekatan dengan select.
  */
-.arsip-tunggakan-root :deep(.arsip-filter-reset) {
+.arsip-piutang-root :deep(.arsip-filter-reset) {
   height: var(--arsip-filter-height) !important;
   padding-left: 0.75rem !important;
   padding-right: 0.75rem !important;
@@ -489,7 +489,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.arsip-tunggakan-root :deep(.arsip-filter-reset:hover) {
+.arsip-piutang-root :deep(.arsip-filter-reset:hover) {
   background: #f8fafc !important;
   border-color: var(--color-primary, #0ea5e9) !important;
   color: var(--color-primary, #0ea5e9) !important;

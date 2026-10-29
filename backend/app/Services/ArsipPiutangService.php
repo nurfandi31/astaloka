@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Arsip Tunggakan = daftar piutang pelanggan yang belum tertagih.
+ * Arsip Piutang = daftar piutang pelanggan yang belum tertagih.
  *
  * SUMBER KEBENARAN: JURNAL, BUKAN TAGIHAN
  * ----------------------------------------
@@ -56,7 +56,7 @@ use Illuminate\Support\Facades\DB;
  * ditampilkan dengan status "Menunggu Generate", karena diam-diam
  * disembunyikan akan membuat orang mengira tidak ada tunggakan.
  */
-class ArsipTunggakanService
+class ArsipPiutangService
 {
     /**
      * Akun Piutang Usaha. Hanya debit ke akun ini yang berarti "piutang
@@ -221,7 +221,7 @@ class ArsipTunggakanService
     }
 
     /**
-     * Ringkasan untuk kartu ringkasan di halaman Arsip Tunggakan.
+     * Ringkasan untuk kartu ringkasan di halaman Arsip Piutang.
      *
      * Mengembalikan dua kelompok angka:
      *   - `periode`: angka untuk periode yang sedang difilter.

@@ -678,14 +678,14 @@ return [
             // `bills`        : rekap & detail tagihan lama.
             // `monthly-bills*`: daftar tagihan bulanan (dipakai
             //                   `billingStore.fetchBillingPeriods`).
-            // `tunggakan`    : generate tunggakan.
+            // `piutang`      : generate piutang.
             //
             // Yang TIDAK ikut: `monthly-bills/{id}/pay`,
             // `monthly-bills/{id}` (hapus), dan `monthly-bills/generate`.
             // Ketiganya punya pemiliknya sendiri di `tagihan.input` --
             // dan prefix `monthly-bills*` sengaja berhenti di `/monthly-bills`
             // supaya tidak ikut membukanya.
-            'api' => ['bills', 'monthly-bills*', 'tunggakan'],
+            'api' => ['bills', 'monthly-bills*', 'piutang'],
             'roles' => ['admin'],
         ],
         [
@@ -773,33 +773,33 @@ return [
             'hidden' => true,
         ],
         [
-            'key' => 'arsip.tunggakan',
-            'label' => 'Arsip Tunggakan',
+            'key' => 'arsip.piutang',
+            'label' => 'Arsip Piutang',
             'group' => 'Arsip',
             'icon' => 'hourglass-half',
-            'path' => '/app/arsip/tunggakan',
-            // Prefix `tunggakan` (tanpa `*`) sudah cukup: ia cocok dengan
-            // `/tunggakan/arsip` DAN `/tunggakan/generate`.
+            'path' => '/app/arsip/piutang',
+            // Prefix `piutang` (tanpa `*`) sudah cukup: ia cocok dengan
+            // `/piutang/arsip` DAN `/piutang/generate`.
             //
-            // Bentuk polos (bukan `tunggakan*`) dipakai dengan sengaja:
-            // `tunggakan*` hanya cocok dengan `/tunggakan` itu sendiri --
-            // turunannya seperti `/tunggakan/arsip` TIDAK ikut. Padahal
+            // Bentuk polos (bukan `piutang*`) dipakai dengan sengaja:
+            // `piutang*` hanya cocok dengan `/piutang` itu sendiri --
+            // turunannya seperti `/piutang/arsip` TIDAK ikut. Padahal
             // endpoint arsip itu yang paling butuh dikunci.
             //
-            // `POST /tunggakan/generate` ikut tertutup oleh prefix ini --
+            // `POST /piutang/generate` ikut tertutup oleh prefix ini --
             // generate piutang dan membaca arsip piutang adalah satu hal
-            // yang sama, jadi mencabut hak akses Arsip Tunggakan harus
+            // yang sama, jadi mencabut hak akses Arsip Piutang harus
             // menutup keduanya.
             //
-            // Perhatikan: prefix `tunggakan` juga dimiliki menu
+            // Perhatikan: prefix `piutang` juga dimiliki menu
             // `transaksi.tagihan-bulanan`. `EnforceMenuAccess` menolak
             // HANYA kalau SEMUA pemilik prefix itu tidak diizinkan, jadi
             // admin yang punya "Tagihan Bulanan" tapi tidak punya "Arsip
-            // Tunggakan" tetap boleh memanggil endpoint ini. Itu perilaku
+            // Piutang" tetap boleh memanggil endpoint ini. Itu perilaku
             // yang disengaja dan sama seperti `bills`/`monthly-bills` di
             // bawah -- satu endpoint dipakai beberapa menu, dan hak akses
             // diambil dari gabungan pemilik itu.
-            'api' => ['tunggakan'],
+            'api' => ['piutang'],
             'roles' => ['admin'],
             'hidden' => true,
             /*
@@ -807,7 +807,7 @@ return [
              *
              * Jalan masuknya dari dropdown avatar (pojok kanan atas), di
              * sebelah "Profil" dan "Logout" -- dipakai admin untuk melihat
-             * siapa yang punya piutang menunggak bulan ini.
+             * siapa yang punya piutang bulan ini.
              */
         ],
         [

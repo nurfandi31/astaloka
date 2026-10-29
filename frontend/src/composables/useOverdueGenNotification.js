@@ -48,7 +48,7 @@ import { useUiStore } from '@/stores/uiStore'
  *     generate, tapi jurnal yang dibuat tetap satu per tagihan.
  *   - Selama proses berjalan, modal loading tampil tanpa tombol apa pun.
  *   - Setelah selesai, hasil ditampilkan via SweetAlert2 lengkap dengan
- *     tombol "Tutup" / "Lihat Arsip Tunggakan".
+ *     tombol "Tutup" / "Lihat Arsip Piutang".
  *
  * Cara pakai di komponen:
  *   const { checkOverdueGenOnMount } = useOverdueGenNotification()
@@ -156,7 +156,7 @@ export function useOverdueGenNotification() {
    * cancel, bukan tombol close "X"). Semua opsi non-interaktif dipaksa
    * false supaya satu-satunya jalan keluar adalah proses yang selesai.
    * Setelah selesai, `showOverdueGenResult()` yang menampilkan notifikasi
-   * berhasil lengkap dengan tombolnya ("Tutup" / "Lihat Arsip Tunggakan").
+   * berhasil lengkap dengan tombolnya ("Tutup" / "Lihat Arsip Piutang").
    */
   const showGeneratingLoader = () => {
     const startedAt = Date.now()
@@ -371,7 +371,7 @@ export function useOverdueGenNotification() {
       width: 560,
       confirmButtonText: 'Tutup',
       confirmButtonColor: 'var(--color-primary, #3b82f6)',
-      // Hanya admin yang boleh membuka halaman /app/arsip/tunggakan
+      // Hanya admin yang boleh membuka halaman /app/arsip/piutang
       // (lihat router/index.js role-specific routes). Tombol ini
       // ditampilkan hanya untuk admin supaya teknisi tidak dialihkan
       // ke halaman terlarang.
@@ -380,7 +380,7 @@ export function useOverdueGenNotification() {
       // tunggakan tetap relevan untuk dilihat walau tidak ada jurnal
       // baru hari ini.
       showCancelButton: uiStore.userRole === 'admin',
-      cancelButtonText: 'Lihat Arsip Tunggakan',
+      cancelButtonText: 'Lihat Arsip Piutang',
       cancelButtonColor: '#64748b',
       customClass: {
         popup: 'rounded-2xl!',
@@ -394,9 +394,9 @@ export function useOverdueGenNotification() {
       // padahal backend sekarang sengaja menjalankan ulang di setiap login
       // dan mengandalkan dedup transaksinya sendiri.
 
-      // Jika user pilih "Lihat Arsip Tunggakan", arahkan ke halaman arsip.
+      // Jika user pilih "Lihat Arsip Piutang", arahkan ke halaman arsip.
       if (result.isDismissed && result.dismiss === MySwal.DismissReason.cancel) {
-        router.push('/app/arsip/tunggakan')
+        router.push('/app/arsip/piutang')
       }
       return result
     })

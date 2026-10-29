@@ -40,7 +40,7 @@ import dashboardService from '@/services/dashboard.service'
  * halaman lama.
  *
  * Yang TIDAK boleh: `params` yang berubah diam-diam tanpa fetch ulang.
- * Itu yang membuat filter bulan di halaman Arsip Tunggakan lama terlihat
+ * Itu yang membuat filter bulan di halaman Arsip Piutang lama terlihat
  * "nyangkut": bulan yang diganti tidak pernah benar-benar sampai ke server.
  *
  * @param {string} type          Tipe popup: instalasi | pemakaian | tunggakan | tagihan

@@ -103,7 +103,7 @@ class MonthlyBill extends Model
      * memakai tipe `overdue_bill` -- sehingga relasi `transactions()` tidak
      * pernah menemukan satu pun jurnal piutang.
      *
-     * Relasi ini yang dipakai Arsip Tunggakan sebagai sumber kebenaran:
+     * Relasi ini yang dipakai Arsip Piutang sebagai sumber kebenaran:
      * tagihan dianggap punya piutang kalau jurnal `overdue_bill`-nya ada,
      * bukan kalau `penalty_amount`-nya lebih besar dari nol (proxy itu
      * sudah ditolak di `MonthlyBillController::pay`).

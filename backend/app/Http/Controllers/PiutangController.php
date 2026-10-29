@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ArsipTunggakanService;
+use App\Services\ArsipPiutangService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Validator;
 
-class TunggakanController extends Controller
+class PiutangController extends Controller
 {
-    public function __construct(private ArsipTunggakanService $arsip) {}
+    public function __construct(private ArsipPiutangService $arsip) {}
 
     public function generate(Request $request): JsonResponse
     {
@@ -50,7 +50,7 @@ class TunggakanController extends Controller
     }
 
     /**
-     * Arsip Tunggakan: daftar piutang pelanggan yang belum tertagih.
+     * Arsip Piutang: daftar piutang pelanggan yang belum tertagih.
      *
      * Query params:
      *   - month     : bulan pencatatan piutang (1-12). Kosong = semua bulan.
@@ -62,7 +62,7 @@ class TunggakanController extends Controller
      *   - per_page  : baris per halaman (default 10, max 100).
      *
      * BULAN DI SINI BULAN PENCATATAN PIUTANG, bukan bulan periode tagihan.
-     * Lihat `ArsipTunggakanService` untuk penjelasan alurnya.
+     * Lihat `ArsipPiutangService` untuk penjelasan alurnya.
      *
      * Response:
      *   {
