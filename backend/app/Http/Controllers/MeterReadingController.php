@@ -255,10 +255,9 @@ class MeterReadingController extends Controller
          * menunda generate ke tanggal 20 ikut mengubah batas tagihan yang
          * boleh menunggak.
          *
-         * `BillingTolerance::unpaidBillLimit()` memakai kolom terpisah
-         * (`billing_unpaid_limit`) dan kembali ke nilai lama bila kolom itu
-         * kosong -- jadi hasil angkannya sama dengan sebelumnya untuk
-         * semua lokasi yang belum mengisi kolom baru.
+         * `BillingTolerance::unpaidBillLimit()` adalah satu-satunya tempat
+         * angka ini dibaca, dan nilainya kembali ke `toleransi_tunggakan`
+         * -- sama persis dengan perilaku pamsides.
          */
         $toleransi = app(BillingTolerance::class)->unpaidBillLimit();
 

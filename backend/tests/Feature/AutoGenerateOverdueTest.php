@@ -6,6 +6,7 @@ use App\Models\MonthlyBill;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
@@ -14,6 +15,39 @@ use Tests\TestCase;
 class AutoGenerateOverdueTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Kunci waktu ke tanggal yang PASTI di dalam rentang generate 1-28.
+     *
+     * Kenapa test di kelas ini perlu dikunci waktunya
+     * -----------------------------------------------
+     *
+     * Gate generate membandingkan "hari ini" dengan `toleransi_tunggakan`.
+     * Kalau test memakai `now()` sungguhan, hasilnya berubah setiap hari,
+     * dan sebagian test HANYA benar di hari-hari tertentu.
+     *
+     * Contoh paling buruknya `auto_generate_overdue_tidak_jalan_jika_tanggal_tidak_cocok`:
+     * test itu memakai rumus `(now()->format('d') % 28) + 1` untuk memilih
+     * tanggal yang "tidak cocok" dengan hari ini. Rumus itu ditulis saat
+     * gate-nya masih `===` -- waktu "tidak cocok" berarti "beda dengan hari
+     * ini". Gate sekarang `>=`, jadi yang relevan adalah "tanggal generate
+     * BELUM tercapai": contoh hari 28, tanggal generate 29.
+     *
+     * Dengan rumus lama, di tanggal 28 hasilnya `28 % 28 + 1 = 1`, dan
+     * `28 >= 1` -- gate-nya LOLOS. Test mengharapkan `ran=false`, jadi
+     * test gagal. Tanggal 29, 30, 31 punya masalah yang sama.
+     *
+     * Menulis tanggal secara eksplisit membuat test ini hasilnya sama
+     * terlepas dari kapan pun ia dijalankan -- persis seperti yang sudah
+     * dilakukan di `LoginGeneratePiutangTest`.
+     */
+    private function freezeDate(): void
+    {
+        // 15 Oktober 2026 -- comfortably di tengah bulan, jadi tanggal ini
+        // ada di dalam rentang generate 1-28 dan tidak pernah melewati
+        // batas akhir bulan.
+        $this->travelTo(Carbon::parse('2026-10-15 10:00:00'));
+    }
 
     private function createUser(string $role = 'admin'): User
     {
@@ -78,11 +112,23 @@ class AutoGenerateOverdueTest extends TestCase
     #[Test]
     public function auto_generate_overdue_tidak_jalan_jika_tanggal_tidak_cocok(): void
     {
+        $this->freezeDate();
+
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            // Set ke hari yang PASTI tidak cocok dengan hari ini.
-            'toleransi_tunggakan' => ((int) now()->format('d') % 28) + 1,
+            // Tanggal generate = 20, sedangkan "hari ini" = 15.
+            //
+            // Gate-nya `>=`, jadi yang bikin generate TIDAK jalan adalah
+            // "tanggal generate belum tercapai" -- bukan "beda dengan hari
+            // ini". Rumus lama `(now()->format('d') % 28) + 1` ditulis saat
+            // gate-nya masih `===`, dan sekarang justru Mileu: di tanggal 28
+            // ia menghasilkan 1, dan `28 >= 1` LOLOS sementara test ini
+            // mengharapkan `ran=false`.
+            //
+            // Angka 20 dipilih eksplisit supaya test ini hasilnya sama
+            // terlepas dari kapan pun ia dijalankan.
+            'toleransi_tunggakan' => 20,
         ]);
 
         $user = $this->createUser('admin');
@@ -114,10 +160,12 @@ class AutoGenerateOverdueTest extends TestCase
     #[Test]
     public function auto_generate_overdue_boleh_dijalankan_berulang_dan_tidak_membuat_jurnal_ganda(): void
     {
+        $this->freezeDate();
+
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            // Paksa cocok dengan hari ini agar command benar-benar jalan
+            // Tanggal generate = hari ini (15), jadi command benar-benar jalan.
             'toleransi_tunggakan' => (int) now()->format('d'),
         ]);
 
@@ -159,10 +207,9 @@ class AutoGenerateOverdueTest extends TestCase
     #[Test]
     public function auto_generate_overdue_tetap_jalan_setelah_tanggal_generate_terlewat(): void
     {
-        // Tanggal generate = 1, sedangkan "hari ini" sengaja dip-ahead
-        // supaya pastilah LEWAT dari tanggal generate.
-        $this->travelTo(now()->startOfDay()->addDays(10));
-        $this->travelBack();
+        // Tanggal generate = 1, sedangkan "hari ini" = 15 -- jadi tanggal
+        // generate sudah LEWAT. Gate `>=` membuat generate tetap jalan.
+        $this->freezeDate();
 
         Setting::create([
             'key' => 'sop',
@@ -182,6 +229,8 @@ class AutoGenerateOverdueTest extends TestCase
     #[Test]
     public function check_endpoint_melaporkan_will_run_tanpa_tergantung_sudah_jalan(): void
     {
+        $this->freezeDate();
+
         // `will_run` tidak boleh bergantung pada cache "sudah pernah jalan",
         // karena frontend memakainya untuk membuka popup di setiap login.
         Setting::create([
@@ -208,6 +257,8 @@ class AutoGenerateOverdueTest extends TestCase
     #[Test]
     public function auto_generate_overdue_tanpa_tagihan_overdue_masih_ran_true_namun_summary_nol(): void
     {
+        $this->freezeDate();
+
         // Set toleransi = hari ini, TAPI tidak ada tagihan overdue.
         // Endpoint harus tetap return success dengan summary=0.
         Setting::create([
@@ -274,6 +325,8 @@ class AutoGenerateOverdueTest extends TestCase
     #[Test]
     public function command_menghasilkan_format_keterangan_piutang_abodemen_dan_denda(): void
     {
+        $this->freezeDate();
+
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
@@ -404,6 +457,8 @@ class AutoGenerateOverdueTest extends TestCase
     #[Test]
     public function command_menggunakan_nama_dari_customer_user_jika_tersedia(): void
     {
+        $this->freezeDate();
+
         // Bila customer->user->name ada, gunakan itu.
         // (lihat Customer->user relasi).
         Setting::create([

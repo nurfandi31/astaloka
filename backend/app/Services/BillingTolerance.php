@@ -49,9 +49,16 @@ use App\Models\Setting;
  *   - Perilaku default tidak berubah. pamsides-v2 dan astaloka menghasilkan
  *     angka yang sama persis untuk lokasi yang tidak mengubah SOP-nya.
  *
- * Ditambah override opsional untuk makna yang paling tidak cocok, yaitu
- * batas tagihan menunggak sebelum suspend. Bila kolom barunya diisi, makna
- * itu memakai nilai sendiri; bila kosong, ia kembali ke nilai lama.
+ * Percobaan memisahkan makna (4) ke kolom sendiri
+ * (`billing_unpaid_limit`) sudah DIBATALKAN. Kolom itu sempat ada dan
+ * sempat punya input di halaman SOP, tapi input itu justru membuat
+ * masalah: dua angka dengan satuan berbeda (tanggal vs jumlah tagihan)
+ * berdampingan di satu kartu dan terlihat saling menimpa.
+ *
+ * Makna (4) sekarang kembali ke `toleransi_tunggakan` -- sama persis dengan
+ * aplikasi pamsides. Kolom `billing_unpaid_limit` TETAP ADA di database
+ * (tidak ada migrasi yang destruktif), tapi tidak lagi dibaca maupun ditulis
+ * oleh kode mana pun.
  *
  * INVARIANT
  * ---------
@@ -140,18 +147,32 @@ class BillingTolerance
     /**
      * (4) Batas tagihan unpaid sebelum sambungan diputus.
      *
-     * Makna paling tidak kebetulan cocok dengan tiga lainnya, jadi punya
-     * kolom sendiri: `billing_unpaid_limit`. Nilai lama dari
-     * `toleransi_tunggakan` tetap dipakai sebagai fallback supaya perilaku
-     * tidak berubah untuk lokasi yang belum mengisi kolom baru.
+     * Semuanya KEMBALI ke `toleransi_tunggakan`, persis seperti sebelum
+     * kolom `billing_unpaid_limit` pernah ada.
+     *
+     * Kenapa kolom override-nya dihapus
+     * ---------------------------------
+     *
+     * Kolom `billing_unpaid_limit` pernah dibuat untuk memisahkan makna ini
+     * dari tiga makna lain, dan sempat punya input sendiri di halaman SOP.
+     * Input itu kemudian DIHAPUS: satu kolom dengan satuan "tanggal" dan
+     * satu kolom dengan satuan "jumlah tagihan" yang berdampingan di kartu
+     * yang sama -- padahal keduanya tidak pernah bergerak
+     * bersama. Admin yang menggeser tanggal generate ke tanggal 20 diam-diam
+     * ikut mengubah batas tagihan yang boleh menunggak.
+     *
+     * Sekarang tidak ada input terpisah, jadi tidak ada override yang bisa
+     * diisi -- dan angka yang dipakai balik lagi ke `toleransi_tunggakan`
+     * supaya perilakunya sama persis dengan aplikasi pamsides.
+     *
+     * Kolomnya sendiri TIDAK dihapus dari database. Menghapus kolom berarti
+     * migrasi yang menyentuh data lokasi yang sedang berjalan, sementara
+     * kolom yang tidak lagi dibaca tidak mengganggu siapa pun. Yang penting
+     * adalah tidak ada satu pun kode yang membacanya.
      */
     public function unpaidBillLimit(): int
     {
-        $override = $this->settings()->billing_unpaid_limit;
-
-        return $override !== null && $override !== ''
-            ? (int) $override
-            : $this->legacy();
+        return $this->legacy();
     }
 
     /**

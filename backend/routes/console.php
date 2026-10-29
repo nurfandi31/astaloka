@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\ReceivableGenerator;
 use App\Services\TenantManager;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -28,27 +29,47 @@ Artisan::command('inspire', function () {
  * piutang: tagihan tetap `unpaid`, akun Piutang Usaha tidak pernah ditambah,
  * dan tidak ada error maupun log yang menandakannya.
  *
- * Jadwal 00:01 tetap dipertahankan. Gate tanggal generate ada di
- * `ReceivableGenerator::shouldRun()`, jadi perintah ini dipanggil setiap
- * malam tapi hanya bekerja pada lokasi yang sudah melewati tanggal generate
- * bulan ini. Pemanggilan berikutnya di hari yang sama dilewati lewat mutex
- * per tanggal -- Command-nya sendiri sudah idempotent.
+ * Kenapa TIDAK memanggil command secara langsung
+ * ----------------------------------------------
+ *
+ * Versi lama memanggil `Artisan::call('billing:generate-overdue-transactions')`
+ * di dalam loop lokasi. Itu LEWAT dari gate tanggal generate: gate-nya ada
+ * di `ReceivableGenerator::shouldRun()`, yang membandingkan `now()->day`
+ * dengan `toleransi_tunggakan`.
+ *
+ * Efeknya: scheduler berjalan setiap malam untuk SEMUA lokasi, termasuk
+ * lokasi yang tanggal generate-nya belum tercapai. Gate tanggal generate
+ * -- satu-satunya aturan yang menentukan KAPAN piutang tunggakan ought
+ * dijurnalkan -- jadi tidak berlaku sama sekali di jalur scheduler.
+ *
+ * Yang benar: scheduler memanggil `ReceivableGenerator::runIfDue()` --
+ * satu-satunya tempat yang memegang gate, busy-guard, dan penanganan
+ * kegagalan. Command-nya sendiri tetap idempotent (pasangan
+ * `reverence_id|account_kredit`), jadi generate boleh berulang tanpa
+ * menghasilkan jurnal dobel.
+ *
+ * Jadwal 00:01 tetap dipertahankan.
  */
 Schedule::call(function () {
     /** @var TenantManager $tenants */
     $tenants = app(TenantManager::class);
 
     $hasil = $tenants->runForEachActive(function () {
-        Artisan::call('billing:generate-overdue-transactions');
+        $hasil = app(ReceivableGenerator::class)->runIfDue();
 
-        return trim(Artisan::output());
+        return [
+            'ran' => (bool) ($hasil['ran'] ?? false),
+            'reason' => (string) ($hasil['reason'] ?? ''),
+        ];
     });
 
     $gagal = array_values(array_filter($hasil, fn ($h) => ! $h['ok']));
     $sukses = count($hasil) - count($gagal);
+    $jalan = count(array_filter($hasil, fn ($h) => ($h['ok'] ?? false) && ($h['value']['ran'] ?? false)));
 
     Log::info('Generate piutang tunggakan terjadwal selesai.', [
         'lokasi_diproses' => count($hasil),
+        'lokasi_generate_jalan' => $jalan,
         'berhasil' => $sukses,
         'gagal' => count($gagal),
         'lokasi_gagal' => array_map(fn ($h) => $h['tenant']->slug, $gagal),

@@ -28,14 +28,15 @@ use Tests\TestCase;
  * advance, dan suspend setelah 7 tagihan unpaid. Admin yang ingin menunda
  * generate ke tanggal 20 ikut mengubah batas tagihan yang boleh menunggak.
  *
- * Test di sini mengunci dua hal:
+ * Test di sini mengunci bahwa keempatnya membaca SATU sumber angka yang
+ * sama, dan bahwa sumber itu tetap `toleransi_tunggakan`.
  *
- *   - Kalau kolom baru `billing_unpaid_limit` KOSONG, angka yang dipakai
- *     setiap consumer sama persis dengan sebelumnya. Tidak ada lokasi yang
- *     perilakunya berubah hanya karena migrasi dijalankan.
- *
- *   - Kalau kolom baru DIISI, hanya makna (4) yang bergeser. Tanggal generate,
- *     ambang piutang, dan ambang advance payment tetap sama.
+ * Catatan: pernah ada kolom override `billing_unpaid_limit` khusus untuk
+ * makna (4), beserta input sendiri di halaman SOP. Keduanya sudah
+ * DIHAPUS -- inputnya justru membuat masalah, karena dua angka dengan
+ * satuan berbeda (tanggal vs jumlah tagihan) berdampingan di satu kartu
+ * dan terlihat saling menimpa. Kolomnya masih ada di database, tapi tidak
+ * lagi dibaca kode mana pun. Test di bawah mengunci itu.
  */
 class BillingToleranceTest extends TestCase
 {
@@ -48,20 +49,19 @@ class BillingToleranceTest extends TestCase
      * lebih dari sekali untuk diperiksa dua nilai berbeda dalam satu test --
      * dan `settings.key` itu unik, jadi `create` kedua akan meledak.
      */
-    private function setSOP(int $toleransi, ?int $unpaidLimit = null): void
+    private function setSOP(int $toleransi): void
     {
         Setting::updateOrCreate(
             ['key' => 'sop'],
             [
                 'batas_tagihan' => 27,
                 'toleransi_tunggakan' => $toleransi,
-                'billing_unpaid_limit' => $unpaidLimit,
             ]
         );
     }
 
     #[Test]
-    public function kolom_kosong_tidak_mengubah_perilaku_lama(): void
+    public function keempat_arti_membaca_satu_sumber_angka(): void
     {
         $this->setSOP(6);
 
@@ -75,27 +75,40 @@ class BillingToleranceTest extends TestCase
     }
 
     #[Test]
-    public function kolom_terisi_hanya_menggeser_batas_suspend(): void
+    public function batas_suspend_tidak_lagi_pakai_kolom_override(): void
     {
-        $this->setSOP(6, 3);
+        /*
+         * Kolom `billing_unpaid_limit` masih ADA di database, tapi tidak lagi
+         * dibaca. Kalau ada yang mengisinya lagi, angka yang dipakai batas
+         * suspend harus tetap `toleransi_tunggakan` -- persis seperti
+         * aplikasi pamsides.
+         *
+         * Ditulis langsung lewat query builder karena kolomnya sudah tidak
+         * ada di `$fillable` model `Setting` -- sengaja, supaya tidak ada
+         * jalur kode yang bisa menuliskannya lagi.
+         */
+        \DB::table('settings')->updateOrInsert(
+            ['key' => 'sop'],
+            [
+                'batas_tagihan' => 27,
+                'toleransi_tunggakan' => 6,
+                'billing_unpaid_limit' => 3,
+            ]
+        );
 
         $t = app(BillingTolerance::class);
 
-        // Yang bergeser.
-        $this->assertSame(3, $t->unpaidBillLimit(), 'Batas suspend memakai nilai baru.');
-
-        // Yang TIDAK boleh bergeser: tiga makna lain semuanya milik proses
-        // tagihan dan tidak boleh ikut berubah karena preferensi soal
-        // pemutusan sambungan.
-        $this->assertSame(6, $t->generateDay(), 'Tanggal generate tidak boleh bergeser.');
-        $this->assertSame(6, $t->graceDays(), 'Ambang piutang tidak boleh bergeser.');
-        $this->assertSame(6, $t->advanceDayOfMonth(), 'Ambang advance tidak boleh bergeser.');
+        $this->assertSame(
+            6,
+            $t->unpaidBillLimit(),
+            'Batas suspend harus pakai toleransi_tunggakan, bukan kolom override.'
+        );
     }
 
     #[Test]
     public function batas_suspend_nol_berarti_tidak_pernah_memutus(): void
     {
-        $this->setSOP(6, 0);
+        $this->setSOP(0);
 
         $t = app(BillingTolerance::class);
 
@@ -109,7 +122,7 @@ class BillingToleranceTest extends TestCase
     #[Test]
     public function batas_suspend_memakai_operator_ketidak_sama(): void
     {
-        $this->setSOP(6, 3);
+        $this->setSOP(3);
 
         $t = app(BillingTolerance::class);
 
@@ -159,7 +172,7 @@ class BillingToleranceTest extends TestCase
     }
 
     #[Test]
-    public function tagihan_menunggak_menghormati_batas_suspend_baru(): void
+    public function tagihan_menunggak_menghormati_batas_suspend(): void
     {
         // Regresi langsung untuk `MeterReadingController::store`, yang
         // memakai `BillingTolerance::unpaidBillLimit()`.
@@ -167,7 +180,7 @@ class BillingToleranceTest extends TestCase
         // Yang diperiksa di sini adalah sumber angkanya, bukan seluruh alur
         // meter reading: seluruh logika suspend di controller sudah ada dan
         // tidak berubah -- hanya nilai yang dibacanya.
-        $this->setSOP(6, 3);
+        $this->setSOP(3);
         $this->assertSame(3, app(BillingTolerance::class)->unpaidBillLimit());
 
         // Count unpaid seperti yang dibaca controller.

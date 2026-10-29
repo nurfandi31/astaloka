@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -67,7 +66,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Efek samping yang diinginkan: kalau ada pelanggan yang lupa dicatat
  * meternya, atau tagihannya baru saja diperbaiki admin, generate ulang
- * akan看出来 dan menagihnya tanpa perlu intervensi manual.
+ * akan terlihat dan menagihnya tanpa perlu intervensi manual.
  *
  * Kapan TIDAK berjalan
  * --------------------
@@ -120,9 +119,43 @@ class ReceivableGenerator
     }
 
     /**
+     * Kunci BUSY-GUARD generate piutang.
+     *
+     * SATU-SATUNYA tempat kunci ini dibuat. Sebelumnya ada dua kunci
+     * berbeda untuk hal yang sama:
+     *
+     *   - `ReceivableGenerator`  : `overdue_gen_lock_{tanggal generate}`
+     *   - `DashboardController`   : `overdue_gen_lock_{tanggal hari ini}`
+     *
+     * Kalau tanggal generate BEDA dari hari ini -- yang pasti terjadi
+     * begitu tanggal generate terlewat, atau saat gate `>=` sudah berjalan
+     * -- kedua kunci itu tidak pernah sama. Akibatnya dua proses yang
+     * seharusnya saling menjaga bisa berjalan bersamaan, persis hal yang
+     * busy-guard ini-exist untuk mencegahnya.
+     *
+     * Dan kalau tanggal generate justru SAMA dengan hari ini, keduanya
+     * kebetulan sama -- jadi gejalanya baru muncul pada kasus yang paling
+     * jarang diuji: tanggal generate yang sudah terlewat.
+     *
+     * Kuncinya berbasis TANGGAL HARI INI, bukan tanggal generate, karena
+     * yang perlu dijaga adalah "jangan agregasi `amount` dua kali
+     * bersamaan", dan itu soal waktu, bukan soal tanggal generate.
+     */
+    public function lockKey(?Carbon $now = null): string
+    {
+        $now ??= now();
+
+        return $this->cache->flagKey('overdue_gen_lock_'.$now->toDateString());
+    }
+
+    /**
      * Jalankan generate piutang bila memang sudah waktunya.
      *
-     * @return array{ran: bool, reason: string, summary: array<string,int>|null}
+     * `scheduled_day` ikut dikembalikan supaya frontend bisa menampilkan
+     * tanggal generate di popup tanpa harus memanggil endpoint lain --
+     * bentuknya sama dengan yang dikirim `DashboardController`.
+     *
+     * @return array{ran: bool, reason: string, summary: array<string,mixed>|null, scheduled_day: int, today_day: int}
      */
     public function runIfDue(?Carbon $now = null): array
     {
@@ -133,10 +166,12 @@ class ReceivableGenerator
                 'ran' => false,
                 'reason' => 'Belum tanggal generate piutang bulan ini.',
                 'summary' => null,
+                'scheduled_day' => $this->scheduledDay(),
+                'today_day' => (int) $now->format('d'),
             ];
         }
 
-        $lockKey = $this->cache->flagKey('overdue_gen_lock_'.$this->scheduledDate($now));
+        $lockKey = $this->lockKey($now);
 
         /*
          * BUSY-GUARD, bukan blocker.
@@ -166,6 +201,8 @@ class ReceivableGenerator
                 'reason' => 'Generate sedang berjalan di proses lain. Coba lagi sebentar lagi.',
                 'summary' => null,
                 'busy' => true,
+                'scheduled_day' => $this->scheduledDay(),
+                'today_day' => (int) $now->format('d'),
             ];
         }
 
@@ -185,6 +222,8 @@ class ReceivableGenerator
                 'ran' => false,
                 'reason' => 'Generate gagal: '.$e->getMessage(),
                 'summary' => null,
+                'scheduled_day' => $this->scheduledDay(),
+                'today_day' => (int) $now->format('d'),
             ];
         } finally {
             // Lepas kunci juga setelah sukses: generate berikutnya
@@ -196,6 +235,8 @@ class ReceivableGenerator
             'ran' => true,
             'reason' => 'Generate piutang tunggakan selesai.',
             'summary' => $summary,
+            'scheduled_day' => $this->scheduledDay(),
+            'today_day' => (int) $now->format('d'),
         ];
     }
 
@@ -224,7 +265,50 @@ class ReceivableGenerator
             'exit_code' => $exit,
         ]);
 
-        return $this->cache->flagGet('overdue_gen_run_summary');
+        return $this->runSummary($now);
+    }
+
+    /**
+     * Ringkasan run generate yang terakhir.
+     *
+     * `null` kalau tidak ada ringkasan yang bisa dipercaya.
+     *
+     * Kenapa harus dicek tanggalnya
+     * ---------------------------
+     *
+     * Ringkasan disimpan di cache dengan TTL 26 jam -- cukup untuk menutup
+     * seluruh jendela "hari generate". Tapi TTL 26 jam itu LEBIH LAMA dari
+     * satu hari, jadi ringkasan dari run kemarin masih hidup saat generate
+     * hari ini dijalankan.
+     *
+     * Kalau ringkasan basi itu ditampilkan, user melihat angka tagihan
+     * yang sudah berumur sehari, dan dianggap generate hari ini memproses
+     * ribuan tagihan padahal yang terjadi adalah "tidak ada yang perlu
+     * dijurnalkan".
+     *
+     * Command selalu menulis ulang ringkasan saat ia jalan -- termasuk
+     * saat tidak menemukan tagihan menunggak (angka nolnya memang nol) --
+     * jadi satu-satunya cara ringkasan basi sampai ke user adalah ketika
+     * command-nya sendiri tidak sempat menulis. `date` di dalamnya
+     * membedakan kedua kasus itu.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function runSummary(?Carbon $now = null): ?array
+    {
+        $now ??= now();
+
+        $summary = $this->cache->flagGet('overdue_gen_run_summary');
+
+        if (! is_array($summary)) {
+            return null;
+        }
+
+        if (($summary['date'] ?? null) !== $now->toDateString()) {
+            return null;
+        }
+
+        return $summary;
     }
 
     /**
@@ -234,9 +318,14 @@ class ReceivableGenerator
      * TANGGAL. Nilai yang sama punya arti lain di tempat lain -- lihat
      * `BillingTolerance` -- sehingga pembacaan ini sengaja tidak disebar
      * ke seluruh aplikasi.
+     *
+     * Membaca lewat `BillingTolerance::generateDay()` bukan langsung dari
+     * `Setting`, karena accessor itu yang mengubah nilai di luar rentang
+     * 1-28 menjadi 0 -- artinya "belum dijadwalkan". Tanpa itu, nilai 30
+     * akan lolos ke sini dan `shouldRun()` menganggapnya valid.
      */
     public function scheduledDay(): int
     {
-        return (int) (Setting::first()?->toleransi_tunggakan ?? 0);
+        return app(BillingTolerance::class)->generateDay();
     }
 }

@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\InstallationTicket;
 use App\Models\MonthlyBill;
-use App\Models\Setting;
 use App\Models\Transaction;
+use App\Services\BillingTolerance;
+use App\Services\ReceivableGenerator;
 use App\Services\TenantCache;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -190,14 +191,19 @@ class DashboardController extends Controller
      *   - type     : instalasi | tunggakan | tagihan | pemakaian (wajib)
      *   - search   : string pencarian (opsional)
      *   - page     : halaman (default 1)
-     *   - per_page : rows per page (default 10, max 50)
+     *   - per_page : rows per page (default 10, max 100)
      *
      * Response shape seragam: { success, data: [...], meta: { ... } }
      */
     public function popupData(Request $request)
     {
         $type = (string) $request->query('type', '');
-        $perPage = max(1, min((int) $request->query('per_page', 10), 50));
+        // Batas max 100 WAJIB sinkron dengan opsi "Tampilkan" di DataTable
+        // (10/25/50/100). Kalau batas server lebih kecil dari pilihan UI,
+        // frontend menghitung offset halaman dari `per_page` pilihan user
+        // sementara server memakai nilai yang dipangkas -- sehingga halaman 2
+        // menampilkan baris yang salah, dan label "Showing X to Y" jadi bohong.
+        $perPage = max(1, min((int) $request->query('per_page', 10), 100));
         $page = max(1, (int) $request->query('page', 1));
         $search = trim((string) $request->query('search', ''));
 
@@ -452,7 +458,19 @@ class DashboardController extends Controller
         $today = now();
         $todayYmd = $today->toDateString();
         $todayDay = (int) $today->format('d');
-        $scheduledDay = (int) (Setting::first()?->toleransi_tunggakan ?? 0);
+
+        /*
+         * Tanggal generate dibaca lewat `BillingTolerance::generateDay()`,
+         * bukan langsung dari `Setting`.
+         *
+         * `generateDay()` mengubah nilai di luar rentang 1-28 menjadi 0 --
+         * artinya "SOP belum diisi, tidak ada yang dijadwalkan". Tanpa itu,
+         * nilai 30 akan lolos sebagai tanggal generate yang sah.
+         *
+         * Sumbernya tetap SATU: `BillingTolerance` adalah tempat semua
+         * arti `toleransi_tunggakan` dikunci.
+         */
+        $scheduledDay = app(BillingTolerance::class)->generateDay();
 
         $configured = $scheduledDay >= 1 && $scheduledDay <= 28;
 
@@ -525,8 +543,8 @@ class DashboardController extends Controller
         $today = now();
         $todayYmd = $today->toDateString();
 
-        $setting = Setting::first();
-        $scheduledDay = (int) ($setting?->toleransi_tunggakan ?? 0);
+        // Sama seperti di `checkAutoGenerateOverdue()`: satu sumber angka.
+        $scheduledDay = app(BillingTolerance::class)->generateDay();
 
         // 1) Kalau SOP belum di-set / 0 -> tidak ada generate otomatis.
         if ($scheduledDay < 1 || $scheduledDay > 28) {
@@ -586,7 +604,7 @@ class DashboardController extends Controller
          *    agregasi tabel `amount` berjalan bersamaan (lock wait timeout),
          *    BUKAN mencegah generate.
          */
-        $lockKey = $this->cache->flagKey('overdue_gen_lock_'.$todayYmd);
+        $lockKey = app(ReceivableGenerator::class)->lockKey($today);
 
         if (! Cache::add($lockKey, 1, now()->addMinutes(10))) {
             return response()->json([
@@ -637,26 +655,29 @@ class DashboardController extends Controller
         // sehingga angka tunggakan dan pendapatan berubah.
         $this->cache->bump();
 
-        // Susun payload untuk pop up frontend. Hitung ringkasan dari DB
-        // agar frontend tidak perlu parsing output Artisan.
-        $processed = (int) Transaction::where('reverence_type', 'overdue_bill')
-            ->whereDate('tgl_transaksi', $todayYmd)
-            ->where('account_debet', '1.1.03.01')
-            ->where('account_kredit', '4.1.01.02') // Tunggakan Abodemen
-            ->distinct()
-            ->count('reverence_id');
+        // Susun payload untuk pop up frontend.
+        //
+        // Ringkasan diambil dari command yang baru saja jalan, BUKAN dari
+        // query ulang "jurnal bertanggal hari ini".
+        //
+        // Query lama selalu mengembalikan 0 pada run kedua: semua tagihan
+        // sudah punya jurnal, jadi TIDAK ada jurnal baru bertanggal hari
+        // ini. Padahal command-nya memproses ribuan tagihan. Popup pun
+        // menampilkan "diproses 0" -- angka yang tidak pernah terjadi.
+        //
+        // `ReceivableGenerator::runSummary()` membaca ringkasan yang
+        // ditulis command dari loop pemrosesannya, jadi angkanya selalu
+        // sesuai dengan apa yang benar-benar terjadi.
+        $ringkasan = app(ReceivableGenerator::class)->runSummary($today);
 
-        $processedUsage = (int) Transaction::where('reverence_type', 'overdue_bill')
-            ->whereDate('tgl_transaksi', $todayYmd)
-            ->where('account_debet', '1.1.03.01')
-            ->where('account_kredit', '4.1.01.03') // Tunggakan Pemakaian / denda
-            ->distinct()
-            ->count('reverence_id');
+        $processed = (int) ($ringkasan['jurnal_abodemen'] ?? 0);
+        $processedUsage = (int) ($ringkasan['jurnal_pemakaian'] ?? 0);
+        $processedDenda = (int) ($ringkasan['jurnal_denda'] ?? 0);
 
-        $totalUnpaid = (int) MonthlyBill::where('status', 'unpaid')->count();
-        $totalOverdue = (int) MonthlyBill::where('status', 'unpaid')
-            ->where('due_date', '<', $todayYmd)
-            ->count();
+        $totalUnpaid = (int) ($ringkasan['total_unpaid']
+            ?? MonthlyBill::where('status', 'unpaid')->count());
+        $totalOverdue = (int) ($ringkasan['total_overdue']
+            ?? MonthlyBill::where('status', 'unpaid')->where('due_date', '<', $todayYmd)->count());
 
         $payload = [
             'success' => true,
@@ -670,6 +691,7 @@ class DashboardController extends Controller
             'summary' => [
                 'tagihan_dengan_abodemen_tungakan' => $processed,
                 'tagihan_dengan_pemakaian_tungakan' => $processedUsage,
+                'tagihan_dengan_denda_tungakan' => $processedDenda,
                 'total_unpaid' => $totalUnpaid,
                 'total_overdue' => $totalOverdue,
             ],

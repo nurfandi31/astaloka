@@ -42,6 +42,56 @@ class LoginGeneratePiutangTest extends TestCase
     use RefreshDatabase;
 
     /**
+     * Kunci waktu ke tanggal yang PASTI di dalam rentang generate 1-28.
+     *
+     * Kenapa test di kelas ini perlu dikunci waktunya
+     * -----------------------------------------------
+     *
+     * Gate generate membandingkan "hari ini" dengan `toleransi_tunggakan`,
+     * dan `BillingTolerance::generateDay()` hanya menerima nilai 1-28.
+     * Nilai di luar rentang itu berarti "SOP belum diisi" -- dan generate
+     * tidak pernah jalan.
+     *
+     * Test yang memakai `toleransi_tunggakan => now()->format('d')` punya
+     * masalah yang sama persis. Di tanggal 29, 30, dan 31, `now()->format('d')`
+     * menghasilkan angka DI LUAR rentang, jadi `generateDay()` mengembalikan 0,
+     * dan generate TIDAK pernah jalan -- padahal test mengharapkan
+     * `ran=true`.
+     *
+     * Gejalanya muncul sebagai kegagalan yang sama sekali tidak
+     * menyinggung tanggal: `assertJsonPath('data.piutang_tunggakan.ran', true)`
+     * gagal dengan "Failed asserting that false is identical to true", dan
+     * tidak ada satupun pesan yang menyebut tanggal. Test itu terlihat seperti
+     * produknya rusak, padahal yang rusak cuma cara test itu memilih tanggal.
+     *
+     * Mengunci waktu ke tanggal yang sudah DI DALAM rentang 1-28 membuat
+     * hasilnya sama terlepas dari kapan pun test ini dijalankan.
+     */
+    private function freezeDate(): void
+    {
+        // 15 Oktober 2026 -- di tengah bulan, jadi tanggal ini ada di dalam
+        // rentang generate 1-28 dan tidak pernah melewati batas akhir bulan.
+        $this->travelTo(Carbon::parse('2026-10-15 10:00:00'));
+    }
+
+    /**
+     * Kunci waktu SEBELUM test jalan.
+     *
+     * Dipanggil di sini, bukan di dalam test satu per satu, karena hampir
+     * semua test di kelas ini memakai `now()->format('d')` sebagai tanggal
+     * generate -- dan nilai itu harus dihitung setelah waktu dikunci.
+     *
+     * Test yang memang butuh waktu lain memanggil `travelTo()` sendiri,
+     * dan itu menimpa penguncian ini.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->freezeDate();
+    }
+
+    /**
      * Satu lokasi dengan satu pelanggan dan satu tagihan menunggak.
      *
      * Mengembalikan `[$admin, $bill]`.
@@ -135,7 +185,7 @@ class LoginGeneratePiutangTest extends TestCase
     #[Test]
     public function login_membuat_jurnal_piutang_tunggakan_tanpa_perlu_buka_dashboard(): void
     {
-        // Tanggal generate = hari ini, supaya generate HARUS boleh jalan.
+        // Tanggal generate = hari ini (15), supaya generate HARUS boleh jalan.
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
@@ -192,33 +242,77 @@ class LoginGeneratePiutangTest extends TestCase
             ->assertJsonPath('data.piutang_tunggakan.summary.jurnal_pemakaian', 1);
     }
 
+    /**
+     * Generate tidak jalan SEBELUM tanggal generate.
+     *
+     * Test ini dulu bergantung pada tanggal saat test dijalankan, sehingga
+     * ia gagal pada tanggal 28 dan-setidaknyanya. Karena `now()->addDay()`
+     * pada tanggal 28 menjadi 29, lalu dijepit ke 28 oleh rentang 1-28,
+     * hasilnya SAMA dengan hari ini -- jadi gate `day >= scheduledDay`
+     * lolos dan test gagal.
+     *
+     * Sekarang waktunya dikunci ke tanggal tetap, jadi hasilnya sama
+     * terlepas dari kapan pun test ini dijalankan.
+     */
     #[Test]
     public function login_tidak_menjalankan_generate_sebelum_tanggal_generate(): void
     {
-        // Tanggal generate = besok, jadi hari ini belum waktunya.
-        $besok = (int) now()->addDay()->format('d');
+        // 10 Oktober 2026, jadwal generate-nya 11 Oktober.
+        $this->travelTo(Carbon::parse('2026-10-10 09:00:00'));
 
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            'toleransi_tunggakan' => $besok > 28 ? 28 : $besok,
+            'toleransi_tunggakan' => 11,
         ]);
 
         [$admin] = $this->seedLokasiDenganTagihanMenunggak();
 
-        // Kalau `besok` jatuh di tanggal <= 28 dan masih "besok", gate
-        // `day >= scheduledDay` HARUS menahannya. Kalau tidak, test ini
+        // Gate `day >= scheduledDay` HARUS menahannya. Kalau tidak, test ini
         // gagal dan berarti gate-nya salah.
-        if ((int) now()->format('d') < $besok) {
-            $this->login($admin)->assertOk()
-                ->assertJsonPath('data.piutang_tunggakan.ran', false);
+        $this->login($admin)->assertOk()
+            ->assertJsonPath('data.piutang_tunggakan.ran', false);
 
-            $this->assertSame(
-                0,
-                Transaction::where('reverence_type', 'overdue_bill')->count(),
-                'Tidak boleh ada jurnal sebelum tanggal generate.'
-            );
-        }
+        $this->assertSame(
+            0,
+            Transaction::where('reverence_type', 'overdue_bill')->count(),
+            'Tidak boleh ada jurnal sebelum tanggal generate.'
+        );
+    }
+
+    /**
+     * Gate berbasis tanggal lokal, bukan UTC.
+     *
+     * Aplikasi ini berjalan di WIB (UTC+7). Dulu `config/app.php` memakai
+     * `UTC`, sehingga antara pukul 00:00-07:00 WIB `now()->day` menunjuk
+     * ke HARI SEBELUMNYA -- dan gate tanggal generate meleset: tanggal 28
+     * terlihat seperti tanggal 27, jadi generate tidak jalan sama sekali.
+     *
+     * Test ini mengunci itu: jam 00:30 waktu lokal tanggal 28 HARUS
+     * dianggap tanggal 28.
+     */
+    #[Test]
+    public function gate_menggunakan_tanggal_lokal_bukan_utc(): void
+    {
+        // 00:30 WIB tanggal 28 -- kalau app memakai UTC, ini masih tanggal 27.
+        $this->travelTo(Carbon::parse('2026-10-28 00:30:00'));
+
+        Setting::create([
+            'key' => 'sop',
+            'batas_tagihan' => 27,
+            'toleransi_tunggakan' => 28,
+        ]);
+
+        [$admin] = $this->seedLokasiDenganTagihanMenunggak();
+
+        $this->login($admin)->assertOk()
+            ->assertJsonPath('data.piutang_tunggakan.ran', true);
+
+        $this->assertSame(
+            2,
+            Transaction::where('reverence_type', 'overdue_bill')->count(),
+            'Jam 00:30 tanggal 28 harus dianggap tanggal 28.'
+        );
     }
 
     #[Test]
