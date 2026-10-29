@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\InstallationTicket;
 use App\Models\MonthlyBill;
 use App\Models\Transaction;
+use App\Services\ArsipTunggakanService;
 use App\Services\BillingTolerance;
 use App\Services\ReceivableGenerator;
 use App\Services\TenantCache;
@@ -54,9 +55,17 @@ class DashboardController extends Controller
                         ->all(),
                     'bills_unpaid' => MonthlyBill::where('status', 'unpaid')->count(),
                     'pemakaian_count' => InstallationTicket::where('status', 'completed')->count(),
-                    'tunggakan_total' => MonthlyBill::where('status', 'unpaid')
-                        ->where('penalty_amount', '>', 0)
-                        ->count(),
+                    /*
+                     * Jumlah piutang tunggakan yang tercatat.
+                     *
+                     * Dihitung lewat `ArsipTunggakanService` supaya angka di kotak
+                     * dashboard sama persis dengan isi tabel Arsip Tunggakan.
+                     *
+                     * Sebelumnya dipakai `penalty_amount > 0` -- proxy yang
+                     * menyesatkan: tagihan menunggak tanpa denda ikut hilang,
+                     * padahal piutangnya sudah membebani akun 1.1.03.01.
+                     */
+                    'tunggakan_total' => app(ArsipTunggakanService::class)->countFiltered(null, null),
                     'latest_tickets' => InstallationTicket::with('package:id,name')
                         ->orderBy('created_at', 'desc')
                         ->limit(5)
@@ -267,51 +276,24 @@ class DashboardController extends Controller
     }
 
     /**
-     * Arsip Tunggakan: tagihan unpaid + penalty_amount > 0.
-     * Eager load minimum + paginasi server-side (TIDAK loop halaman).
+     * Arsip Tunggakan: piutang pelanggan yang belum tertagih.
+     *
+     * DITERUSKAN ke `ArsipTunggakanService`, bukan dihitung sendiri.
+     *
+     * Alasannya: popup dashboard dan halaman Arsip Tunggakan (/app/arsip/
+     * tunggakan) menampilkan HAL YANG SAMA, dan versi lama menghitungnya
+     * sendiri dengan `penalty_amount > 0` -- proxy yang sudah ditolak di
+     * `MonthlyBillController::pay` ("jurnal overdue_bill adalah satu-satunya
+     * fakta yang bisa dipercaya"). Kalau popup dan arsip memakai definisi
+     * berbeda, angka di kotak dashboard tidak akan sama dengan isi tabelnya,
+     * dan tidak ada yang bisa menjelaskan bedanya.
      */
     private function popupTunggakan(int $perPage, int $page, string $search)
     {
-        $query = MonthlyBill::query()
-            ->with([
-                'customer:id,user_id,ticket_id,customer_code',
-                'customer.user:id,name',
-                'customer.ticket:id,applicant_name,address',
-            ])
-            ->where('status', 'unpaid')
-            ->where('penalty_amount', '>', 0)
-            ->orderBy('due_date', 'asc');
+        $arsip = app(ArsipTunggakanService::class);
 
-        if ($search !== '') {
-            $query->where(function ($w) use ($search) {
-                $w->whereHas('customer.user', fn ($u) => $u->where('name', 'like', $search.'%'))
-                    ->orWhereHas('customer', fn ($c) => $c->where('customer_code', 'like', $search.'%'))
-                    ->orWhereHas('customer.ticket', fn ($t) => $t->where('applicant_name', 'like', $search.'%'));
-            });
-        }
-
-        $total = (clone $query)->count();
-        $rows = $query->forPage($page, $perPage)->get();
-
-        $items = $rows->map(function ($b) {
-            $totalAmt = (float) $b->total_amount;
-            $denda = (float) $b->penalty_amount;
-
-            return [
-                'id' => $b->id,
-                'nomorInduk' => $b->customer?->customer_code ?: '-',
-                'customer' => $b->customer?->ticket?->applicant_name
-                    ?? $b->customer?->user?->name ?? '-',
-                'alamat' => $b->customer?->ticket?->address ?: '-',
-                'periodeLabel' => $b->billing_period_month
-                    ? sprintf('%02d/%d', $b->billing_period_month, $b->billing_period_year)
-                    : '-',
-                'tagihan' => max(0, $totalAmt - $denda),
-                'denda' => $denda,
-                'total' => $totalAmt,
-                'status' => 'Belum Lunas',
-            ];
-        })->values();
+        $total = $arsip->countFiltered(null, null, $search);
+        $items = $arsip->items(null, null, $search, $page, $perPage);
 
         return response()->json([
             'success' => true,

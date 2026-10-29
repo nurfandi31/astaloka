@@ -391,6 +391,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('jenis-transactions', [JenisTransactionController::class, 'index']);
     Route::post('generate-amount', [GenerateAmountController::class, 'generate']);
     Route::post('tunggakan/generate', [TunggakanController::class, 'generate']);
+    /*
+     * Arsip Tunggakan (daftar piutang pelanggan yang belum tertagih).
+     *
+     * Punya prefix `tunggakan/` yang sama dengan `tunggakan/generate`
+     * di atas, jadi keduanya dikunci oleh menu `arsip.tunggakan` --
+     * mencabut hak akses Arsip Tunggakan sekaligus menutup jalannya
+     * generate manual.
+     */
+    Route::get('tunggakan/arsip', [TunggakanController::class, 'arsip']);
     Route::get('accounts', [AccountController::class, 'index']);
     Route::get('accounts/by-level/{level}', [AccountController::class, 'byLevel']);
     Route::get('amount/total-saldo', [AmountController::class, 'getTotalSaldo']);

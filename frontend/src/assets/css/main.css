@@ -425,6 +425,27 @@ utilities;
 
   padding: 1.5rem;
   padding-top: calc(var(--topnav-height) + 1.5rem);
+
+  /*
+   * WAJIB: `min-width: 0`.
+   *
+   * `.main-content` adalah flex item di `.dashboard-layout` (flex baris).
+   * Flex item punya `min-width: auto` secara default, artinya lebarnya TIDAK
+   * boleh menyusut lebih kecil dari lebar min-content isinya. Padahal isinya
+   * bisa tabel lebar -- dan tabel punya lebar min-content yang besar
+   * (setiap kolom minimal sebesar teksnya yang tidak bisa dipecah).
+   *
+   * Akibatnya: satu tabel lebar mendorong SELURUH halaman melebar melewati
+   * viewport. Yang rusak bukan tabelnya -- scroll horizontal tabel itu memang
+   * bekerja -- tapi halaman: kartu ringkasan terpotong di kanan, header
+   * terpotong, dan tidak ada scrollbar halaman yang bisa menyelamatkannya.
+   *
+   * `min-width: 0` melepas ikatan itu: `.main-content` boleh menyusut sesuai
+   * ruang yang tersisa, dan tabel yang terlalu lebar menggulir di dalam
+   * wadahnya sendiri (`overflow-x-auto` pada `DataTable`) -- persis yang
+   * seharusnya terjadi.
+   */
+  min-width: 0;
 }
 
 @media (max-width: 768px) {

@@ -1,5 +1,12 @@
 <template>
   <!--
+    POPUP dashboard (kotak "TUNGGAKAN" -> Lihat Detail).
+
+    Halaman mandiri ada di `ArsipTunggakanPage.vue`; komponen ini hanya
+    untuk popup. Keduanya memakai tabel yang sama
+    (`parts/ArsipTunggakanTable.vue`) supaya angka yang muncul di popup
+    dan di halaman tidak pernah berbeda.
+
     TIDAK pakai `ContentCard` di sini.
 
     Panel popup sudah punya border, `rounded-2xl`, dan shadow sendiri. Kalau
@@ -23,113 +30,75 @@
     ruang sisa, dan tabel itulah yang jadi elemen yang digulir.
   -->
   <div class="h-full! min-h-0! flex! flex-col! p-3!">
-    <DataTable
-      v-model="searchQuery"
-      :data="itemsList"
-      :columns="columns"
-      title="Detail Arsip Tunggakan"
-      searchPlaceholder="Cari nama atau nomor pelanggan..."
-      v-model:current-page="currentPage"
-      v-model:per-page="perPage"
-      :total-entries="serverTotal"
-      :total-pages="totalPages"
-      :show-entries="true"
-      :no-card="true"
-      server-side
-      :loading="loading"
-      empty-title="Tidak Ada Tunggakan"
-      empty-message="Belum ada pelanggan dengan tunggakan denda. Semua tagihan sudah lunas."
-      empty-icon="file-invoice-dollar"
+    <div
+      v-if="errorMessage"
+      class="mb-3! px-3! py-2! bg-rose-50! border! border-rose-200! text-rose-700! text-[11px]! font-semibold! rounded-lg! flex! items-center! gap-2!"
     >
-      <template #column-nomorInduk="{ row }">
-        <span class="text-[12px] text-slate-600 font-medium font-mono whitespace-nowrap">
-          {{ row.nomorInduk }}
-        </span>
-      </template>
-      <template #column-periodeLabel="{ row }">
-        <span class="text-[12px] text-slate-600 font-medium whitespace-nowrap">
-          {{ row.periodeLabel }}
-        </span>
-      </template>
-      <template #column-tagihan="{ row }">
-        <span
-          :class="[
-            'text-[12px] font-semibold font-mono whitespace-nowrap',
-            row.tagihan > 0 ? 'text-slate-700' : 'text-slate-400',
-          ]"
-        >
-          {{ formatRupiah(row.tagihan) }}
-        </span>
-      </template>
-      <template #column-denda="{ row }">
-        <span
-          :class="[
-            'text-[12px] font-semibold font-mono whitespace-nowrap',
-            row.denda > 0 ? 'text-rose-600' : 'text-slate-400',
-          ]"
-        >
-          {{ formatRupiah(row.denda) }}
-        </span>
-      </template>
-      <template #column-total="{ row }">
-        <span class="text-[12px] text-slate-800 font-bold font-mono whitespace-nowrap">
-          {{ formatRupiah(row.total) }}
-        </span>
-      </template>
-      <!-- Selalu "Belum Lunas": query backend sudah di-filter status='unpaid'. -->
-      <template #column-status="{ row }">
-        <span
-          class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md bg-rose-50 text-rose-600"
-        >
-          {{ row.status || 'Belum Lunas' }}
-        </span>
-      </template>
-    </DataTable>
+      <font-awesome-icon icon="exclamation-triangle" class="text-xs!" />
+      Gagal memuat data: {{ errorMessage }}
+    </div>
+
+    <ArsipTunggakanTable
+      popup
+      :items-list="itemsList"
+      :columns="columns"
+      :search-query="searchQuery"
+      @update:search-query="searchQuery = $event"
+      :current-page="currentPage"
+      @update:current-page="currentPage = $event"
+      :per-page="perPage"
+      @update:per-page="perPage = $event"
+      :server-total="serverTotal"
+      :total-pages="totalPages"
+      :loading="loading"
+    />
   </div>
 </template>
 
 <script setup>
-import DataTable from '@/presentations/components/ui/DataTable.vue'
-import { formatRupiah } from '@/composables/useFormatCurrency'
+import ArsipTunggakanTable from './parts/ArsipTunggakanTable.vue'
 import { usePopupData } from '@/composables/usePopupData'
 
-// Kolom nominal & tanggal rata kanan; header DataTable default text-left, jadi
-// perlu `!` agar override benar-benar menang (sama seperti KelasIndex/detailPemakaianAir).
 const columns = [
   { key: 'nomorInduk', title: 'No. Pelanggan' },
   { key: 'customer', title: 'Nama' },
   { key: 'alamat', title: 'Alamat' },
-  {
-    key: 'periodeLabel',
-    title: 'Periode',
-    thClass: 'whitespace-nowrap!',
-  },
-  {
-    key: 'tagihan',
-    title: 'Tagihan',
-    thClass: 'text-right!',
-    tdClass: 'text-right!',
-  },
-  {
-    key: 'denda',
-    title: 'Denda',
-    thClass: 'text-right!',
-    tdClass: 'text-right!',
-  },
-  {
-    key: 'total',
-    title: 'Total Tunggakan',
-    thClass: 'text-right!',
-    tdClass: 'text-right!',
-  },
+  { key: 'periodeLabel', title: 'Periode' },
+  { key: 'jatuhTempo', title: 'Jatuh Tempo' },
+  { key: 'tanggalPencatatan', title: 'Tercatat' },
+  { key: 'tagihan', title: 'Tagihan' },
+  { key: 'denda', title: 'Denda' },
+  { key: 'piutangTercatat', title: 'Piutang Tercatat' },
+  { key: 'total', title: 'Total' },
   { key: 'status', title: 'Status' },
 ]
 
-// Pakai endpoint ringan DashboardController::popupData?type=tunggakan
-// (filter & paginasi di SERVER — sebelumnya getAllBills() menarik semua halaman)
-//
-// Composable juga mengembalikan nomor halaman ke 1 saat `per_page` berubah,
-// dan membuang balasan lama yang tiba belakangan. Lihat `usePopupData.js`.
-const { searchQuery, currentPage, perPage, loading, serverTotal, totalPages, itemsList } =
-  usePopupData('tunggakan')
+/*
+ * Popup ini memakai endpoint `dashboard/popup-data?type=tunggakan`, BUKAN
+ * `GET /tunggakan/arsip` seperti halaman mandiri.
+ *
+ * Alasannya: popup dashboard memakai endpoint yang SELALU dibolehkan
+ * (`dashboard/*` ada di `always_allowed_api`), sedangkan `tunggakan/arsip`
+ * dikunci oleh menu `arsip.tunggakan`. Kalau popup memakai endpoint yang
+ * dikunci, admin yang jabatannya tidak punya "Arsip Tunggakan" akan
+ * melihat kotak dashboard-nya error -- padahal kotak itu bukan halamannya.
+ *
+ * Datanya tetap sama persis: `DashboardController::popupTunggakan()`
+ * meneruskan ke `ArsipTunggakanService`, service yang sama dengan yang
+ * dipakai halaman mandiri. Yang berbeda hanya FILTER: popup tidak punya
+ * filter periode (kotak dashboard bersifat ringkasan "sekarang"), halaman
+ * mandiri punya filter bulan/tahun pencatatan piutang.
+ *
+ * Popup TIDAK memakai filter periode, jadi tidak perlu parameter bulan.
+ */
+const {
+  searchQuery,
+  currentPage,
+  perPage,
+  loading,
+  itemsList,
+  serverTotal,
+  totalPages,
+  errorMessage,
+} = usePopupData('tunggakan')
 </script>

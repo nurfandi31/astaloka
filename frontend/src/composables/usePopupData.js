@@ -1,4 +1,4 @@
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, isRef, unref } from 'vue'
 import dashboardService from '@/services/dashboard.service'
 
 /**
@@ -31,10 +31,22 @@ import dashboardService from '@/services/dashboard.service'
  *   - tiap request membawa nomor urut; hanya balasan dengan nomor urut
  *     terbaru yang boleh mengubah state (bug 2).
  *
+ * PARAMETER YANG REAKTIF
+ * -----------------------
+ *
+ * `params` boleh berupa `ref`/`reactive` (atau objek biasa). Kalau begitu,
+ * perubahannya memicu fetch ulang sendiri -- dan nomor halaman dikembalikan
+ * ke 1, karena hasil di halaman berbeda tidak comparable dengan hasil di
+ * halaman lama.
+ *
+ * Yang TIDAK boleh: `params` yang berubah diam-diam tanpa fetch ulang.
+ * Itu yang membuat filter bulan di halaman Arsip Tunggakan lama terlihat
+ * "nyangkut": bulan yang diganti tidak pernah benar-benar sampai ke server.
+ *
  * @param {string} type          Tipe popup: instalasi | pemakaian | tunggakan | tagihan
  * @param {Object} [opts]
- * @param {Object} [opts.params] Parameter tambahan yang dikirim ke server
- *                                (mis. `{ month, year }` untuk pemakaian).
+ * @param {Object|import('vue').Ref} [opts.params] Parameter tambahan yang
+ *                                dikirim ke server (mis. `{ month, year }`).
  * @param {Function} [opts.petakan] Pemeta baris server -> baris tabel.
  * @param {boolean} [opts.otomatis] Langsung fetch saat komponen mounted.
  */
@@ -46,6 +58,8 @@ export function usePopupData(type, { params = {}, petakan = null, otomatis = tru
   const serverTotal = ref(0)
   const totalPages = ref(1)
   const itemsList = ref([])
+  const errorMessage = ref(null)
+  const meta = ref({})
 
   /*
    * Nomor urut request.
@@ -60,18 +74,33 @@ export function usePopupData(type, { params = {}, petakan = null, otomatis = tru
   let requestId = 0
   let latestRequestId = 0
 
+  /**
+   * Param yang dikirim ke server.
+   *
+   * `unref` dipakai supaya `params` bisa berupa `ref` (reaktif) maupun
+   * objek biasa. Untuk objek biasa, isinya disalin per request -- kalau
+   * tidak, objek yang sama akan ikut berubah di tengah request yang
+   * sedang berjalan.
+   */
+  const paramRequest = () => {
+    const nilai = unref(params)
+
+    return nilai && typeof nilai === 'object' ? { ...nilai } : {}
+  }
+
   const fetchData = async () => {
     const myId = ++requestId
     latestRequestId = myId
 
     try {
       loading.value = true
+      errorMessage.value = null
 
       const response = await dashboardService.getPopupData(type, {
         page: currentPage.value,
         per_page: perPage.value,
         search: searchQuery.value,
-        ...params,
+        ...paramRequest(),
       })
 
       // Balasan usang: request yang lebih baru sudah dimulai. Abaikan.
@@ -82,11 +111,36 @@ export function usePopupData(type, { params = {}, petakan = null, otomatis = tru
         itemsList.value = petakan ? raw.map(petakan) : raw
         serverTotal.value = response.meta?.total ?? itemsList.value.length
         totalPages.value = response.meta?.last_page ?? 1
+        meta.value = response.meta || {}
+      } else {
+        itemsList.value = []
+        serverTotal.value = 0
+        totalPages.value = 1
+        meta.value = {}
+        errorMessage.value = response?.message || 'Gagal memuat data.'
       }
-    } catch {
-      // Diamkan: popup cukup menampilkan data yang terakhir sukses.
-      // Tidak ada error yang bisa di-olleh di sini tanpa membuat
-      // spinner menggantung atau pesan error menimpai tabel.
+    } catch (err) {
+      // Balasan usang: abaikan juga errornya.
+      if (myId !== latestRequestId) return
+
+      itemsList.value = []
+      serverTotal.value = 0
+      totalPages.value = 1
+
+      /*
+       * Pesan error TIDAK lagi ditelan.
+       *
+       * Sebelumnya `catch` di sini sengaja diamkan dengan alasan "popup
+       * cukup menampilkan data yang terakhir sukses". Akibatnya endpoint
+       * yang 403 (menu dicabut dari jabatan) atau 500 membuat popup
+       * menampilkan "Tidak Ada Tunggakan" -- yang ARTINYA "tidak ada
+       * tunggakan", bukan "halaman ini gagal dimuat". Dua hal yang sama
+       * sekali, dan yang salah adalah yang kedua.
+       *
+       * `errorMessage` dibaca oleh pemanggil untuk menampilkan banner
+       * kesalahan; tabel tetap tampil (kosong) supaya layout tidak rusak.
+       */
+      errorMessage.value = err?.response?.data?.message || err?.message || 'Gagal memuat data.'
     } finally {
       // Hanya request terbaru boleh menurunkan spinner.
       if (myId === latestRequestId) {
@@ -135,6 +189,28 @@ export function usePopupData(type, { params = {}, petakan = null, otomatis = tru
     }, 300)
   })
 
+  /*
+   * Parameter reaktif (mis. filter bulan/tahun).
+   *
+   * Hanya dipasang kalau `params`-nya memang reaktif. Untuk objek biasa,
+   * watcher ini tidak akan pernah memicu -- dan tidak perlu, karena
+   * objek biasa tidak berubah sendiri.
+   */
+  if (isRef(params) || (params && typeof params === 'object' && '__v_isReactive' in params)) {
+    watch(
+      () => paramRequest(),
+      () => {
+        // Filter berubah -> hasil di halaman lama tidak berlaku lagi.
+        if (currentPage.value !== 1) {
+          currentPage.value = 1
+          return
+        }
+        fetchData()
+      },
+      { deep: true },
+    )
+  }
+
   onMounted(() => {
     if (otomatis) fetchData()
   })
@@ -147,6 +223,8 @@ export function usePopupData(type, { params = {}, petakan = null, otomatis = tru
     serverTotal,
     totalPages,
     itemsList,
+    errorMessage,
+    meta,
     fetchData,
   }
 }
