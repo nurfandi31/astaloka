@@ -113,3 +113,41 @@ Schedule::command('migrasi:bersihkan')
     ->everyTenMinutes()
     ->name('migrasi:bersihkan')
     ->withoutOverlapping();
+
+/*
+ * JADWAL DI LUAR APLIKASI -- WAJIB ADA
+ * ------------------------------------
+ *
+ * Jadwal di atas hanya jalan kalau ada yang memanggil `schedule:run`.
+ * Di produksi, itu biasanya cron. Di Windows, itu Task Scheduler.
+ *
+ * Kenapa ini penting untuk gate `===`
+ *
+ * Gate tanggal generate membandingkan "hari ini" dengan tanggal yang di-set,
+ * PERSIS. Jadi kalau tidak ada staff yang login tepat pada tanggal itu, dan
+ * scheduler juga tidak berjalan, bulan itu TIDAK PERNAH punya jurnal piutang
+ * -- tanpa error, tanpa log. Dua sumber penutup harus sama-sama hidup:
+ * login di tanggal yang tepat, DAN scheduler yang jalan.
+ *
+ * Task Scheduler di mesin ini:
+ *
+ *     Nama  : ASTALOKA Scheduler
+ *     Aksi  : C:\laragon\bin\php\php-8.4.19-nts-Win32-vs17-x64\php.exe
+ *             "C:\laragon\www\astaloka\backend\artisan" schedule:run
+ *     Folder: C:\laragon\www\astaloka\backend
+ *     Jadwal: setiap menit
+ *
+ * PENTING: jangan pakai task yang sama untuk dua aplikasi. ASTALOKA punya
+ * task sendiri (`ASTALOKA Scheduler`) dan tidak boleh berbagi dengan
+ * `LaravelScheduler` milik pamsides-v2 -- satu task hanya boleh menunjuk ke
+ * satu `artisan`, karena `schedule:run` menjalankan jadwal yang terdaftar di
+ * aplikasi yang dipanggil.
+ *
+ * Cek apakah jalannya:
+ *
+ *     schtasks /query /tn "ASTALOKA Scheduler"
+ *     php artisan schedule:list
+ *
+ * Kalau `Last Result` bukan 0, task-nya gagal jalan -- dan generate piutang
+ * tidak akan terjadi di tanggal yang seharusnya.
+ */

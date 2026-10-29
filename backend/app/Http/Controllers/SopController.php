@@ -153,17 +153,45 @@ class SopController extends Controller
                 'batasTagihan' => 'required|integer|min:1|max:28',
 
                 /*
-                 * Rentang `0..120` TETAP sama seperti pamsides-v2.
+                 * Rentang `0..31` -- TANGGAL generate piutang tiap bulan.
                  *
-                 * Nilai ini punya beberapa makna sekaligus (tanggal
-                 * generate, jumlah hari maf toleransi, ambang advance
-                 * payment, batas tagihan menunggak), dan tiap konsumen
-                 * yang membutuhkannya sudah memeriksa rantainya sendiri
-                 * lewat `BillingTolerance`. Mengubah rentang validasi di
-                 * sini akan menolak SOP lama yang sah -- termasuk nilai 0
-                 * yang berarti "tanpa maf toleransi".
+                 * Dulu rentangnya `0..120`, warisan pamsides-v2, karena
+                 * kolom ini punya empat arti sekaligus. Dua di antaranya
+                 * memang satuan HARI/JUMLAH, tapi yang dipakai di halaman
+                 * ini adalah makna TANGGAL -- dan tanggal dalam bulan
+                 * maksimal 31.
+                 *
+                 * Kenapa harus dibatasi di sini
+                 * --------------------------------
+                 *
+                 * Tanpa batas ini, admin bisa menyimpan angka seperti 40
+                 * atau 99: form menerima, toast bilang "berhasil
+                 * disimpan", tapi `BillingTolerance::generateDay()`
+                 * mengembalikan 0 untuk angka di luar 1-31 -- yang dibaca
+                 * sebagai "SOP belum diisi". Akibatnya generate TIDAK PERNAH
+                 * jalan, tanpa error, tanpa log. Gejalanya persis seperti
+                 * yang sudah pernah dilaporkan: "sudah saya set tanggalnya
+                 * tapi kok generate tidak jalan?".
+                 *
+                 * Jadi penolakan di sini bukan tambahan.strict, tapi
+                 * memindahkan pesan error dari "tidak jelas" ke "tepat di
+                 * tempatnya".
+                 *
+                 * NILAI 0 TETAP DITERIMA: artinya "tanggal generate belum
+                 * diset" -- generate tidak berjalan, tapi admin punya
+                 * jalan untuk mengisinya nanti lewat halaman ini.
+                 *
+                 * Catatan: angka yang DISIMPAN di sini dipakai juga sebagai
+                 * ambang piutang (jumlah hari), ambang advance payment, dan
+                 * batas tagihan unpaid sebelum suspend -- lihat
+                 * `BillingTolerance`. Semua konsumen itu membaca kolom
+                 * yang sama dan masing-masing memeriksa rantainya sendiri,
+                 * jadi pembatasan di sini tidak mengubah perilaku mereka.
                  */
-                'toleransiTunggakan' => 'required|integer|min:0|max:120',
+                'toleransiTunggakan' => ['required', 'integer', 'min:0', 'max:31'],
+            ], [
+                'toleransiTunggakan.max' => 'Tanggal generate piutang harus antara 1 dan 31.',
+                'toleransiTunggakan.min' => 'Tanggal generate piutang harus antara 1 dan 31.',
             ]);
 
             $s = Setting::firstOrNew([]);

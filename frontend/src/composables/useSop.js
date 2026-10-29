@@ -230,12 +230,36 @@ export function useSop() {
     }
   }
 
+  /**
+   * Simpan pengaturan sistem tagihan.
+   *
+   * Tanggal generate divalidasi DI SINI, sebelum request dikirim, karena
+   * angka yang tidak valid tidak akan merusak data -- tapi ia akan
+   * MATIkan generate tanpa pesan: `BillingTolerance::generateDay()`
+   * mengembalikan 0 untuk angka di luar 1-31, yang dibaca sebagai "SOP
+   * belum diisi". Jadi gejalanya "sudah saya set tanggalnya tapi kok
+   * generate tidak jalan?" -- jauh lebih sulit ditelusuri daripada
+   * pesan error yang muncul di detik yang sama.
+   *
+   * Backend juga memvalidasi rentangnya, jadi ini hanya lapisan pertama
+   * yang memberi pesan dalam bahasa yang sama dengan sisa antarmuka.
+   */
   const saveSistemTagihan = async () => {
+    const toleransi = Number(sistemTagihanForm.value.toleransiTunggakan)
+
+    if (!Number.isFinite(toleransi) || toleransi < 0 || toleransi > 31) {
+      showErrorToast({
+        message: 'Tanggal generate piutang harus antara 1 dan 31.',
+      })
+
+      return
+    }
+
     try {
       isSaving.value = true
       await sopService.saveSistemTagihan({
         batasTagihan: Number(sistemTagihanForm.value.batasTagihan),
-        toleransiTunggakan: Number(sistemTagihanForm.value.toleransiTunggakan),
+        toleransiTunggakan: toleransi,
       })
       showSuccessToast('Sistem Tagihan berhasil disimpan')
     } catch (error) {
