@@ -125,23 +125,23 @@ class GeneratePiutangRegressionTest extends TestCase
      *
      * Gate-nya `===`: tanggal generate harus PERSIS sama dengan hari ini.
      *
-     * Nilai lama di sini adalah `1`, yangsekarang hanya cocok kalau test
+     * Nilai lama di sini adalah `1`, yang sekarang hanya cocok kalau test
      * dijalankan tepat pada tanggal 1 -- jadi hasil testnya bergantung
      * pada tanggal dijalankan, bukan pada apa pun yang diuji. Nilai
      * "hari ini" membuat hasilnya sama terlepas dari kapan pun test ini
      * dijalankan.
      *
-     * `BillingTolerance::generateDay()` hanya menerima 1-28, jadi kalau
-     * test ini dijalankan pada tanggal 29, 30, atau 31, nilainya harus
-     * dijepit ke 28 -- kalau tidak, gate-nya menolak dan test-nya gagal
-     * tanpa alasan yang menyebut tanggal.
+     * `BillingTolerance::generateDay()` menerima 1-31, dan
+     * `effectiveGenerateDay()` menarik angka yang melebihi hari terakhir
+     * bulan ke hari terakhir bulan itu. Jadi kalau test ini dijalankan
+     * tanggal 31 di bulan yang hanya punya 30 hari, nilainya tetap aman.
      */
     private function setSOP(): void
     {
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            'toleransi_tunggakan' => max(1, min(28, (int) now()->format('d'))),
+            'toleransi_tunggakan' => max(1, min(31, (int) now()->format('d'))),
         ]);
     }
 
@@ -364,24 +364,57 @@ class GeneratePiutangRegressionTest extends TestCase
     /**
      * Gate tanggal generate HANYA satu sumber: `BillingTolerance`.
      *
-     * Nilai di luar rentang 1-28 berarti "SOP belum diisi", bukan
-     * "generate tanggal 30".
+     * Nilai di luar rentang 1-31 berarti "SOP belum diisi", bukan
+     * "generate tanggal 32".
      */
     #[Test]
-    public function gate_menghormati_rentang_tanggal_generate_1_sampai_28(): void
+    public function gate_menghormati_rentang_tanggal_generate_1_sampai_31(): void
     {
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            'toleransi_tunggakan' => 30,
+            'toleransi_tunggakan' => 32,
         ]);
 
         $generator = app(ReceivableGenerator::class);
 
-        $this->assertSame(0, $generator->scheduledDay(), 'Tanggal 30 bukan tanggal generate.');
+        $this->assertSame(0, $generator->scheduledDay(), 'Tanggal 32 bukan tanggal generate.');
         $this->assertFalse(
             $generator->shouldRun(Carbon::parse('2026-10-30 10:00:00')),
             'Generate tidak boleh jalan dengan SOP yang tidak valid.'
+        );
+    }
+
+    /**
+     * Tanggal 29/30/31 harus jalan pada hari terakhir bulan.
+     *
+     * Dulu rentangnya 1-28, jadi menyetel tanggal 29 membuat
+     * `generateDay()` = 0 dan generate TIDAK PERNAH jalan -- symptom yang
+     * sama seperti "SOP belum diisi", padahal SOP-nya sudah diisi.
+     */
+    #[Test]
+    public function tanggal_29_jalan_pada_tanggal_29_dan_tidak_jalan_di_hari_lain(): void
+    {
+        Setting::create([
+            'key' => 'sop',
+            'batas_tagihan' => 27,
+            'toleransi_tunggakan' => 29,
+        ]);
+
+        $generator = app(ReceivableGenerator::class);
+
+        $this->assertSame(29, $generator->scheduledDay());
+        $this->assertTrue(
+            $generator->shouldRun(Carbon::parse('2026-10-29 10:00:00')),
+            'Tanggal 29 harus jalan di tanggal 29.'
+        );
+        $this->assertFalse(
+            $generator->shouldRun(Carbon::parse('2026-10-28 10:00:00')),
+            'Tanggal 28 bukan tanggal generate.'
+        );
+        $this->assertFalse(
+            $generator->shouldRun(Carbon::parse('2026-10-30 10:00:00')),
+            'Tanggal 30 bukan tanggal generate.'
         );
     }
 

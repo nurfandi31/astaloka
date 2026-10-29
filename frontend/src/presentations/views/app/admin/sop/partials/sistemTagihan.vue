@@ -48,17 +48,17 @@
                   Toleransi Menunggak
                 </h4>
                 <p class="text-[10px]! text-slate-400!">
-                  Tanggal generate piutang tiap bulan (1-28). Generate hanya jalan pada tanggal itu
+                  Tanggal generate piutang tiap bulan (1-31). Generate hanya jalan pada tanggal itu
                   saja.
                 </p>
               </div>
             </div>
             <BaseInput
               v-model="form.toleransiTunggakan"
-              placeholder="1-28"
+              placeholder="1-31"
               type="number"
               :min="1"
-              :max="28"
+              :max="31"
               size="md"
               prefix-icon="history"
               :no-margin="true"
@@ -88,14 +88,14 @@
           </h4>
           <p class="text-[11px]! font-medium! text-slate-500! leading-relaxed!">
             Nilai <strong class="text-indigo-700!">Toleransi Menunggak</strong> di atas adalah
-            <strong>tanggal</strong> (1-28) di setiap bulan yang dijadwalkan sistem untuk
+            <strong>tanggal</strong> (1-31) di setiap bulan yang dijadwalkan sistem untuk
             <strong>generate jurnal piutang</strong> (abodemen, pemakaian, dan denda) secara
             background.
             <br />
-            <strong class="text-slate-600!">Pemicunya login.</strong> Begitu tanggal tersebut
-            tercapai, generate berjalan otomatis setiap kali ada staff yang login, dan ringkasannya
-            ditampilkan. Tanggal yang terlewat tidak terlewat: begitu lewat, generate tetap boleh
-            jalan dan hasilnya sama apakah dijalankan pagi atau malam.
+            <strong class="text-slate-600!">Pemicunya login.</strong> Generate berjalan otomatis
+            setiap kali ada staff yang login <strong>pada tanggal tersebut saja</strong>, dan
+            ringkasannya ditampilkan. Tanggal 29, 30, dan 31 berjalan pada hari terakhir bulan, jadi
+            di Februari menjadi tanggal 28.
             <br />
             Nilai yang sama juga dipakai sebagai <strong>jumlah tagihan</strong> yang boleh
             menunggak. Instalasi <span class="text-indigo-600! font-bold!">AKTIF</span> yang

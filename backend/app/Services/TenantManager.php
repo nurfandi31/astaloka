@@ -596,7 +596,7 @@ class TenantManager
      *
      *   - `invoice_grace_months` : BULAN. Masa tenggang tagihan langganan
      *     ASTALOKA ke lokasi.
-     *   - `toleransi_tunggakan` : TANGGAL dalam bulan (1-28). Tanggal
+     *   - `toleransi_tunggakan` : TANGGAL dalam bulan (1-31). Tanggal
      *     generate jurnal piutang tunggakan.
      *
      * Yang terjadi akibatnya: setiap kali perintah ini dijalankan

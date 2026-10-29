@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use Carbon\Carbon;
 
 /**
  * Satu tempat untuk semua aturan yang dulu berbagi kolom `toleransi_tunggakan`.
@@ -12,7 +13,7 @@ use App\Models\Setting;
  *
  * Satu kolom itu dibaca sebagai empat hal berbeda:
  *
- *   1. TANGGAL dalam bulan, 1-28 -> `DashboardController` menentukan hari
+ *   1. TANGGAL dalam bulan, 1-31 -> `DashboardController` menentukan hari
  *      generate piutang.
  *   2. JUMLAH HARI mundur dari hari run -> `GenerateOverdueTransactions`
  *      menghitung `thresholdDate = today - N days`.
@@ -95,17 +96,73 @@ class BillingTolerance
     }
 
     /**
-     * (1) Tanggal generate piutang dalam bulan, rentang 1-28.
+     * (1) Tanggal generate piutang dalam bulan, rentang 1-31.
      *
      * Nilai di luar rentang berarti SOP belum diisi, dan pemanggil wajib
      * menganggap generate tidak dijadwalkan sama sekali -- bukan diam-diam
-     * memakai angka yang tidak masuk akal seperti 30 atau 0.
+     * memakai angka yang tidak masuk akal seperti 40 atau 0.
+     *
+     * Kenapa 1-31, bukan 1-28
+     * ----------------------
+     *
+     * Dulu batasnya 28. Alasannya benar secara teori: tanggal 29, 30, dan
+     * 31 tidak ada di SETIAP bulan, jadi tanggal generate yang bergantung
+     * pada bulan akan hilang di bulan yang lebih pendek.
+     *
+     * Tapi batas itu menjadikan hari 29-31 tidak bisa dipakai sama sekali.
+     * Admin yang menyetel tanggal 29 lalu menyimpannya akan mendapat
+     * `generateDay()` = 0, yang dibaca sebagai "SOP belum diisi" -- jadi
+     * generate TIDAK PERNAH jalan. Tidak ada error, tidak ada popup, tidak
+     * ada log. Persis gejala "sudah saya set tanggalnya tapi kok generate
+     * tidak jalan?".
+     *
+     * Angka 31 juga tidak bisa dipakai mentah-mentah: Februari hanya punya
+     * 28 hari, jadi tanggal 31 di sana tidak pernah terjadi.
+     *
+     * Solusinya: 1-31 boleh diset, dan tanggal 29/30/31 dipanjangkan ke
+     * HARI TERAKHIR bulan -- 29 di Oktober, 30 di November, 28 di Februari.
+     * Itu yang dilakukan `effectiveGenerateDay()`.
      */
     public function generateDay(): int
     {
         $day = $this->legacy();
 
-        return ($day >= 1 && $day <= 28) ? $day : 0;
+        return ($day >= 1 && $day <= 31) ? $day : 0;
+    }
+
+    /**
+     * Tanggal generate yang BENAR-BENAR ada di bulan ini.
+     *
+     * `generateDay()` mengembalikan angka yang diset admin (1-31). Angka itu
+     * belum tentu ada di bulan berjalan: tanggal 31 tidak ada di Februari,
+     * tanggal 30 tidak ada di Februari, dan tanggal 29 tidak ada di
+     * Februari tahun biasa.
+     *
+     * `effectiveGenerateDay()` menjadikannya konkret: kalau angka yang diset
+     * melewati hari terakhir bulan ini, hasilnya DITARIK ke hari terakhir
+     * bulan. Jadi:
+     *
+     *   - diset 28 -> 28, di bulan apa pun.
+     *   - diset 29 -> 29 di Oktober, 28 di Februari.
+     *   - diset 31 -> 31 di Oktober, 28/29 di Februari.
+     *
+     * Konsekuensinya disengaja dan harus diketahui: di bulan yang lebih
+     * pendek, generate berjalan pada hari terakhir bulan -- BUKAN tanggal
+     * yang diklik admin. Ini satu-satunya cara supaya tanggal 29-31 tetap
+     * berguna tanpa membuat generate hilang di Februari.
+     *
+     * Nilai 0 (SOP belum diisi) dikembalikan apa adanya.
+     */
+    public function effectiveGenerateDay(?Carbon $now = null): int
+    {
+        $now ??= now();
+        $day = $this->generateDay();
+
+        if ($day === 0) {
+            return 0;
+        }
+
+        return min($day, $now->daysInMonth);
     }
 
     /**

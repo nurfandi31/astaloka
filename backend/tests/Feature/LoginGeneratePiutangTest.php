@@ -42,20 +42,20 @@ class LoginGeneratePiutangTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Kunci waktu ke tanggal yang PASTI di dalam rentang generate 1-28.
+     * Kunci waktu ke tanggal yang PASTI ada di setiap bulan.
      *
      * Kenapa test di kelas ini perlu dikunci waktunya
      * -----------------------------------------------
      *
-     * Gate generate membandingkan "hari ini" dengan `toleransi_tunggakan`,
-     * dan `BillingTolerance::generateDay()` hanya menerima nilai 1-28.
-     * Nilai di luar rentang itu berarti "SOP belum diisi" -- dan generate
+     * Gate generate membandingkan "hari ini" dengan `toleransi_tunggakan`.
+     * Nilai di luar rentang 1-31 berarti "SOP belum diisi" -- dan generate
      * tidak pernah jalan.
      *
      * Test yang memakai `toleransi_tunggakan => now()->format('d')` punya
      * masalah yang sama persis. Di tanggal 29, 30, dan 31, `now()->format('d')`
-     * menghasilkan angka DI LUAR rentang, jadi `generateDay()` mengembalikan 0,
-     * dan generate TIDAK pernah jalan -- padahal test mengharapkan
+     * menghasilkan angka yang TIDAK ada di setiap bulan -- jadi kalau bulan
+     * itu hanya punya 28 hari, `effectiveGenerateDay()` menariknya ke hari
+     * terakhir bulan dan generate tidak jalan -- padahal test mengharapkan
      * `ran=true`.
      *
      * Gejalanya muncul sebagai kegagalan yang sama sekali tidak
@@ -64,13 +64,13 @@ class LoginGeneratePiutangTest extends TestCase
      * tidak ada satupun pesan yang menyebut tanggal. Test itu terlihat seperti
      * produknya rusak, padahal yang rusak cuma cara test itu memilih tanggal.
      *
-     * Mengunci waktu ke tanggal yang sudah DI DALAM rentang 1-28 membuat
+     * Mengunci waktu ke tanggal yang ada di SETIAP bulan (15) membuat
      * hasilnya sama terlepas dari kapan pun test ini dijalankan.
      */
     private function freezeDate(): void
     {
         // 15 Oktober 2026 -- di tengah bulan, jadi tanggal ini ada di dalam
-        // rentang generate 1-28 dan tidak pernah melewati batas akhir bulan.
+        // rentang generate 1-31 dan tidak pernah melewati batas akhir bulan.
         $this->travelTo(Carbon::parse('2026-10-15 10:00:00'));
     }
 

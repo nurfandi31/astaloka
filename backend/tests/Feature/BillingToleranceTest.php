@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\MonthlyBill;
 use App\Models\Setting;
 use App\Services\BillingTolerance;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -152,9 +153,69 @@ class BillingToleranceTest extends TestCase
         $this->setSOP(0);
         $this->assertSame(0, app(BillingTolerance::class)->generateDay());
 
-        // Nilai 30 tidak bisa jadi tanggal generate.
-        $this->setSOP(30);
+        // Nilai 32 tidak bisa jadi tanggal generate -- bulan tidak punya
+        // tanggal 32.
+        $this->setSOP(32);
         $this->assertSame(0, app(BillingTolerance::class)->generateDay());
+    }
+
+    /**
+     * Tanggal 29, 30, dan 31 HARUS bisa dipakai.
+     *
+     * Dulu rentangnya 1-28, jadi admin yang menyetel tanggal 29 mendapat
+     * `generateDay()` = 0 -- yang dibaca sebagai "SOP belum diisi" -- dan
+     * generate TIDAK PERNAH jalan: tanpa error, tanpa popup, tanpa log.
+     *
+     * Karena 29/30/31 tidak ada di SETIAP bulan, nilainya dipanjangkan ke
+     * HARI TERAKHIR bulan: 29 di Oktober, 28 di Februari.
+     */
+    #[Test]
+    public function tanggal_29_sampai_31_bisa_dijadwalkan_dan_diperpanjang_ke_hari_terakhir_bulan(): void
+    {
+        // PENTING: `BillingTolerance` meng-cache `Setting` per instance, dan
+        // instance di container juga bertahan selama satu test. Jadi setiap
+        // nilai diuji lewat instance BARU -- kalau tidak, test diam-diam
+        // memeriksa nilai yang di-set sebelumnya dan terlihat berhasil
+        // padahal tidak ada yang diuji.
+        $this->setSOP(29);
+        $t = new BillingTolerance;
+
+        $this->assertSame(29, $t->generateDay(), 'Tanggal 29 harus bisa dijadwalkan.');
+        $this->assertSame(
+            29,
+            $t->effectiveGenerateDay(Carbon::parse('2026-10-29')),
+            'Di Oktober, tanggal 29 berarti tanggal 29.'
+        );
+        $this->assertSame(
+            28,
+            $t->effectiveGenerateDay(Carbon::parse('2026-02-15')),
+            'Di Februari, tanggal 29 berarti hari terakhir bulan (28).'
+        );
+
+        $this->setSOP(31);
+        $t = new BillingTolerance;
+
+        $this->assertSame(31, $t->generateDay(), 'Tanggal 31 harus bisa dijadwalkan.');
+        $this->assertSame(
+            30,
+            $t->effectiveGenerateDay(Carbon::parse('2026-11-15')),
+            'Di November, tanggal 31 berarti hari terakhir bulan (30).'
+        );
+        $this->assertSame(
+            28,
+            $t->effectiveGenerateDay(Carbon::parse('2026-02-15')),
+            'Di Februari, tanggal 31 berarti hari terakhir bulan (28).'
+        );
+
+        // Tanggal yang ada di bulan manapun tidak bergerak.
+        $this->setSOP(28);
+        $t = new BillingTolerance;
+
+        $this->assertSame(
+            28,
+            $t->effectiveGenerateDay(Carbon::parse('2026-02-15')),
+            'Tanggal 28 tetap 28 di bulan mana pun.'
+        );
     }
 
     #[Test]

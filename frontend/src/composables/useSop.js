@@ -69,7 +69,7 @@ export function useSop() {
    * Hanya DUA angka di sini, dan keduanya sudah punya tempat yang jelas:
    *
    *   - `batasTagihan`        : tanggal jatuh tempo tagihan bulanan.
-   *   - `toleransiTunggakan`  : tanggal (1-28) generate piutang tiap bulan.
+   *   - `toleransiTunggakan`  : tanggal (1-31) generate piutang tiap bulan.
    *
    * Dulu ada angka ketiga di sini -- "Batas Tagihan Menunggak" -- yang
    * sebenarnya ambang auto-suspend (berapa tagihan unpaid sebelum sambungan

@@ -37,7 +37,7 @@ import { useUiStore } from '@/stores/uiStore'
  *     `LoginView` terpanggil dua kali berdekatan.
  *
  * Aturan pemicu (sesuai SOP Personalisasi / Toleransi Menunggak):
- *   - Field `toleransiTunggakan` di settings SOP adalah TANGGAL (1-28).
+ *   - Field `toleransiTunggakan` di settings SOP adalah TANGGAL (1-31).
  *   - Bila tanggal hari ini PERSIS sama dengan tanggal itu, backend
  *     menjalankan `billing:generate-overdue-transactions` saat login
  *     (membuat jurnal piutang abodemen, pemakaian, dan denda).

@@ -460,19 +460,25 @@ class DashboardController extends Controller
         $todayDay = (int) $today->format('d');
 
         /*
-         * Tanggal generate dibaca lewat `BillingTolerance::generateDay()`,
-         * bukan langsung dari `Setting`.
+         * Tanggal generate dibaca lewat `BillingTolerance`, bukan langsung
+         * dari `Setting`.
          *
-         * `generateDay()` mengubah nilai di luar rentang 1-28 menjadi 0 --
+         * `generateDay()` mengubah nilai di luar rentang 1-31 menjadi 0 --
          * artinya "SOP belum diisi, tidak ada yang dijadwalkan". Tanpa itu,
-         * nilai 30 akan lolos sebagai tanggal generate yang sah.
+         * nilai 40 akan lolos sebagai tanggal generate yang sah.
+         *
+         * `effectiveGenerateDay()` menarik angka yang diset ke HARI TERAKHIR
+         * bulan kalau angka itu tidak ada di bulan berjalan. Jadi tanggal 29
+         * di Oktober = 29, di Februari = 28.
          *
          * Sumbernya tetap SATU: `BillingTolerance` adalah tempat semua
          * arti `toleransi_tunggakan` dikunci.
          */
-        $scheduledDay = app(BillingTolerance::class)->generateDay();
+        $tolerance = app(BillingTolerance::class);
+        $scheduledDay = $tolerance->generateDay();
+        $effectiveDay = $tolerance->effectiveGenerateDay($today);
 
-        $configured = $scheduledDay >= 1 && $scheduledDay <= 28;
+        $configured = $scheduledDay >= 1;
 
         // Gate `===`: HANYA pada tanggal yang di-set.
         //
@@ -487,7 +493,7 @@ class DashboardController extends Controller
         // -- tanpa error, tanpa log. Penutupnya adalah scheduler harian
         // di `routes/console.php`, yang memanggil `runIfDue()` untuk semua
         // lokasi setiap malam.
-        $isScheduledDay = $configured && $todayDay === $scheduledDay;
+        $isScheduledDay = $configured && $todayDay === $effectiveDay;
 
         return response()->json([
             'success' => true,
@@ -498,6 +504,7 @@ class DashboardController extends Controller
             'already_ran' => false,
             'will_run' => $isScheduledDay,
             'scheduled_day' => $scheduledDay,
+            'effective_day' => $effectiveDay,
             'today_day' => $todayDay,
             'date' => $todayYmd,
         ]);
@@ -509,7 +516,7 @@ class DashboardController extends Controller
      * Dipanggil dari frontend setiap kali halaman dashboard di-mount, dan
      * juga otomatis dari `POST /api/login` lewat `ReceivableGenerator`.
      * - Hanya jalan bila hari ini PERSIS sama dengan tanggal generate
-     *   (`toleransi_tunggakan`, range 1-28). Gate `===`.
+     *   (`toleransi_tunggakan`, range 1-31). Gate `===`.
      * - Menjalankan command `billing:generate-overdue-transactions`
      *   dengan `--tanggal=today` dan `--force=false`.
      * - Hasil dikembalikan ke frontend untuk ditampilkan di pop up.
@@ -541,15 +548,18 @@ class DashboardController extends Controller
         $todayYmd = $today->toDateString();
 
         // Sama seperti di `checkAutoGenerateOverdue()`: satu sumber angka.
-        $scheduledDay = app(BillingTolerance::class)->generateDay();
+        $tolerance = app(BillingTolerance::class);
+        $scheduledDay = $tolerance->generateDay();
+        $effectiveDay = $tolerance->effectiveGenerateDay($today);
 
         // 1) Kalau SOP belum di-set / 0 -> tidak ada generate otomatis.
-        if ($scheduledDay < 1 || $scheduledDay > 28) {
+        if ($scheduledDay < 1) {
             return response()->json([
                 'success' => true,
                 'ran' => false,
                 'reason' => 'Toleransi menunggak belum dikonfigurasi.',
                 'scheduled_day' => $scheduledDay,
+                'effective_day' => $effectiveDay,
                 'today_day' => (int) $today->format('d'),
                 'date' => $todayYmd,
             ]);
@@ -563,16 +573,20 @@ class DashboardController extends Controller
         //    Ini yang diminta: "generate hanya 1 hari di tgl yang di-set,
         //    bukan hari ini -- tgl itu, tapi hanya tgl itu".
         //
+        //    Tanggal 29/30/31 ditarik ke hari terakhir bulan: 29 di
+        //    Oktober, 28 di Februari.
+        //
         //    Konsekuensi yang disengaja: bulan tanpa staff yang login tepat
         //    pada tanggal itu TIDAK punya jurnal piutang. Penutupnya
         //    adalah scheduler harian di `routes/console.php`.
         $todayDay = (int) $today->format('d');
-        if ($todayDay !== $scheduledDay) {
+        if ($todayDay !== $effectiveDay) {
             return response()->json([
                 'success' => true,
                 'ran' => false,
                 'reason' => 'Hari ini bukan tanggal generate piutang bulan ini.',
                 'scheduled_day' => $scheduledDay,
+                'effective_day' => $effectiveDay,
                 'today_day' => $todayDay,
                 'date' => $todayYmd,
             ]);

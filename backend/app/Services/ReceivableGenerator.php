@@ -79,7 +79,7 @@ use Illuminate\Support\Facades\Log;
  *    hari ini tanggal 3 -> belum jalan. Hari ini tanggal 7 -> sudah
  *    lewat, TIDAK jalan (gate `===`).
  *
- * 2. SOP belum diisi (nilai di luar rentang 1-28).
+ * 2. SOP belum diisi (nilai di luar rentang 1-31).
  *
  * Catatan penting soal tanggal yang terlewat
  * --------------------------------------------
@@ -140,14 +140,38 @@ class ReceivableGenerator
     public function shouldRun(?Carbon $now = null): bool
     {
         $now ??= now();
-        $scheduledDay = $this->scheduledDay();
+        $scheduledDay = $this->effectiveScheduledDay($now);
 
         // SOP belum diisi -- tidak ada tanggal generate yang bisa dipilih.
-        if ($scheduledDay < 1 || $scheduledDay > 28) {
+        if ($scheduledDay < 1) {
             return false;
         }
 
         return $now->day === $scheduledDay;
+    }
+
+    /**
+     * Tanggal generate yang benar-benar ADA di bulan ini.
+     *
+     * `scheduledDay()` mengembalikan angka yang diset admin (1-31). Angka itu
+     * belum tentu ada di bulan berjalan -- tanggal 31 tidak ada di
+     * Februari, tanggal 30 tidak ada di Februari, tanggal 29 tidak ada di
+     * Februari tahun biasa.
+     *
+     * Yang dipakai untuk membandingkan dengan "hari ini" adalah tanggal
+     * yang BENAR-BENAR jatuh pada bulan itu: kalau angka yang diset
+     * melewati hari terakhir bulan, ia ditarik ke hari terakhir bulan.
+     * Jadi diset 29 -> 29 di Oktober, 28 di Februari.
+     *
+     * Tanpa ini, admin yang menyetel tanggal 29 akan melihat generate
+     * TIDAK PERNAH jalan di Februari -- dan di bulan yang lain pun tidak,
+     * karena `generateDay()` mengembalikan 0 untuk angka di luar 1-31.
+     */
+    public function effectiveScheduledDay(?Carbon $now = null): int
+    {
+        $now ??= now();
+
+        return app(BillingTolerance::class)->effectiveGenerateDay($now);
     }
 
     /**
@@ -160,7 +184,7 @@ class ReceivableGenerator
     {
         $now ??= now();
 
-        return $now->copy()->day(max(1, min(28, $this->scheduledDay())))->toDateString();
+        return $now->copy()->day(max(1, $this->effectiveScheduledDay($now)))->toDateString();
     }
 
     /**
@@ -170,7 +194,7 @@ class ReceivableGenerator
      * yang menyatukan ketiganya jadi "belum tanggal generate" akan
      * menyesatkan:
      *
-     *   - SOP belum diisi (nilai di luar rentang 1-28).
+     *   - SOP belum diisi (nilai di luar rentang 1-31).
      *   - Tanggal hari ini masih SEBELUM tanggal generate.
      *   - Tanggal hari ini sudah MELAWATI tanggal generate.
      *
@@ -183,17 +207,18 @@ class ReceivableGenerator
     {
         $scheduledDay = $this->scheduledDay();
 
-        if ($scheduledDay < 1 || $scheduledDay > 28) {
-            return 'Tanggal generate piutang belum diatur di SOP (harus 1-28).';
+        if ($scheduledDay < 1) {
+            return 'Tanggal generate piutang belum diatur di SOP (harus 1-31).';
         }
 
+        $effectiveDay = $this->effectiveScheduledDay($now);
         $todayDay = (int) $now->format('d');
 
-        if ($todayDay < $scheduledDay) {
-            return 'Belum tanggal generate piutang bulan ini (tanggal '.$scheduledDay.').';
+        if ($todayDay < $effectiveDay) {
+            return 'Belum tanggal generate piutang bulan ini (tanggal '.$effectiveDay.').';
         }
 
-        return 'Tanggal generate piutang bulan ini sudah lewat (tanggal '.$scheduledDay.').';
+        return 'Tanggal generate piutang bulan ini sudah lewat (tanggal '.$effectiveDay.').';
     }
 
     /**
@@ -399,7 +424,7 @@ class ReceivableGenerator
      *
      * Membaca lewat `BillingTolerance::generateDay()` bukan langsung dari
      * `Setting`, karena accessor itu yang mengubah nilai di luar rentang
-     * 1-28 menjadi 0 -- artinya "belum dijadwalkan". Tanpa itu, nilai 30
+     * 1-31 menjadi 0 -- artinya "belum dijadwalkan". Tanpa itu, nilai 40
      * akan lolos ke sini dan `shouldRun()` menganggapnya valid.
      */
     public function scheduledDay(): int
