@@ -32,3 +32,6 @@ serve_test*.log
 
 # Codemod sekali pakai
 frontend/clean_views.cjs
+
+# Screenshot hasil ukur layout cetakan (tools/ukur-cetak-form.mjs)
+tools/*.png
