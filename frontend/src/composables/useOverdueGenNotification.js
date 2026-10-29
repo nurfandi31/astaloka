@@ -76,6 +76,75 @@ let inFlight = null
 // Keamanannya sekarang ada di dedup transaksi milik command backend, bukan di
 // flag browser.
 
+/*
+ * Serah-terima ringkasan generate piutang untuk login PINTASAN.
+ *
+ * Kenapa perlu
+ * ------------
+ *
+ * Login biasa (`LoginView.vue`) menampilkan popup di halaman yang sama, jadi
+ * ringkasannya bisa langsung dipakai. Login pintasan (`ShortcutLoginView.vue`)
+ * TIDAK bisa: halaman itu memuat ulang seluruh aplikasi lewat
+ * `window.location.href`, jadi apa pun yang-held di memori JS lenyap sebelum
+ * popup sempat tampil.
+ *
+ * Tanpa serah-terima, konsekuensinya: backend sudah menjalankan generate
+ * (dan sudah menjurnalkan tagihan menunggak), tapi user tidak pernah melihat
+ * popup-nya. Di aplikasi demo/development yang dipakai tiap hari, gejalanya
+ * persis seperti "generate tidak jalan" — padahal jurnalnya sudah terbentuk.
+ *
+ * Bentuknya disimpan sebagai JSON di `sessionStorage`, bukan `localStorage`:
+ * `sessionStorage` ikut terhapus saat tab ditutup, jadi ringkasan yang
+ * tertinggal tidak akan muncul lagi di login berikutnya -- dan login
+ * berikutnya memang menjalankan generate sendiri.
+ *
+ * Kunci dipanggil "sekali pakai": dibaca lalu dihapus, supaya satu ringkasan
+ * tidak pernah ditampilkan dua kali.
+ */
+const SERAH_TERIMA_KEY = 'overdue_gen_serah_terima'
+
+/**
+ * Simpan ringkasan generate piutang untuk ditampilkan setelah reload halaman.
+ *
+ * Dipanggil dari login pintasan sebelum `window.location.href`.
+ */
+export function simpanRingkasanPiutang(ringkasan) {
+  try {
+    if (!ringkasan) {
+      sessionStorage.removeItem(SERAH_TERIMA_KEY)
+      return
+    }
+
+    sessionStorage.setItem(SERAH_TERIMA_KEY, JSON.stringify(ringkasan))
+  } catch {
+    // `sessionStorage` bisa tidak tersedia (mode privat, storage penuh).
+    // Tidak apa-apa: ringkasan hanya untuk tampilan, generate-nya sendiri
+    // sudah jalan di backend dan tidak bergantung pada ini.
+  }
+}
+
+/**
+ * Ambil ringkasan generate piutang yang ditinggalkan login pintasan.
+ *
+ * `null` kalau tidak ada -- atau kalau yang tersimpan bukan generate yang
+ * benar-benar jalan.
+ */
+export function ambilRingkasanPiutang() {
+  try {
+    const mentah = sessionStorage.getItem(SERAH_TERIMA_KEY)
+    if (!mentah) return null
+
+    // Sekali pakai: hapus sekarang, sebelum popup sempat tampil.
+    sessionStorage.removeItem(SERAH_TERIMA_KEY)
+
+    const parsed = JSON.parse(mentah)
+
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 export function useOverdueGenNotification() {
   const router = useRouter()
   const uiStore = useUiStore()
@@ -532,7 +601,10 @@ export function useOverdueGenNotification() {
         // menjalankan ulang command. Backend yang menentukan mana yang perlu
         // dibuat (tagihan yang sudah punya jurnal dilewati), jadi popup ini
         // selalu menampilkan ringkasan terbaru tanpa risiko data ganda.
-        if (res?.success && (res?.ran === true || res?.busy === true || res?.already_ran === true)) {
+        if (
+          res?.success &&
+          (res?.ran === true || res?.busy === true || res?.already_ran === true)
+        ) {
           // SweetAlert2 menutup instance sebelumnya otomatis saat `fire()`
           // baru dipanggil, jadi popup hasil langsung menggantikan popup
           // loading tanpa jeda.
@@ -558,9 +630,7 @@ export function useOverdueGenNotification() {
         // boleh dibiarkan popup loading-nya hilang begitu saja tanpa
         // penjelasan — itu terlihat seperti aplikasi hang.
         const pesan =
-          err?.response?.data?.message ||
-          err?.message ||
-          'Terjadi kesalahan saat generate piutang.'
+          err?.response?.data?.message || err?.message || 'Terjadi kesalahan saat generate piutang.'
 
         showOverdueGenError(pesan, null)
         console.warn('[overdue-gen] auto generate gagal:', err?.message || err)
