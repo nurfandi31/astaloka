@@ -109,7 +109,7 @@ class BillRecalculationService
             $status = ($usageM3 <= 0 && $totalAmount <= 0) ? 'paid' : 'unpaid';
 
             if ($usageM3 > 0 && $totalAmount <= 0) {
-                Log::warning('Tagihan Rp 0 padahal pelanggan memakai air — konfigurasi paket kemungkinan bermasalah', [
+                Log::warning('Tagihan Rp 0 padahal pelanggan memakai layanan — konfigurasi paket kemungkinan bermasalah', [
                     'customer_id' => $customer->id,
                     'usage_m3' => $usageM3,
                     'total_amount' => $totalAmount,

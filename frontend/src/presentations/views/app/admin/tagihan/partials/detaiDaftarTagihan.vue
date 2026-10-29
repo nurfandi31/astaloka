@@ -142,7 +142,7 @@
                   class="text-xs! font-black! text-slate-400! uppercase! tracking-widest! flex! items-center! gap-2! mb-0!"
                 >
                   <font-awesome-icon icon="file-alt" class="text-cyan-600!" />
-                  Rincian Rekening Air Bulanan
+                  Rincian Tagihan Bulanan
                 </h4>
 
                 <div
@@ -199,7 +199,7 @@
                         <div
                           class="flex! items-center! justify-between! py-1! pt-3! border-t! border-dashed! border-slate-100!"
                         >
-                          <span class="text-slate-500! font-medium!">Biaya Penggunaan Air</span>
+                          <span class="text-slate-500! font-medium!">Biaya Penggunaan</span>
                           <span class="font-bold! text-slate-800!">
                             Rp.
                             {{
@@ -400,7 +400,7 @@ const sendWhatsAppReminder = () => {
   const month = getMonthName(props.bill.billing_period_month)
   const year = props.bill.billing_period_year
 
-  const text = `Halo Bapak/Ibu *${customerName}*,\n\nKami dari *ASTALOKA* ingin menginformasikan bahwa tagihan air Anda untuk periode *${month} ${year}* sebesar *Rp. ${total}* belum dilunasi.\n\nMohon untuk segera melakukan pembayaran demi kelancaran distribusi air bersih.\n\nTerima kasih.`
+  const text = `Halo Bapak/Ibu *${customerName}*,\n\nKami dari *ASTALOKA* ingin menginformasikan bahwa tagihan Anda untuk periode *${month} ${year}* sebesar *Rp. ${total}* belum dilunasi.\n\nMohon untuk segera melakukan pembayaran demi kelancaran layanan.\n\nTerima kasih.`
 
   const formattedPhone = formatWhatsAppNumber(phone)
   const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`
@@ -437,8 +437,8 @@ const handlePrint = () => {
 </style></head>
 <body>
   <div class="header">
-    <h1>INVOICE TAGIHAN AIR</h1>
-    <p>ASTALOKA - Sistem Manajemen Air Bersih</p>
+    <h1>INVOICE TAGIHAN</h1>
+    <p>ASTALOKA - Sistem Manajemen Layanan</p>
     <p style="margin-top:6px">No: INV-${props.bill.id} · ${month} ${year}</p>
   </div>
   <div class="row"><span class="label">Pelanggan</span><span>${customer}</span></div>

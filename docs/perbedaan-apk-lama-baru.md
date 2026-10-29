@@ -122,7 +122,7 @@ Dibatasi per **role** (`admin`, `surveyor`, `teknisi`, `pelanggan`) — bukan pe
 | Pengaturan | ✅ (6 tab SOP) | ✅ (8 tab, +CALK +Tanda Tangan) |
 | Basis Data | ✅ | ✅ |
 | Master Instalasi | ✅ | ✅ |
-| **Pencatatan Tagihan** | ❌ (gabung ke Pemakaian Air) | ✅ **menu sendiri** |
+| **Pencatatan Tagihan** | ❌ (gabung ke Pemakaian) | ✅ **menu sendiri** |
 | Transaksi | ✅ | ✅ |
 | Pelaporan | ✅ | ✅ |
 | Profil | ✅ | ❌ |
@@ -174,7 +174,7 @@ Index: `idx_bills_customer_period (customer_id, billing_period_year, billing_per
 > ⚠️ **Tidak ada unique constraint** di `(customer_id, year, month)` — hanya index.
 > Yang punya unique adalah `meter_readings (customer_id, reading_year, reading_month)`.
 
-### 3.3 Halaman Input Pemakaian Air
+### 3.3 Halaman Input Pemakaian
 
 | Aspek | APK Lama | APK Baru |
 |---|---|---|

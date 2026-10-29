@@ -12,7 +12,7 @@
         />
         <div>
           <h1 class="text-xl! md:text-2xl! font-extrabold! text-slate-800! tracking-tight!">
-            Input Pemakaian Air
+            Input Pemakaian
           </h1>
           <p class="text-xs! md:text-sm! text-slate-500!">
             Silakan input meter akhir pelanggan pada form di bawah ini

@@ -23,7 +23,7 @@
                 <h2
                   class="text-sm! sm:text-lg! font-semibold! text-slate-800 leading-tight truncate!"
                 >
-                  Hasil Input Pemakaian Air
+                  Hasil Input Pemakaian
                 </h2>
                 <p class="text-[10px]! sm:text-xs! text-slate-500! font-medium! truncate!">
                   Periode: {{ filter.bulan }} {{ filter.tahun }}
@@ -125,7 +125,7 @@
                   <th
                     class="py-3! px-4! text-right! font-semibold! uppercase! tracking-wider! whitespace-nowrap! bg-[#334155]!"
                   >
-                    Tagihan Air
+                    Tagihan
                   </th>
                   <th
                     class="py-3! px-4! text-center! font-semibold! uppercase! tracking-wider! bg-[#334155]!"

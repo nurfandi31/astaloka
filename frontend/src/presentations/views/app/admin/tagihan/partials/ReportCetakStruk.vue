@@ -21,9 +21,9 @@
           <div class="header-center">
             <div class="logo-l"></div>
             <div class="t">
-              <div class="tm">STRUK TAGIHAN PEMAKAIAN AIR</div>
+              <div class="tm">STRUK TAGIHAN PEMAKAIAN</div>
               <div class="tm">BADAN USAHA MILIK DESA (BUMDes)</div>
-              <div class="tm">UNIT AIR</div>
+              <div class="tm">UNIT LAYANAN</div>
             </div>
             <div class="logo-r"></div>
           </div>
@@ -58,7 +58,7 @@
           <div class="r">
             <div class="rb">RINCIAN BIAYA</div>
             <div class="r-item">
-              <span class="lbl-rincian">Pemakaian Air</span><span>:</span
+              <span class="lbl-rincian">Pemakaian</span><span>:</span
               ><span>Rp. {{ rupiah(item.rincian.pemakaianAir) }}</span>
             </div>
             <div class="r-item">

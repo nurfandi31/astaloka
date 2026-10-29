@@ -130,7 +130,7 @@
         />
       </div>
       <div>
-        <label class="block! text-xs! font-bold! text-slate-500! mb-1.5!">Tagihan Air</label>
+        <label class="block! text-xs! font-bold! text-slate-500! mb-1.5!">Tagihan</label>
         <input
           type="text"
           :value="formatRupiah(formData.tagihan)"

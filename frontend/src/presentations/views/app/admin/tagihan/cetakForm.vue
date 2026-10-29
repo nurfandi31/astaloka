@@ -103,9 +103,12 @@ import { usePemakaianAir } from '@/composables/usePemakaianAir'
 import { usePdfPreview, THUMB_RENDER_BUFFER } from '@/composables/usePdfPreview'
 import { PER_PAGE_ROWS, FIRST_PAGE_ROWS } from '@/utils/reportConfig'
 import { useUiStore } from '@/stores/uiStore'
+import { useIdentitasLembaga, ensureIdentitas } from '@/composables/useIdentitasLembaga'
 
 const route = useRoute()
 const uiStore = useUiStore()
+const { namaLembaga, alamat, email, telepon, skKemenkumham, logoUrl, initials } =
+  useIdentitasLembaga()
 const {
   filter,
   refreshData,
@@ -175,10 +178,27 @@ const {
 
 const orientationClass = computed(() => PAGE_CONFIG.orientation)
 
+/**
+ * Identitas lembaga untuk kop surat.
+ *
+ * Dulunya nilai-nilai ini ditulis hardcode ("TIRTO MULO" BUMDes BANGUN
+ * KENCANA / KALURAHAN MULO KAPANEWON WONOSARI). Begitu admin mengganti
+ * Profil Lembaga di Pengaturan, kop cetakan tetap menampilkan nama lama
+ * yang sudah tidak berlaku — dan halaman ini dipakai admin SEJATA dengan
+ * teknisi, jadi hardcode jadi lebih parah.
+ *
+ * Sekarang semua nilai diambil dari `settings` lewat
+ * `useIdentitasLembaga` (endpoint `settings/lembaga-identity`).
+ */
 const defaultLembaga = () => ({
-  nama: '"TIRTO MULO" BUMDes BANGUN KENCANA',
-  alamat: 'KALURAHAN MULO KAPANEWON WONOSARI',
-  alamat_kab: 'KABUPATEN GUNUNGKIDUL',
+  nama: namaLembaga.value,
+  nama_lembaga: namaLembaga.value,
+  alamat: alamat.value,
+  email: email.value,
+  telepon: telepon.value,
+  sk_kemenkumham: skKemenkumham.value,
+  logo: logoUrl.value,
+  initials: initials.value,
 })
 
 const buildPages = () => {
@@ -287,6 +307,13 @@ onMounted(async () => {
     } else {
       await Promise.all([refreshData(), loadTeknisiOptions()])
     }
+
+    // Identitas lembaga untuk kop. WAJIB ditunggu sebelum `buildPages()`,
+    // karena `lembaga` diambil dari nilai identitas saat payload halaman
+    // disusun. Kalau tidak ditunggu, payload pertama akan berisi kop kosong
+    // dan tidak ikut ter-update (payload-nya snapshot, bukan computed).
+    await ensureIdentitas()
+
     buildPages()
 
     if (pages.value.length === 0) {

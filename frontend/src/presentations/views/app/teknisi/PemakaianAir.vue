@@ -3,7 +3,7 @@
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4!">
       <div class="flex-1!">
         <h1 class="text-xl md:text-2xl font-bold text-cyan-600! tracking-tight mb-1!">
-          Input Pemakaian Air
+          Input Pemakaian
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed!">
           Kelola pencatatan meter pelanggan di wilayah Anda.
@@ -95,7 +95,7 @@
       v-model="searchQuery"
       :loading="isLoading"
       empty-title="Tidak Ada Data"
-      empty-message="Belum ada data pemakaian air untuk periode ini di wilayah Anda."
+      empty-message="Belum ada data pemakaian untuk periode ini di wilayah Anda."
       empty-icon="filter"
       class="mt-6!"
       search-placeholder="Cari..."
@@ -253,7 +253,7 @@ onMounted(() => {
 
 const handleInputPemakaian = () => {
   router.push({
-    name: 'Input Pemakaian Air',
+    name: 'Input Pemakaian',
     query: {
       tahun: filter.value.tahun,
       bulan: filter.value.bulan,

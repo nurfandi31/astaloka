@@ -9,7 +9,7 @@
           Laporan <span class="text-cyan-500!">Hasil Instalasi</span>
         </h1>
         <p class="text-slate-500! mt-1! font-medium!">
-          Upload foto dan data hasil pemasangan meter air pelanggan.
+          Upload foto dan data hasil pemasangan meter pelanggan.
         </p>
       </div>
     </div>

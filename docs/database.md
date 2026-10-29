@@ -1,4 +1,4 @@
-# Skema Database — Sistem Instalasi Sambungan Air Baru
+# Skema Database — ASTALOKA
 
 **Database**: MySQL  
 **ORM**: Laravel Eloquent  

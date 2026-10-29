@@ -19,10 +19,10 @@
 
           <td class="text-cell">
             <div class="kop-nama-usaha">
-              {{ lembaga?.nama || 'UNIT USAHA ALIRAN AIR MASA DEPAN' }}
+              {{ lembaga?.nama || 'NAMA USAHA LAYANAN PUBLIK' }}
             </div>
             <div class="kop-nama-kec">
-              <b>{{ lembaga?.alamat_kab || 'MULO WONOSARI' }}</b>
+              <b>{{ lembaga?.alamat_kab || 'ALAMAT LEMBAGA' }}</b>
             </div>
 
             <div class="kop-info-sub">
@@ -63,7 +63,7 @@
 
 <script setup>
 import { computed, inject, useAttrs } from 'vue'
-import { storageUrl } from '@/utils/storage'
+import { storageLogoUrl } from '@/utils/storage'
 import { sanitizeRichText } from '@/utils/sanitizeHtml'
 
 const props = defineProps({
@@ -186,12 +186,7 @@ const initials = computed(() => {
     .toUpperCase()
 })
 
-const logoUrl = computed(() => {
-  const logo = props.lembaga?.logo
-  if (!logo) return ''
-  if (logo.startsWith('http')) return logo
-  return `${storageUrl('')}/sop/logo/${logo}`
-})
+const logoUrl = computed(() => storageLogoUrl(props.lembaga?.logo))
 </script>
 
 <style scoped>

@@ -23,8 +23,8 @@ class SettingsSeeder extends Seeder
                 'batas_tagihan' => 10,
                 'toleransi_tunggakan' => 3,
                 'logo' => null,
-                'pesan_tagihan' => 'Yth. {customer}, tagihan air bulan ini sebesar {jumlah_tagihan}. Mohon segera melakukan pembayaran sebelum jatuh tempo. Terima kasih.',
-                'pesan_pembayaran' => 'Yth. {customer}, pembayaran tagihan air sebesar {tagihan} telah kami terima. Terima kasih.',
+                'pesan_tagihan' => 'Yth. {customer}, tagihan layanan bulan ini sebesar {jumlah_tagihan}. Mohon segera melakukan pembayaran sebelum jatuh tempo. Terima kasih.',
+                'pesan_pembayaran' => 'Yth. {customer}, pembayaran tagihan sebesar {tagihan} telah kami terima. Terima kasih.',
                 'updated_at' => now(),
             ]
         );

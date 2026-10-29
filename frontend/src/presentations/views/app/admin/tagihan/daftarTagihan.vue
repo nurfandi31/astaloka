@@ -6,7 +6,7 @@
           Daftar Tagihan
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed">
-          Menampilkan seluruh tagihan air pelanggan. Satu pelanggan dapat muncul di lebih dari satu
+          Menampilkan seluruh tagihan pelanggan. Satu pelanggan dapat muncul di lebih dari satu
           baris bila memiliki banyak tagihan (mis. bulan ini &amp; bulan lalu). Anda dapat mencari
           nama, ID, atau nomor invoice dan mengirim pengingat WhatsApp.
         </p>
@@ -138,7 +138,7 @@
     </ContentCard>
 
     <div class="text-center py-8 text-[10px] text-slate-400 font-semibold tracking-[2px] uppercase">
-      ASTALOKA · LAYANAN AIR BERSIH MASYARAKAT
+      ASTALOKA · LAYANAN PUBLIK MASYARAKAT
     </div>
 
     <detaiDaftarTagihan
@@ -194,7 +194,7 @@ const tableColumns = [
   { key: 'customer', title: 'PELANGGAN / ID' },
   { key: 'period', title: 'PERIODE / INVOICE' },
   { key: 'meter', title: 'STAND METER' },
-  { key: 'usage', title: 'VOLUME AIR' },
+  { key: 'usage', title: 'VOLUME' },
   { key: 'total', title: 'TOTAL TAGIHAN' },
   { key: 'due_date', title: 'JATUH TEMPO' },
 ]

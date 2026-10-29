@@ -113,7 +113,7 @@ class MonthlyBillService
             $isNihilLegitimate = $usage <= 0 && $total <= 0;
 
             if ($usage > 0 && $total <= 0) {
-                Log::warning('Tagihan Rp 0 padahal pelanggan memakai air — konfigurasi paket kemungkinan bermasalah', [
+                Log::warning('Tagihan Rp 0 padahal pelanggan memakai layanan — konfigurasi paket kemungkinan bermasalah', [
                     'customer_id' => $reading->customer_id,
                     'package_id' => $package->id,
                     'usage_m3' => $usage,

@@ -99,7 +99,7 @@ const router = createRouter({
     | Panel Pusat (ASTA BRATA) -- superadmin.
     |
     | Sengaja SEPARAT dari /app: aplikasi lokasi punya sidebar operasional
-    | (Transaksi, Pelaporan, Tagihan Air, dst) yang tidak relevan di sini,
+    | (Transaksi, Pelaporan, Tagihan, dst) yang tidak relevan di sini,
     | dan role superadmin tidak punya akun di database lokasi mana pun.
     |
     | Sesi juga terpisah: `central_token` vs `auth_token`. Keduanya hidup di
@@ -318,12 +318,12 @@ const router = createRouter({
         },
         {
           path: 'instalasi/pemakaian-air',
-          name: 'Pemakaian Air',
+          name: 'Pemakaian',
           component: pemakaianair,
         },
         {
           path: 'instalasi/pemakaian-air/input',
-          name: 'Input Pemakaian Air',
+          name: 'Input Pemakaian',
           component: detailPemakaianAir,
         },
         {
@@ -378,7 +378,7 @@ const router = createRouter({
         },
         {
           path: 'instalasi/teknisiPemakaianAir',
-          name: 'Input Pemakaian Air Teknisi',
+          name: 'Input Pemakaian Teknisi',
           component: TeknisiPemakaianAir,
         },
         {

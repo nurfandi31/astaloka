@@ -39,7 +39,7 @@
                 </div>
                 <div>
                   <h1 class="text-lg! md:text-2xl! font-black! text-slate-800! leading-none! mb-1!">
-                    Edit Pemakaian Air
+                    Edit Pemakaian
                   </h1>
                   <p
                     class="text-[9px]! md:text-[10px]! font-bold! uppercase! tracking-widest! text-slate-400!"

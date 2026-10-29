@@ -6,8 +6,8 @@
           Daftar Tagihan Tertunggak (Belum Lunas)
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed!">
-          Menampilkan seluruh tagihan air pelanggan yang belum dilunasi. Anda dapat mencari
-          pelanggan secara instan dan mengirim pengingat WhatsApp atau mencetak invoice.
+          Menampilkan seluruh tagihan pelanggan yang belum dilunasi. Anda dapat mencari pelanggan
+          secara instan dan mengirim pengingat WhatsApp atau mencetak invoice.
         </p>
       </div>
 
@@ -138,7 +138,7 @@
     </ContentCard>
 
     <div class="text-center py-8 text-[10px] text-slate-400 font-semibold tracking-[2px] uppercase">
-      ASTALOKA · LAYANAN AIR BERSIH MASYARAKAT
+      ASTALOKA · LAYANAN PUBLIK MASYARAKAT
     </div>
 
     <detaiDaftarTagihan
@@ -180,7 +180,7 @@ const tableColumns = [
   { key: 'customer', title: 'PELANGGAN / ID' },
   { key: 'period', title: 'PERIODE / INVOICE' },
   { key: 'meter', title: 'STAND METER' },
-  { key: 'usage', title: 'VOLUME AIR' },
+  { key: 'usage', title: 'VOLUME' },
   { key: 'total', title: 'TOTAL TAGIHAN' },
   { key: 'due_date', title: 'JATUH TEMPO' },
 ]

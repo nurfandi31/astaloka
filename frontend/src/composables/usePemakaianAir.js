@@ -11,9 +11,9 @@ export function usePemakaianAir() {
 
   // Role pemanggil.
   //
-  // Admin memakai halaman "Data Pemakaian Air" yang punya filter teknisi
+  // Admin memakai halaman "Data Pemakaian" yang punya filter teknisi
   // (bisa lihat semua / pilih satu teknisi). Teknisi memakai halaman
-  // "Input Pemakaian Air" yang datanya otomatis dibatasi ke pelanggan
+  // "Input Pemakaian" yang datanya otomatis dibatasi ke pelanggan
   // miliknya sendiri -- jadi dia TIDAK punya filter teknisi, dan nama
   // teknisi yang tampil di kop/cetak adalah nama dia sendiri.
   const isTechnician = computed(() => uiStore.userRole === 'teknisi')
@@ -236,7 +236,7 @@ export function usePemakaianAir() {
       MySwal.fire({
         icon: 'error',
         title: 'Gagal Memuat Data',
-        text: err.response?.data?.message || 'Tidak dapat memuat data pemakaian air.',
+        text: err.response?.data?.message || 'Tidak dapat memuat data pemakaian.',
       })
     } finally {
       isLoading.value = false
@@ -389,9 +389,9 @@ export function usePemakaianAir() {
   const handleDelete = async (row) => {
     await confirmDelete({
       title: 'Hapus Data Pemakaian?',
-      text: `Data pemakaian air untuk "${row.nama}" akan dihapus secara permanent`,
+      text: `Data pemakaian untuk "${row.nama}" akan dihapus secara permanent`,
       successMessage: 'Data pemakaian telah berhasil dihapus',
-      entity: 'pemakaian air',
+      entity: 'pemakaian',
       errorCode: 'METER_READING_IN_USE',
       onConfirm: () => {
         tableData.value = tableData.value.filter((item) => item.id !== row.id)

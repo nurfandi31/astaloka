@@ -3,10 +3,10 @@
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4!">
       <div class="flex-1!">
         <h1 class="text-xl md:text-2xl font-bold text-slate-900! tracking-tight mb-1!">
-          Data Pemakaian Air
+          Data Pemakaian
         </h1>
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed">
-          Manage and monitor regional water consumption cycles and billing.
+          Manage and monitor regional consumption cycles and billing.
         </p>
       </div>
 
@@ -95,7 +95,7 @@
       :empty-message="
         requireTeknisi
           ? 'Belum ada data yang tersedia di sini untuk saat ini.'
-          : 'Silakan pilih teknisi pada filter di atas untuk mulai memuat data pemakaian air.'
+          : 'Silakan pilih teknisi pada filter di atas untuk mulai memuat data pemakaian.'
       "
       empty-icon="filter"
       class="mt-6!"
@@ -279,7 +279,7 @@ const router = useRouter()
 
 const handleInputPemakaian = () => {
   router.push({
-    name: 'Input Pemakaian Air',
+    name: 'Input Pemakaian',
     query: {
       tahun: filter.value.tahun,
       bulan: filter.value.bulan,

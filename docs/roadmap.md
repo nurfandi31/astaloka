@@ -1,4 +1,4 @@
-# Roadmap Pengembangan Sistem Instalasi Sambungan Air Baru
+# Roadmap Pengembangan ASTALOKA
 
 ## Tech Stack
 - **Backend**: Laravel (REST API)
@@ -120,7 +120,7 @@ Teknisi catat meter → Admin generate tagihan → Pelanggan bayar → Admin kon
 ### Frontend
 - Dashboard Admin — ringkasan statistik, tiket terbaru, tagihan jatuh tempo
 - Halaman laporan dengan filter periode
-- Grafik pemakaian air per pelanggan
+- Grafik pemakaian per pelanggan
 - Fitur export laporan
 
 ---

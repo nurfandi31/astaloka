@@ -66,51 +66,6 @@
           </div>
         </div>
       </div>
-
-      <div
-        class="p-5! hover:bg-white! transition-colors! border-t! md:border-t-0! border-slate-100! md:col-span-2!"
-      >
-        <div class="flex! flex-col! gap-3!">
-          <div class="flex! items-center! gap-2.5!">
-            <div
-              class="w-8! h-8! rounded-lg! bg-amber-600! text-white! flex! items-center! justify-center! text-xs! shadow-lg! shadow-amber-100!"
-            >
-              <font-awesome-icon icon="ban" />
-            </div>
-            <div class="flex-1!">
-              <h4 class="text-xs! font-black! text-slate-800! leading-tight!">
-                Batas Tagihan Menunggak
-              </h4>
-              <p class="text-[10px]! text-slate-400!">
-                Berapa tagihan unpaid sebelum sambungan diputus.
-              </p>
-            </div>
-          </div>
-
-          <BaseInput
-            v-model="form.batasTagihanTunggak"
-            placeholder="Kosong = pakai Toleransi Menunggak di atas"
-            type="number"
-            :min="0"
-            :max="120"
-            size="md"
-            prefix-icon="ban"
-            :no-margin="true"
-            class="w-full!"
-          />
-
-          <p class="text-[10px]! text-slate-400! leading-relaxed!">
-            Kosongkan untuk memakai nilai <strong>Toleransi Menunggak</strong> di
-            atas, seperti perilaku sebelumnya. Isi
-            <strong>0</strong> untuk tidak pernah memutus sambungan secara
-            otomatis.
-            <span class="text-amber-600! font-semibold!">
-              Bedanya satuan: yang di atas adalah tanggal (1-28), yang ini
-              jumlah tagihan.
-            </span>
-          </p>
-        </div>
-      </div>
     </div>
 
     <div
@@ -131,21 +86,20 @@
             Otomatisasi Generate Piutang
           </h4>
           <p class="text-[11px]! font-medium! text-slate-500! leading-relaxed!">
-            Nilai <strong class="text-indigo-700!">Toleransi Menunggak</strong> di atas
-            adalah <strong>tanggal</strong> (1-28) di setiap bulan yang dijadwalkan
-            sistem untuk <strong>generate jurnal piutang</strong> (abodemen, pemakaian,
-            dan denda) secara background.
+            Nilai <strong class="text-indigo-700!">Toleransi Menunggak</strong> di atas adalah
+            <strong>tanggal</strong> (1-28) di setiap bulan yang dijadwalkan sistem untuk
+            <strong>generate jurnal piutang</strong> (abodemen, pemakaian, dan denda) secara
+            background.
             <br />
-            <strong class="text-slate-600!">Pemicunya login.</strong> Begitu tanggal
-            tersebut tercapai, generate berjalan otomatis setiap kali ada staff yang
-            login, dan ringkasannya ditampilkan. Tanggal yang terlewat tidak
-            terlewat: begitu lewat, generate tetap boleh jalan dan hasilnya sama
-            apakah dijalankan pagi atau malam.
+            <strong class="text-slate-600!">Pemicunya login.</strong> Begitu tanggal tersebut
+            tercapai, generate berjalan otomatis setiap kali ada staff yang login, dan ringkasannya
+            ditampilkan. Tanggal yang terlewat tidak terlewat: begitu lewat, generate tetap boleh
+            jalan dan hasilnya sama apakah dijalankan pagi atau malam.
             <br />
-            Instalasi <span class="text-indigo-600! font-bold!">AKTIF</span> yang melewati
-            batas tagihan menunggak akan diubah menjadi
-            <span class="text-rose-600! font-bold!">BLOKIR</span> hingga seluruh
-            tunggakan dilunasi.
+            Nilai yang sama juga dipakai sebagai <strong>jumlah tagihan</strong> yang boleh
+            menunggak. Instalasi <span class="text-indigo-600! font-bold!">AKTIF</span> yang
+            melewati batas tersebut akan diubah menjadi
+            <span class="text-rose-600! font-bold!">BLOKIR</span> hingga seluruh tunggakan dilunasi.
           </p>
         </div>
       </div>

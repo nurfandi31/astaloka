@@ -2,7 +2,7 @@
   <BaseReportLayout :lembaga="lembaga" :config="payload?.config" :no-kop="true">
     <template v-if="showMeta">
       <div class="page-header">
-        <h2>DAFTAR TAGIHAN PEMAKAIAN AIR</h2>
+        <h2>DAFTAR TAGIHAN PEMAKAIAN</h2>
         <h2 class="mt-1 mb-0 leading-tight" style="font-size: 19px">
           "TIRTO MULO" BUMDes BANGUN KENCANA
         </h2>
