@@ -119,13 +119,7 @@ class AutoGenerateOverdueTest extends TestCase
             'batas_tagihan' => 27,
             // Tanggal generate = 20, sedangkan "hari ini" = 15.
             //
-            // Gate-nya `>=`, jadi yang bikin generate TIDAK jalan adalah
-            // "tanggal generate belum tercapai" -- bukan "beda dengan hari
-            // ini". Rumus lama `(now()->format('d') % 28) + 1` ditulis saat
-            // gate-nya masih `===`, dan sekarang justru Mileu: di tanggal 28
-            // ia menghasilkan 1, dan `28 >= 1` LOLOS sementara test ini
-            // mengharapkan `ran=false`.
-            //
+            // Gate-nya `===`: generate HANYA pada tanggal yang di-set.
             // Angka 20 dipilih eksplisit supaya test ini hasilnya sama
             // terlepas dari kapan pun ia dijalankan.
             'toleransi_tunggakan' => 20,
@@ -196,25 +190,25 @@ class AutoGenerateOverdueTest extends TestCase
     }
 
     /**
-     * Generate tetap boleh jalan setelah tanggal generate terlewat.
+     * Generate TIDAK jalan setelah tanggal generate terlewat.
      *
-     * Dulu gate-nya `hari ini === tanggal generate`, sehingga kalau tidak
-     * ada staff yang login tepat pada tanggal itu, generate TIDAK PERNAH
-     * jalan untuk bulan itu — tanpa error, tanpa log. Tagihan tetap
-     * `unpaid` tapi akun Piutang Usaha tidak pernah ditambah, sehingga
-     * Neraca dan daftar tagihan jadi dua sumber kebenaran yang berbeda.
+     * Gate `===`: `toleransi_tunggakan` = 15 berarti generate HANYA pada
+     * tanggal 15. "Hari ini" = 20, jadi generate tidak boleh jalan.
+     *
+     * Ini yang diminta: "generate hanya 1 hari di tgl yang di-set, bukan
+     * hari ini -- tgl itu, tapi hanya tgl itu".
      */
     #[Test]
-    public function auto_generate_overdue_tetap_jalan_setelah_tanggal_generate_terlewat(): void
+    public function auto_generate_overdue_tidak_jalan_setelah_tanggal_generate_terlewat(): void
     {
-        // Tanggal generate = 1, sedangkan "hari ini" = 15 -- jadi tanggal
-        // generate sudah LEWAT. Gate `>=` membuat generate tetap jalan.
-        $this->freezeDate();
+        // Tanggal generate = 15, sedangkan "hari ini" = 20 -- tanggal sudah
+        // lewat. Gate `===` menahannya.
+        $this->travelTo(Carbon::parse('2026-10-20 10:00:00'));
 
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            'toleransi_tunggakan' => 1,
+            'toleransi_tunggakan' => 15,
         ]);
 
         $user = $this->createUser('admin');
@@ -223,7 +217,7 @@ class AutoGenerateOverdueTest extends TestCase
             ->postJson('/api/dashboard/auto-generate-overdue');
 
         $response->assertOk()
-            ->assertJsonPath('ran', true);
+            ->assertJsonPath('ran', false);
     }
 
     #[Test]

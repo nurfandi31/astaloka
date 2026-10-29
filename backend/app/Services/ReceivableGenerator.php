@@ -34,21 +34,24 @@ use Illuminate\Support\Facades\Log;
  *   - Gate `===` juga membuat tanggal 29, 30, dan 31 tidak pernah bisa
  *     menjadi tanggal generate.
  *
- * KONSEP BARU: generate boleh diulang, bukan sekali-sekali
- * -------------------------------------------------------
+ * KONSEP: generate HANYA pada tanggal yang di-set, tapi boleh berulang
+ * -----------------------------------------------------------
  *
- * Permintaan operasionalnya jelas: "kalau bulan ini sudah generate, jangan
- * halangi generate lagi; kalau hari ini adalah hari generate, setiap login
- * boleh memicu generate ulang -- supaya pelanggan yang lupa somehow tetap
- * tertangani".
+ * Permintaan operasionalnya: "generate hanya 1 hari di tgl yang di-set,
+ * bukan hari ini -- tgl itu, tapi hanya tgl itu". Jadi gate-nya `===`:
+ * tanggal 28 -> generate HANYA pada tanggal 28.
+ *
+ * Yang TETAP boleh berulang adalah JUMLAH generate di hari itu: kalau
+ * lima orang login pada tanggal 28, generate jalan lima kali -- dan
+ * tidak menghasilkan jurnal dobel, karena command-nya idempotent
+ * (pasangan `reverence_id|account_kredit`).
  *
  * Karena itu tiga lapis penghalang yang tadinya ada DILETAKHKAN:
  *
- *   1. Gate `===` (tanggal hari ini HARUS PERSIS sama)  -> jadi `>=`.
- *      Tanggal yang terlewat tidak lagi menggagalkan generate selamanya.
+ *   1. Gate `===` -> TETAP. Ini yang diminta: hanya tanggal yang di-set.
  *
  *   2. Cache "sudah pernah dijalankan bulan ini" (TTL 35 hari)
- *      -> DIHAPUS. Ini penghalang palingKetat: begitu generate jalan sekali
+ *      -> DIHAPUS. Ini penghalang paling ketat: begitu generate jalan sekali
  *      pada tanggal 6, seluruh bulan berikutnya di lokasi itu tidak pernah
  *      bisa generate lagi -- termasuk kasus tagihan baru yang masuk lewat
  *      salesperson, atau tagihan yang tadinya salah dan sudah diperbaiki.
@@ -58,7 +61,7 @@ use Illuminate\Support\Facades\Log;
  *      proses agregasi `amount` berjalan bersamaan (lock wait timeout),
  *      BUKAN mencegah generate.
  *
- * Yang PEGANG rumoredup-nya tetap command itu sendiri, yang sudah
+ * Yang PEGANG rem dup-nya tetap command itu sendiri, yang sudah
  * idempotent: setiap tagihan punya paling banyak satu jurnal piutang per
  * akun kredit (dicek lewat pasangan `reverence_id|account_kredit`).
  * Menjalankan berkali-kali pada hari yang sama tidak menghasilkan jurnal
@@ -66,13 +69,27 @@ use Illuminate\Support\Facades\Log;
  *
  * Efek samping yang diinginkan: kalau ada pelanggan yang lupa dicatat
  * meternya, atau tagihannya baru saja diperbaiki admin, generate ulang
- * akan terlihat dan menagihnya tanpa perlu intervensi manual.
+ * di tanggal yang sama akan terlihat dan menagihnya tanpa perlu
+ * intervensi manual.
  *
  * Kapan TIDAK berjalan
  * --------------------
  *
- * 1. Tanggal generate bulan ini belum tercapai. Contoh: `toleransi 6`,
- *    hari ini tanggal 3 -> belum jalan.
+ * 1. Tanggal hari ini BUKAN tanggal generate. Contoh: `toleransi 6`,
+ *    hari ini tanggal 3 -> belum jalan. Hari ini tanggal 7 -> sudah
+ *    lewat, TIDAK jalan (gate `===`).
+ *
+ * 2. SOP belum diisi (nilai di luar rentang 1-28).
+ *
+ * Catatan penting soal tanggal yang terlewat
+ * --------------------------------------------
+ *
+ * Gate `===` berarti bulan tanpa staff yang login tepat pada tanggal
+ * generate TIDAK punya jurnal piutang sama sekali. Ini konsekuensi yang
+ * disengaja dari permintaan di atas, dan penutupannya adalah scheduler
+ * harian di `routes/console.php` -- ia memanggil `runIfDue()` untuk
+ * semua lokasi setiap malam, jadi tanggal yang terlewat tetap tertangani
+ * selama scheduler hidup.
  *
  * Kegagalan
  * ---------
@@ -91,6 +108,34 @@ class ReceivableGenerator
      *
      * Dipakai endpoint `dashboard/auto-generate-overdue/check` supaya
      * pop up hanya muncul saat memang ada pekerjaan yang perlu dikerjakan.
+     *
+     * GATE `===`: generate HANYA pada tanggal yang sudah diset di SOP.
+     *
+     * Permintaan operasionalnya eksplisit: "generate hanya 1 hari di tgl
+     * yang di-set, bukan hari ini -- tgl itu, tapi hanya tgl itu". Jadi
+     * kalau `toleransi_tunggakan` = 28, generate hanya boleh jalan pada
+     * tanggal 28 setiap bulan -- bukan tanggal 28, 29, 30, dan 31.
+     *
+     * Bedanya dengan gate `>=` (yang dipakai sebelumnya):
+     *
+     *   - `>=` : tanggal 28 -> jalan pada 28, 29, 30, 31.
+     *   - `===` : tanggal 28 -> jalan HANYA pada 28.
+     *
+     * Konsekuensi yang disengaja dan harus disadari: kalau TIDAK ADA
+     * staff yang login tepat pada tanggal itu, generate bulan itu TIDAK
+     * PERNAH jalan. Tagihan tetap `unpaid` di `monthly_bills` dan akun
+     * Piutang Usaha `1.1.03.01` tidak pernah bertambah -- Neraca
+     * under-report sementara daftar tagihan tidak, jadi dua sumber
+     * kebenaran jadi tidak sinkron.
+     *
+     * Ini persis trade-off yang diminta. Yang bisa-cloud menutup celah
+     * itu adalah scheduler harian (lihat `routes/console.php`): ia
+     * memanggil `runIfDue()` untuk semua lokasi setiap malam, sehingga
+     * tanggal yang terlewat tetap tertangani TANPA harus ada yang login.
+     *
+     * Tapi scheduler hanya menutup celah kalau JALAN. Kalau scheduler
+     * mati dan tidak ada yang login tepat pada tanggalnya, bulan itu
+     * memang terlewat -- dan itu harus terlihat, bukan tersembunyi.
      */
     public function shouldRun(?Carbon $now = null): bool
     {
@@ -102,7 +147,7 @@ class ReceivableGenerator
             return false;
         }
 
-        return $now->day >= $scheduledDay;
+        return $now->day === $scheduledDay;
     }
 
     /**
@@ -119,6 +164,39 @@ class ReceivableGenerator
     }
 
     /**
+     * Alasan kenapa generate TIDAK jalan hari ini.
+     *
+     * Gate-nya `===`, jadi ada TIGA kemungkinan yang berbeda dan messaging
+     * yang menyatukan ketiganya jadi "belum tanggal generate" akan
+     * menyesatkan:
+     *
+     *   - SOP belum diisi (nilai di luar rentang 1-28).
+     *   - Tanggal hari ini masih SEBELUM tanggal generate.
+     *   - Tanggal hari ini sudah MELAWATI tanggal generate.
+     *
+     * Kasus ketiga yang paling penting: user menyetel tanggal 28, lalu
+     * login tanggal 29 dan tidak melihat popup. Tanpa pesan yang jelas,
+     * dia mengira sistemnya rusak -- padahal memang tidak ada generate
+     * hari itu, persis seperti yang diminta.
+     */
+    private function alasanBelumJalankan(Carbon $now): string
+    {
+        $scheduledDay = $this->scheduledDay();
+
+        if ($scheduledDay < 1 || $scheduledDay > 28) {
+            return 'Tanggal generate piutang belum diatur di SOP (harus 1-28).';
+        }
+
+        $todayDay = (int) $now->format('d');
+
+        if ($todayDay < $scheduledDay) {
+            return 'Belum tanggal generate piutang bulan ini (tanggal '.$scheduledDay.').';
+        }
+
+        return 'Tanggal generate piutang bulan ini sudah lewat (tanggal '.$scheduledDay.').';
+    }
+
+    /**
      * Kunci BUSY-GUARD generate piutang.
      *
      * SATU-SATUNYA tempat kunci ini dibuat. Sebelumnya ada dua kunci
@@ -128,10 +206,10 @@ class ReceivableGenerator
      *   - `DashboardController`   : `overdue_gen_lock_{tanggal hari ini}`
      *
      * Kalau tanggal generate BEDA dari hari ini -- yang pasti terjadi
-     * begitu tanggal generate terlewat, atau saat gate `>=` sudah berjalan
-     * -- kedua kunci itu tidak pernah sama. Akibatnya dua proses yang
-     * seharusnya saling menjaga bisa berjalan bersamaan, persis hal yang
-     * busy-guard ini-exist untuk mencegahnya.
+     * setiap hari selain tanggal generate -- kedua kunci itu tidak pernah
+     * sama. Akibatnya dua proses yang seharusnya saling menjaga bisa
+     * berjalan bersamaan, persis hal yang busy-guard ini-exist untuk
+     * mencegahnya.
      *
      * Dan kalau tanggal generate justru SAMA dengan hari ini, keduanya
      * kebetulan sama -- jadi gejalanya baru muncul pada kasus yang paling
@@ -164,7 +242,7 @@ class ReceivableGenerator
         if (! $this->shouldRun($now)) {
             return [
                 'ran' => false,
-                'reason' => 'Belum tanggal generate piutang bulan ini.',
+                'reason' => $this->alasanBelumJalankan($now),
                 'summary' => null,
                 'scheduled_day' => $this->scheduledDay(),
                 'today_day' => (int) $now->format('d'),

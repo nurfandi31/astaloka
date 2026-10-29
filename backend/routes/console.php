@@ -48,6 +48,26 @@ Artisan::command('inspire', function () {
  * `reverence_id|account_kredit`), jadi generate boleh berulang tanpa
  * menghasilkan jurnal dobel.
  *
+ * GATE `===` DAN ARTINYA BAGI SCHEDULER
+ * -------------------------------------
+ *
+ * Gate tanggal generate adalah `===`: `toleransi_tunggakan` = 28 berarti
+ * generate HANYA pada tanggal 28. Scheduler berjalan SETIAP malam, jadi
+ * hanya malam tanggal 28 yang benar-benar menjalankan generate -- malam
+ * lainnya dilewati oleh gate, persis seperti login di tanggal lain.
+ *
+ * Ini penting justru karena menutup celah yang gate `===` membuka:
+ * kalau TIDAK ADA staff yang login tepat pada tanggal 28, generate bulan
+ * itu tetap jalan -- lewat scheduler, pada tanggal 28 juga.
+ *
+ * Yang TIDAK tertutup: kalau scheduler sendiri mati tepat pada malam
+ * tanggal generate (server dimatikan, cron belum jalan), bulan itu
+ * terlewat -- dan tidak ada staff yang login tanggal itu juga. Dua
+ * sumber penutup harus sama-sama hidup: login di tanggal yang tepat, dan
+ * scheduler yang jalan. Tidak ada generate yang berjalan diam-diam di
+ * tanggal lain -- itu memang bagian dari permintaan: hanya tanggal yang
+ * di-set.
+ *
  * Jadwal 00:01 tetap dipertahankan.
  */
 Schedule::call(function () {

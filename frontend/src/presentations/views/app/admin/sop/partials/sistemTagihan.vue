@@ -48,7 +48,8 @@
                   Toleransi Menunggak
                 </h4>
                 <p class="text-[10px]! text-slate-400!">
-                  Tanggal generate piutang tiap bulan (1-28).
+                  Tanggal generate piutang tiap bulan (1-28). Generate hanya jalan pada tanggal itu
+                  saja.
                 </p>
               </div>
             </div>

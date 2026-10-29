@@ -29,6 +29,25 @@ class GeneratePiutangRegressionTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Kunci waktu ke tanggal yang PASTI di dalam rentang generate 1-28.
+     *
+     * Gate-nya `===`: tanggal generate harus PERSIS sama dengan hari ini.
+     * Kalau waktu tidak dikunci, test ini hanya benar kalau dijalankan
+     * tepat pada tanggal generate -- dan diam-diam gagal pada tanggal
+     * lain, dengan pesan yang tidak menyebut tanggal sama sekali
+     * ("Belum tanggal generate piutang bulan ini").
+     *
+     * 15 Oktober 2026 dipakai karena comfortably di tengah bulan: ada di
+     * dalam rentang 1-28 dan tidak pernah melewati batas akhir bulan.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->travelTo(Carbon::parse('2026-10-15 10:00:00'));
+    }
+
     private function createUser(string $role = 'admin'): User
     {
         return User::create([
@@ -102,14 +121,27 @@ class GeneratePiutangRegressionTest extends TestCase
     }
 
     /**
-     * SOP dengan tanggal generate yang sudah lewat, supaya gate selalu lolos.
+     * SOP dengan tanggal generate = HARI INI, supaya gate selalu lolos.
+     *
+     * Gate-nya `===`: tanggal generate harus PERSIS sama dengan hari ini.
+     *
+     * Nilai lama di sini adalah `1`, yangsekarang hanya cocok kalau test
+     * dijalankan tepat pada tanggal 1 -- jadi hasil testnya bergantung
+     * pada tanggal dijalankan, bukan pada apa pun yang diuji. Nilai
+     * "hari ini" membuat hasilnya sama terlepas dari kapan pun test ini
+     * dijalankan.
+     *
+     * `BillingTolerance::generateDay()` hanya menerima 1-28, jadi kalau
+     * test ini dijalankan pada tanggal 29, 30, atau 31, nilainya harus
+     * dijepit ke 28 -- kalau tidak, gate-nya menolak dan test-nya gagal
+     * tanpa alasan yang menyebut tanggal.
      */
     private function setSOP(): void
     {
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            'toleransi_tunggakan' => 1,
+            'toleransi_tunggakan' => max(1, min(28, (int) now()->format('d'))),
         ]);
     }
 

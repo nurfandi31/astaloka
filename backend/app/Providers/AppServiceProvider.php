@@ -192,7 +192,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Pasang penjaga SQL tingkat-tinggi -- jaring pengaman terakhir.
      *
-     * Berbeda dengan dua penjaga di atas, penjaga ini tidak简章 perintah
+     * Berbeda dengan dua penjaga di atas, penjaga ini tidak memanggil perintah
      * apa pun. Ia memasang kait pada setiap koneksi MySQL, sehingga setiap
      * statement `drop` yang akan dijalankan diperiksa terhadap nama database
      * yang BENAR-BENAR dibuka koneksi itu.

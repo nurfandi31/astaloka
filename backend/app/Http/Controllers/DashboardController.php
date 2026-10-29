@@ -474,23 +474,20 @@ class DashboardController extends Controller
 
         $configured = $scheduledDay >= 1 && $scheduledDay <= 28;
 
-        // Gate `>=` BUKAN `===`.
+        // Gate `===`: HANYA pada tanggal yang di-set.
         //
-        // Dulu gate-nya "hari ini PERSIS sama dengan tanggal generate".
-        // Konsekuensinya: kalau tidak ada staff yang login tepat pada
-        // tanggal itu, generate TIDAK PERNAH jalan untuk bulan itu -- dan
-        // tidak ada error, tidak ada log, tidak ada tanda di mana pun.
-        // Tagihan tetap `unpaid` di `monthly_bills` tapi akun Piutang
-        // Usaha `1.1.03.01` tidak pernah ditambah, sehingga Neraca dan
-        // pelaporan under-report sementara `monthly_bills` menunjukkan
-        // angka berbeda -- dua sumber kebenaran yang tidak sinkron.
+        // `toleransi_tunggakan` = 28 -> generate jalan pada tanggal 28,
+        // dan TIDAK pada tanggal 29, 30, maupun 31.
         //
-        // Gate `===` juga membuat tanggal 29, 30, dan 31 tidak pernah bisa
-        // menjadi tanggal generate.
+        // Ini yang diminta: "generate hanya 1 hari di tgl yang di-set,
+        // bukan hari ini -- tgl itu, tapi hanya tgl itu".
         //
-        // Sekarang: begitu tanggal generate terlewat, generate tetap boleh
-        // jalan. Hasilnya sama apakah dijalankan pagi atau malam.
-        $isScheduledDay = $configured && $todayDay >= $scheduledDay;
+        // Konsekuensinya yang disengaja: kalau tidak ada staff yang login
+        // tepat pada tanggal itu, generate bulan itu TIDAK PERNAH jalan
+        // -- tanpa error, tanpa log. Penutupnya adalah scheduler harian
+        // di `routes/console.php`, yang memanggil `runIfDue()` untuk semua
+        // lokasi setiap malam.
+        $isScheduledDay = $configured && $todayDay === $scheduledDay;
 
         return response()->json([
             'success' => true,
@@ -511,8 +508,8 @@ class DashboardController extends Controller
      *
      * Dipanggil dari frontend setiap kali halaman dashboard di-mount, dan
      * juga otomatis dari `POST /api/login` lewat `ReceivableGenerator`.
-     * - Hanya jalan bila hari ini SUDAH MELEWATI tanggal generate
-     *   (`toleransi_tunggakan`, range 1-28). Gate `>=`, bukan `===`.
+     * - Hanya jalan bila hari ini PERSIS sama dengan tanggal generate
+     *   (`toleransi_tunggakan`, range 1-28). Gate `===`.
      * - Menjalankan command `billing:generate-overdue-transactions`
      *   dengan `--tanggal=today` dan `--force=false`.
      * - Hasil dikembalikan ke frontend untuk ditampilkan di pop up.
@@ -558,23 +555,23 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 2) Gate `>=`, bukan `===`.
+        // 2) Gate `===`: HANYA pada tanggal yang di-set.
         //
-        //    Dulu: "hari ini PERSIS sama dengan tanggal generate". Kalau
-        //    tidak ada staff yang login tepat pada tanggal itu, generate
-        //    TIDAK PERNAH jalan untuk bulan itu -- tanpa error, tanpa log.
-        //    Tagihan tetap `unpaid` tapi akun Piutang Usaha `1.1.03.01`
-        //    tidak pernah ditambah, sehingga Neraca dan daftar tagihan jadi
-        //    dua sumber kebenaran yang berbeda.
+        //    `toleransi_tunggakan` = 20 -> generate jalan pada tanggal 20,
+        //    dan TIDAK pada tanggal 19, 21, atau 22.
         //
-        //    Sekarang: begitu tanggal generate terlewat, generate tetap
-        //    boleh jalan. Hasilnya sama apakah dijalankan pagi atau malam.
+        //    Ini yang diminta: "generate hanya 1 hari di tgl yang di-set,
+        //    bukan hari ini -- tgl itu, tapi hanya tgl itu".
+        //
+        //    Konsekuensi yang disengaja: bulan tanpa staff yang login tepat
+        //    pada tanggal itu TIDAK punya jurnal piutang. Penutupnya
+        //    adalah scheduler harian di `routes/console.php`.
         $todayDay = (int) $today->format('d');
-        if ($todayDay < $scheduledDay) {
+        if ($todayDay !== $scheduledDay) {
             return response()->json([
                 'success' => true,
                 'ran' => false,
-                'reason' => 'Belum tanggal generate piutang bulan ini.',
+                'reason' => 'Hari ini bukan tanggal generate piutang bulan ini.',
                 'scheduled_day' => $scheduledDay,
                 'today_day' => $todayDay,
                 'date' => $todayYmd,

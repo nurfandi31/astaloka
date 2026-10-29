@@ -449,33 +449,82 @@ class LoginGeneratePiutangTest extends TestCase
     }
 
     /**
-     * Generate tetap jalan setelah tanggal generate terlewat.
+     * Generate TIDAK jalan setelah tanggal generate terlewat.
      *
-     * Gate `>=` (bukan `===`): kalau tanggal generate terlewat, generate
-     * tetap boleh jalan. Dulu gate `===` membuat bulan tanpa staff yang
-     * login tepat pada tanggal itu TIDAK PERNAH punya jurnal piutang --
-     * tanpa error, tanpa log, tanpa jejak.
+     * Gate `===`: `toleransi_tunggakan` = 15 berarti generate HANYA pada
+     * tanggal 15. Hari 16 dan seterusnya TIDAK boleh memicu generate.
+     *
+     * Ini kebalikan dari perilaku lama (`>=`), dan itu memang yang diminta:
+     * "generate hanya 1 hari di tgl yang di-set, bukan hari ini -- tgl itu,
+     * tapi hanya tgl itu".
+     *
+     * Yang menutup celah "bulan tanpa staff yang login tepat pada tanggal
+     * itu" adalah scheduler harian di `routes/console.php`.
      */
     #[Test]
-    public function generate_tetap_jalan_setelah_tanggal_generate_terlewat(): void
+    public function generate_tidak_jalan_setelah_tanggal_generate_terlewat(): void
     {
-        // Tanggal generate = 1, "hari ini" sengaja lebih besar supaya
-        // pastilah sudah lewat dari tanggal generate.
+        // Tanggal generate = 15, "hari ini" = 20 -- tanggal sudah lewat.
+        $this->travelTo(Carbon::parse('2026-10-20 09:00:00'));
+
         Setting::create([
             'key' => 'sop',
             'batas_tagihan' => 27,
-            'toleransi_tunggakan' => 1,
+            'toleransi_tunggakan' => 15,
         ]);
 
         [$admin] = $this->seedLokasiDenganTagihanMenunggak();
 
+        $this->login($admin)->assertOk()
+            ->assertJsonPath('data.piutang_tunggakan.ran', false);
+
+        $this->assertSame(
+            0,
+            Transaction::where('reverence_type', 'overdue_bill')->count(),
+            'Tanggal generate yang sudah terlewat tidak boleh memicu generate.'
+        );
+    }
+
+    /**
+     * Generate jalan HANYA pada tanggal yang di-set -- dan boleh berulang
+     * di tanggal itu sebanyak apa pun.
+     *
+     * Dua aturan yang keduanya diminta: tanggalnya PERSIS, tapi jumlahnya
+     * tidak dibatasi.
+     */
+    #[Test]
+    public function generate_hanya_jalan_pada_tanggal_yang_di_set(): void
+    {
+        // Tanggal generate = 15.
+        $this->travelTo(Carbon::parse('2026-10-15 09:00:00'));
+
+        Setting::create([
+            'key' => 'sop',
+            'batas_tagihan' => 27,
+            'toleransi_tunggakan' => 15,
+        ]);
+
+        [$admin] = $this->seedLokasiDenganTagihanMenunggak();
+
+        // Login pada TANGGALNYA: generate jalan.
         $this->login($admin)->assertOk()
             ->assertJsonPath('data.piutang_tunggakan.ran', true);
 
         $this->assertSame(
             2,
             Transaction::where('reverence_type', 'overdue_bill')->count(),
-            'Tanggal generate yang terlewat tidak boleh menggagalkan generate.'
+            'Pada tanggal generate, jurnal harus terbentuk.'
+        );
+
+        // Login kedua di tanggal yang SAMA: generate TETAP jalan.
+        $this->login($admin)->assertOk()
+            ->assertJsonPath('data.piutang_tunggakan.ran', true);
+
+        // Tapi jurnal tidak boleh dobel -- command-nya idempotent.
+        $this->assertSame(
+            2,
+            Transaction::where('reverence_type', 'overdue_bill')->count(),
+            'Login kedua di tanggal yang sama tidak boleh menambah jurnal.'
         );
     }
 

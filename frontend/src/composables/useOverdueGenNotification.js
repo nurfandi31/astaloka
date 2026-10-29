@@ -21,19 +21,13 @@ import { useUiStore } from '@/stores/uiStore'
  *      berhasil, tagihan menunggak tidak pernah dijurnalkan sama sekali --
  *      tanpa error dan tanpa log.
  *
- *   2. Gate-nya `hari ini == tanggal generate`. Kalau tidak ada staff yang
- *      login pada TANGGAL TEPAT itu, generate tidak pernah jalan untuk bulan
- *      itu. Tidak ada yang gagal, tidak ada yang menyadarinya. `monthly_bills`
- *      tetap `unpaid`, tapi akun Piutang Usaha `1.1.03.01` tidak pernah ditambah,
- *      sehingga Neraca dan daftar tagihan jadi dua sumber kebenaran yang
- *      berbeda.
+ *   2. Gate-nya di backend, jadi frontend tidak bisa memutuskan sendiri.
  *
- *   3. Gate `===` membuat tanggal 29, 30, dan 31 tidak pernah bisa menjadi
- *      tanggal generate.
+ * Pemicunya sekarang `day === tanggal generate`, di backend.
  *
- * Pemicunya sekarang `day >= tanggal generate`, di backend. Tanggal yang
- * terlewat tetap tertangani: begitu tanggalnya lewat, generate tetap boleh
- * jalan, dan hasilnya sama apakah dijalankan pagi atau malam.
+ * GATE `===`: generate HANYA pada tanggal yang sudah diset di SOP.
+ * `toleransiTunggakan` = 28 berarti generate jalan pada tanggal 28, dan
+ * TIDAK pada tanggal 29, 30, maupun 31.
  *
  * Yang tersisa di sini:
  *   - Normalisasi bentuk ringkasan (`jurnal_*` dari backend vs
@@ -44,12 +38,14 @@ import { useUiStore } from '@/stores/uiStore'
  *
  * Aturan pemicu (sesuai SOP Personalisasi / Toleransi Menunggak):
  *   - Field `toleransiTunggakan` di settings SOP adalah TANGGAL (1-28).
- *   - Bila tanggal hari ini sudah lewat atau sama dengan tanggal itu,
- *     backend menjalankan `billing:generate-overdue-transactions` saat login
+ *   - Bila tanggal hari ini PERSIS sama dengan tanggal itu, backend
+ *     menjalankan `billing:generate-overdue-transactions` saat login
  *     (membuat jurnal piutang abodemen, pemakaian, dan denda).
- *   - Pada tanggal tersebut, proses hanya boleh jalan sekali: mutex per tanggal
- *     generate. Duplikasi dicegah berlapis di dalam command lewat pasangan
- *     `reverence_id|account_kredit`.
+ *   - Generate boleh dijalankan BERULANG di tanggal itu -- setiap login
+ *     memicu generate lagi. Duplikasi dicegah di dalam command lewat
+ *     pasangan `reverence_id|account_kredit`, bukan lewat penguncian
+ *     tanggal. Jadi lima orang login pada tanggal yang sama = lima kali
+ *     generate, tapi jurnal yang dibuat tetap satu per tagihan.
  *   - Selama proses berjalan, modal loading tampil tanpa tombol apa pun.
  *   - Setelah selesai, hasil ditampilkan via SweetAlert2 lengkap dengan
  *     tombol "Tutup" / "Lihat Arsip Tunggakan".

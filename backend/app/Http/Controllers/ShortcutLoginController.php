@@ -288,7 +288,7 @@ class ShortcutLoginController extends Controller
          * padahal popunya memang tidak pernah muncul untuk login pintasan.
          *
          * Aturan yang dipakai di sini sama persis dengan login biasa:
-         * generate jalan di SETIAP login pada tanggal generate dan setelahnya,
+         * generate jalan di SETIAP login PADA tanggal generate itu saja,
          * dan idempoten (tagihan yang sudah punya jurnal dilewati). Jadi
          * pintasan tidak membuat generate dobel -- ia cuma memastikan pintasan
          * tidak menjadi jalan yang MENGHILANGKAN generate.
