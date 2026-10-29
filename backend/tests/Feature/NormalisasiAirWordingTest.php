@@ -94,7 +94,7 @@ class NormalisasiAirWordingTest extends TestCase
     }
 
     /**
-     * Semua nilai `trouble_type` yang ada, untuk 값 tertentu.
+     * Semua nilai `trouble_type` yang ada, untuk nilai tertentu.
      */
     private function nilaiTroubleType(string $nilai): int
     {

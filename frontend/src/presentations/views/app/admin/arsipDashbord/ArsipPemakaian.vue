@@ -23,6 +23,22 @@
     ruang sisa, dan tabel itulah yang jadi elemen yang digulir.
   -->
   <div class="h-full! min-h-0! flex! flex-col! p-3!">
+    <!--
+      Banner error.
+
+      Tanpa ini, request yang gagal (403 karena menu dicabut dari jabatan,
+      atau 500) membuat popup menampilkan "Tidak Ada Pemakaian" -- yang
+      ARTINYA "tidak ada pemakaian", bukan "halaman ini gagal dimuat". Dua
+      hal yang sama sekali, dan yang salah adalah yang kedua.
+    -->
+    <div
+      v-if="errorMessage"
+      class="mb-3! px-3! py-2! bg-rose-50! border! border-rose-200! text-rose-700! text-[11px]! font-semibold! rounded-lg! flex! items-center! gap-2!"
+    >
+      <font-awesome-icon icon="exclamation-triangle" class="text-xs!" />
+      Gagal memuat data: {{ errorMessage }}
+    </div>
+
     <DataTable
       v-model="searchQuery"
       :data="itemsList"
@@ -94,8 +110,16 @@ const columns = [
 // Composable juga mengembalikan nomor halaman ke 1 saat `per_page` berubah,
 // dan membuang balasan lama yang tiba belakangan. Lihat `usePopupData.js`.
 const now = new Date()
-const { searchQuery, currentPage, perPage, loading, serverTotal, totalPages, itemsList } =
-  usePopupData('pemakaian', {
-    params: { month: now.getMonth() + 1, year: now.getFullYear() },
-  })
+const {
+  searchQuery,
+  currentPage,
+  perPage,
+  loading,
+  serverTotal,
+  totalPages,
+  itemsList,
+  errorMessage,
+} = usePopupData('pemakaian', {
+  params: { month: now.getMonth() + 1, year: now.getFullYear() },
+})
 </script>

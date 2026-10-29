@@ -262,6 +262,36 @@ php artisan test
 > Cara aman membersihkannya: **sebutkan prefix-nya satu per satu**. Pola
 > `LIKE 'astaloka\_%'` terlalu luas -- database LOKASI yang asli juga berawalan
 > `astaloka_`, dan ikut terhapus berarti data operasional hilang.
+>
+> Sudah ada skripnya di repo. **Jalankan `--dry-run` dulu** -- perintah ini
+> menghapus SELURUH isi database yang cocok, dan isinya tidak ada salinannya
+> di tempat lain:
+>
+> ```bash
+> php tools/bersihkan-db-uji.php --dry-run   # tampilkan saja, tidak menghapus
+> php tools/bersihkan-db-uji.php             # baru benar-benar menghapus
+> ```
+>
+> Skrip itu membaca daftar database LOKASI dari registry pusat (tabel
+> `tenants`) dan `backend/config/database.php`, dan **tidak akan** menyentuh
+> salah satunya -- jadi aman dijalankan selagi database uji sedang dipakai
+> suite yang lain. Yang dihapus hanya yang cocok dengan pola di atas.
+
+> [!WARNING]
+> **Hanya SATU `php artisan test` boleh jalan pada satu mesin.** Semua test
+> berbagi database `astaloka_testing`, dan `RefreshDatabase` menjalankan
+> `migrate:fresh` -> `db:wipe` -> `dropAllTables()` di awal suite. Dua proses
+> yang jalan bersamaan akan saling menghapus tabel, dan gejalanya berupa
+> puluhan kegagalan yang **bukan** bug:
+>
+> ```
+> SQLSTATE[42S01]: Base table or view already exists: 1050
+> Table 'installation_tickets' already exists
+> ```
+>
+> Gejalanya selalu "table already exists" atau "table doesn't exist" -- dua
+>-dua dari database yang sama, dan keduanya bukan bug kode. Kalau itu muncul,
+> periksa dulu berapa proses test yang sedang jalan sebelum menelusuri kode.
 
 ### 🔐 Akun Default (Hasil Seeder)
 

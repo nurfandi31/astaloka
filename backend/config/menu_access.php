@@ -475,7 +475,7 @@ return [
             'path' => '/app/survey/create',
             // Dua prefix, dan keduanya wajib:
             //   - `installation-tickets*` : daftar tiket `pending` yang
-            //     jadi bahan中选择 di form ini.
+            //     jadi bahan pilih di form ini.
             //   - `installation-tickets/*/survey` : POST simpan hasil survey.
             //     ID-nya berupa angka yang tidak bisa diprediksi, jadi
             //     wildcard-nya tidak mungkin menabrak halaman lain.
@@ -778,9 +778,37 @@ return [
             'group' => 'Arsip',
             'icon' => 'hourglass-half',
             'path' => '/app/arsip/tunggakan',
+            // Prefix `tunggakan` (tanpa `*`) sudah cukup: ia cocok dengan
+            // `/tunggakan/arsip` DAN `/tunggakan/generate`.
+            //
+            // Bentuk polos (bukan `tunggakan*`) dipakai dengan sengaja:
+            // `tunggakan*` hanya cocok dengan `/tunggakan` itu sendiri --
+            // turunannya seperti `/tunggakan/arsip` TIDAK ikut. Padahal
+            // endpoint arsip itu yang paling butuh dikunci.
+            //
+            // `POST /tunggakan/generate` ikut tertutup oleh prefix ini --
+            // generate piutang dan membaca arsip piutang adalah satu hal
+            // yang sama, jadi mencabut hak akses Arsip Tunggakan harus
+            // menutup keduanya.
+            //
+            // Perhatikan: prefix `tunggakan` juga dimiliki menu
+            // `transaksi.tagihan-bulanan`. `EnforceMenuAccess` menolak
+            // HANYA kalau SEMUA pemilik prefix itu tidak diizinkan, jadi
+            // admin yang punya "Tagihan Bulanan" tapi tidak punya "Arsip
+            // Tunggakan" tetap boleh memanggil endpoint ini. Itu perilaku
+            // yang disengaja dan sama seperti `bills`/`monthly-bills` di
+            // bawah -- satu endpoint dipakai beberapa menu, dan hak akses
+            // diambil dari gabungan pemilik itu.
             'api' => ['tunggakan'],
             'roles' => ['admin'],
             'hidden' => true,
+            /*
+             * `hidden` tetap true: halamannya TIDAK muncul di sidebar.
+             *
+             * Jalan masuknya dari dropdown avatar (pojok kanan atas), di
+             * sebelah "Profil" dan "Logout" -- dipakai admin untuk melihat
+             * siapa yang punya piutang menunggak bulan ini.
+             */
         ],
         [
             'key' => 'arsip.pemakaian',
