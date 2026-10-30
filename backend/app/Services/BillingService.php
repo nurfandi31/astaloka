@@ -6,7 +6,6 @@ use App\Models\Customer;
 use App\Models\MonthlyBill;
 use App\Models\Setting;
 use App\Models\WaterTariffBlock;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class BillingService
@@ -202,13 +201,15 @@ class BillingService
         return round($customer->ticket->package->late_penalty);
     }
 
+    /**
+     * Tanggal jatuh tempo tagihan untuk satu periode pemakaian.
+     *
+     * Menuju ke `BillingDueDate` supaya rumusnya cuma ada di satu tempat.
+     * Lihat service itu untuk penjelasan aturan "dibayar bulan berikutnya".
+     */
     public function computeDueDate(int $year, int $month, int $day = 27): string
     {
-        $carbon = Carbon::create($year, $month, 1);
-        $maxDay = $carbon->daysInMonth;
-        $day = min($day, $maxDay);
-
-        return $carbon->setDay($day)->toDateString();
+        return BillingDueDate::compute($year, $month, $day);
     }
 
     public function calculateChargeForTesting($package, float $usageM3): float

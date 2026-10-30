@@ -126,8 +126,18 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import BaseReportLayout from '@/presentations/views/app/admin/pelaporan/layouts/BaseReportLayout.vue'
+import { useSettingsStore } from '@/stores/settingsStore.js'
+
+const settingsStore = useSettingsStore()
+
+// `batasTagihan` dipakai untuk fallback "Tgl Akhir Pembayaran" saat baris
+// data tidak punya jatuh tempo. Dimuat sekali di awal; kalau gagal,
+// `settingsStore` memakai nilai default dan halaman tetap tercetak.
+onMounted(() => {
+  settingsStore.loadSettings()
+})
 
 const props = defineProps({
   payload: { type: Object, default: () => ({}) },
@@ -192,6 +202,23 @@ const jamCetak = computed(() =>
   }),
 )
 
+/**
+ * "Tgl Akhir Pembayaran" pada kop laporan.
+ *
+ * Label ini berarti batas akhir SUDAH BAYAR -- jadi satu hari SEBELUM
+ * tanggal jatuh tempo. Kalau tagihannya jatuh tempo 27 Agustus, maka
+ * pembayaran terakhirnya 26 Agustus.
+ *
+ * Sumbernya `jatuhTempo` milik baris data, jadi tidak ada tanggal yang
+ * diketik manual di sini. Fallback-nya (kalau baris data tidak punya
+ * jatuh tempo) memakai tanggal jatuh tempo dari SOP -- bukan angka
+ * hardcode, karena angka hardcode pasti akan menyimpang begitu admin
+ * mengubah "Batas Tagihan Bulanan".
+ *
+ * PERIODE: tagihan pemakaian bulan BERIKUTNYA yang dibayar. Jadi untuk
+ * laporan pemakaian Juli, tagihannya jatuh tempo di Agustus, dan labelnya
+ * menyebut Agustus.
+ */
 const tanggalAkhir = computed(() => {
   const withDue = items.value.find((it) => it.jatuhTempo)
   if (!withDue) {
@@ -199,9 +226,25 @@ const tanggalAkhir = computed(() => {
     const m = bulanIndex(f.bulan)
     const y = parseInt(f.tahun, 10)
     if (!m || !Number.isFinite(y)) return '-'
+
+    // Bulan tagihan = bulan pemakaian + 1 (aturan "dibayar bulan
+    // berikutnya"), lalu tanggalnya dari SOP.
     const next = m === 12 ? { m: 1, y: y + 1 } : { m: m + 1, y }
-    return `26 ${bulans[next.m - 1]} ${next.y}`
+    const day = Math.min(
+      Math.max(Number(settingsStore.batasTagihan) || 10, 1),
+      daysInMonth(next.m, next.y),
+    )
+
+    const d = new Date(next.y, next.m - 1, day)
+    d.setDate(d.getDate() - 1)
+
+    return d.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
   }
+
   const d = new Date(withDue.jatuhTempo)
   if (Number.isNaN(d.getTime())) return '-'
   d.setDate(d.getDate() - 1)
@@ -211,6 +254,12 @@ const tanggalAkhir = computed(() => {
     year: 'numeric',
   })
 })
+
+/**
+ * Jumlah hari dalam satu bulan. `new Date(y, m, 0).getDate()` mengembalikan
+ * hari terakhir bulan ke-`m` (m 1-12), karena indeks bulan di JS 0-based.
+ */
+const daysInMonth = (month, year) => new Date(year, month, 0).getDate()
 </script>
 
 <style scoped>

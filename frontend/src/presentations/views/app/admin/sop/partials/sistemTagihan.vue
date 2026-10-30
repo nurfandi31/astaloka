@@ -18,13 +18,18 @@
                 <h4 class="text-xs! font-black! text-slate-800! leading-tight!">
                   Batas Tagihan Bulanan
                 </h4>
-                <p class="text-[10px]! text-slate-400!">Tanggal jatuh tempo.</p>
+                <p class="text-[10px]! text-slate-400!">
+                  Tanggal jatuh tempo. Pemakaian bulan ini ditagih di bulan depan, jadi tagihan
+                  pemakaian Juni dengan batas 26 jatuh tempo 26 Juli.
+                </p>
               </div>
             </div>
             <BaseInput
               v-model="form.batasTagihan"
               placeholder="Tanggal"
               type="number"
+              :min="1"
+              :max="31"
               size="md"
               prefix-icon="calendar"
               :no-margin="true"
