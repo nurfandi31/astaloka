@@ -150,7 +150,15 @@ class SopController extends Controller
     {
         try {
             $data = $request->validate([
-                'batasTagihan' => 'required|integer|min:1|max:28',
+                /*
+                 * Tanggal jatuh tempo tagihan, 1-31.
+                 *
+                 * Angkanya dipakai di bulan TAGIHAN (bulan pemakaian + 1),
+                 * jadi 31 berarti 31 Oktober, 30 di November, dan 28/29 di
+                 * Februari. Nilai di luar 1-31 ditolak di sini supaya
+                 * tidak ada angka yang tidak pernah ada di kalender.
+                 */
+                'batasTagihan' => 'required|integer|min:1|max:31',
 
                 /*
                  * Rentang `0..31` -- TANGGAL generate piutang tiap bulan.

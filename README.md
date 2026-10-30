@@ -237,22 +237,26 @@ php artisan test
 > membangunnya ulang dari nol.
 >
 > Yang **tidak** otomatis bersih adalah database yang dibuat test yang
-> mem-provisioning lokasi. Nama-nama itu selalu berawalan
-> `astaloka_` + salah satu prefix di bawah:
+> mem-provisioning lokasi. Nama-nama itu memakai salah satu prefix di bawah:
 >
 > | Prefix database | Test pembuatnya |
 > |---|---|
 > | `astaloka_provtest_` | `CentralTenantProvisionTest` |
 > | `astaloka_statustest_` | `CentralLocationStatusTest` |
-> | `astaloka_hakakses_` | `CentralMenuAccessTest` |
-> | `astaloka_shortcut_` | `ShortcutLoginTest` |
-> | `astaloka_migtest_` | `MigrateTenantsTest` |
 > | `astaloka_domtest_` | `CentralDomainTest` |
 > | `astaloka_brandtest_` | `BrandingTest` |
 > | `astaloka_usatest_` | `CentralSuperadminTest` |
 > | `astaloka_ringkasan_` | `CentralInvoiceRingkasanTest` |
 > | `astaloka_invlock_` | `InvoiceLockTest` |
 > | `astaloka_landingtest_` | `LandingPenggunaTest` |
+> | `hakakses_` | `CentralMenuAccessTest` |
+> | `shortcut_` | `ShortcutLoginTest` |
+> | `migtest_` | `MigrateTenantsTest` |
+>
+> Tiga baris terakhir **tidak** memakai awalan `astaloka_` -- test-nya membuat
+> database lokasi palsu dengan nama polos. Pola `LIKE 'astaloka\_%'` sama
+> sekali tidak akan menyentuhnya, padahal tiga prefix itu justru yang paling
+> sering tertinggal.
 >
 > Test itu membersihkannya di `tearDown()` -- tapi kalau proses test-nya mati
 > di tengah jalan (Ctrl+C, timeout, kill), `tearDown()` tidak pernah jalan dan

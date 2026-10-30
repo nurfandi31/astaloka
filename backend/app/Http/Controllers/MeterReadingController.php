@@ -222,6 +222,17 @@ class MeterReadingController extends Controller
         $settings = Setting::first();
         $batasTagihan = (int) ($settings?->batas_tagihan ?? 27);
 
+        // Waktu pencatatan meter = hari `batas_tagihan` di dalam bulan
+        // PEMAKAIAN, bukan bulan tagihannya.
+        //
+        // `recorded_at` dipakai frontend sebagai "TANGGAL AKHIR" pemakaian
+        // (lihat `usePemakaianAir.js`: `tanggalAkhir = reading_recorded_at
+        // || due_date`), jadi nilainya harus menunjuk ke batas akhir periode
+        // pemakaian -- bukan ke tanggal jatuh temponya yang sudah digeser
+        // ke bulan berikutnya.
+        //
+        // Meter dibaca di sekitar hari `batas_tagihan` bulan berjalan, lalu
+        // tagihannya dibayar pada bulan berikutnya.
         $recordedAt = Carbon::create($tahun, $bulan, 1)
             ->setDay(min($batasTagihan, Carbon::create($tahun, $bulan, 1)->daysInMonth))
             ->setTimeFrom(now());

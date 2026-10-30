@@ -225,12 +225,14 @@ class MonthlyBillService
         return 0;
     }
 
+    /**
+     * Tanggal jatuh tempo tagihan untuk satu periode pemakaian.
+     *
+     * Menuju ke `BillingDueDate` supaya rumusnya cuma ada di satu tempat.
+     * Lihat service itu untuk penjelasan aturan "dibayar bulan berikutnya".
+     */
     public function computeDueDate(int $year, int $month, int $day = 27): string
     {
-        $carbon = Carbon::create($year, $month, 1);
-        $maxDay = $carbon->daysInMonth;
-        $day = min($day, $maxDay);
-
-        return $carbon->setDay($day)->toDateString();
+        return BillingDueDate::compute($year, $month, $day);
     }
 }

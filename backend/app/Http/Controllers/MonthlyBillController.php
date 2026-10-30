@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\MeterReading;
 use App\Models\MonthlyBill;
 use App\Models\Transaction;
+use App\Services\BillingDueDate;
 use App\Services\BillingTolerance;
 use App\Services\BillRecalculationService;
 use App\Services\MonthlyBillService;
@@ -267,6 +268,90 @@ class MonthlyBillController extends Controller
         $prevMonthIndex = ($month === 1 ? 12 : $month - 1);
         $prevYearIndex = ($month === 1 ? $year - 1 : $year);
 
+        // Meter kumulatif terakhir yang diketahui SEBELUM periode ini.
+        //
+        // Dipakai untuk mengisi kolom "Awal" saat tagihan periode ini belum
+        // ada — mis. form input Oktober yang belum digenerate tagihannya.
+        // Tanpa ini, `meter_awal` jatuh ke `customers.initial_meter_reading`
+        // yang 0 semua untuk data legacy, sehingga form cetak Oktober tampil
+        // semua nol padahal September sudah ada angkanya.
+        //
+        // Yang dicari adalah NILAI TERAKHIR yang diketahui, bukan strictly
+        // bulan N-1: ada pelanggan yang tagihannya bulan September belum
+        // dibuat (mis. tiket suspended), jadi meter terakhirnya masih
+        // Agustus. Ambil N-1 saja akan mengembalikan 0 untuk pelanggan itu.
+        //
+        // Sumber: tagihan (meter_reading_end — sudah final lewat
+        // BillingService) dan meter_readings (meter_value). Keduanya
+        // cumulative, jadi pilih yang periodenya paling baru.
+        //
+        // CATATAN PERFORMA — tiga hal yang bikin halaman ini lambat, dan
+        // ketiganya sudah ditangani di sini:
+        //
+        // 1. Window function ROW_NUMBER() memaksa MySQL menyortir SEMUA baris
+        //    di dalam partisi sebelum mengambil rn = 1 — artinya memproses
+        //    30rb+ baris tagihan per request. Diganti agregat MAX(periode).
+        //
+        // 2. Daftar id pelanggan dipasang sebagai placeholder `?` satu per
+        //    id. Dengan 1.600+ placeholder, MySQL harus mem-parse ulang query
+        //    tiap kali (3 detik!). Daftar id TIDAK ditulis sebagai IN list
+        //    karena daftar itu panjang; filternya dilakukan di PHP.
+        //
+        // 3. Query N+1: `meterReadings()` dipanggil di dalam loop per
+        //    pelanggan (1.600+ query). Diganti batch-load di atas.
+        //
+        // Periode dipaket jadi satu angka (tahun*100 + bulan) supaya
+        // perbandingan "terakhir" cukup satu operasi MAX — dan tidak perlu
+        // CASE WHEN untuk menangani pergantian tahun.
+        //
+        // Catatan soft-delete: MonthlyBill punya global scope deleted_at.
+        // Scope itu TIDAK bisa dipakai di query raw ini (dia akan menyuntik
+        // `where monthly_bills.deleted_at is null` ke alias yang tidak punya
+        // kolom itu — "Unknown column"). Karena itu filter soft-delete
+        // ditulis manual (lihat `deleted_at is null` di bawah), supaya
+        // perilakunya sama persis dengan model.
+        $maxPeriod = $year * 100 + $month;
+
+        $latestBillRows = collect(DB::select(
+            'SELECT lbb.customer_id, lbb.meter_reading_end, lbb.billing_period_year, lbb.billing_period_month
+             FROM (
+                SELECT customer_id, MAX(billing_period_year * 100 + billing_period_month) AS maxp
+                FROM monthly_bills
+                WHERE deleted_at IS NULL
+                  AND (billing_period_year * 100 + billing_period_month) < ?
+                GROUP BY customer_id
+             ) lbm
+             JOIN monthly_bills lbb
+               ON lbb.customer_id = lbm.customer_id
+              AND lbb.billing_period_year = FLOOR(lbm.maxp / 100)
+              AND lbb.billing_period_month = lbm.maxp % 100
+              AND lbb.deleted_at IS NULL',
+            [$maxPeriod]
+        ))->keyBy('customer_id');
+
+        $latestReadingRows = collect(DB::select(
+            'SELECT lrb.customer_id, lrb.meter_value, lrb.reading_year, lrb.reading_month
+             FROM (
+                SELECT customer_id, MAX(reading_year * 100 + reading_month) AS maxp
+                FROM meter_readings
+                WHERE (reading_year * 100 + reading_month) < ?
+                GROUP BY customer_id
+             ) lrm
+             JOIN meter_readings lrb
+               ON lrb.customer_id = lrm.customer_id
+              AND lrb.reading_year = FLOOR(lrm.maxp / 100)
+              AND lrb.reading_month = lrm.maxp % 100',
+            [$maxPeriod]
+        ))->keyBy('customer_id');
+
+        // Batch-load pencatatan meter PERIODE INI. Tanpa ini, tiap pelanggan
+        // memicu 1 query sendiri (N+1) — 1.600+ query untuk satu halaman.
+        $currentReadings = MeterReading::whereIn('customer_id', $customers->pluck('id'))
+            ->where('reading_month', $month)
+            ->where('reading_year', $year)
+            ->get()
+            ->keyBy('customer_id');
+
         $billPayments = BillPayment::whereIn('bill_id', $currentBills->pluck('id'))
             ->get();
 
@@ -297,11 +382,8 @@ class MonthlyBillController extends Controller
             }
         }
 
-        $items = $customers->map(function ($customer) use ($month, $year, $currentBills, $prevMonthIndex, $prevYearIndex, $paidAmountByBillId, $amountPaidFallbackByBillId) {
-            $reading = $customer->meterReadings()
-                ->where('reading_month', $month)
-                ->where('reading_year', $year)
-                ->first();
+        $items = $customers->map(function ($customer) use ($currentBills, $currentReadings, $latestBillRows, $latestReadingRows, $prevMonthIndex, $prevYearIndex, $paidAmountByBillId, $amountPaidFallbackByBillId) {
+            $reading = $currentReadings->get($customer->id);
 
             $bill = $currentBills->get($customer->id);
 
@@ -350,6 +432,51 @@ class MonthlyBillController extends Controller
                 ? 'PAID'
                 : ($bill || $reading ? 'UNPAID' : 'PENDING');
 
+            // Meter awal periode ini.
+            //
+            // Kalau tagihan periode ini sudah ada, `meter_reading_start`nya
+            // sudah final (dihitung BillingService dari reading N-1) — pakai
+            // itu.
+            //
+            // Kalau tagihannya belum ada (mis. Oktober yang belum digenerate),
+            // "Awal" harus tetap angka meter kumulatif terakhir yang diketahui:
+            // meter akhir September (atau periode terakhir yang ada). Form ini
+            // dipakai teknisi untuk mencatat meter akhir, jadi kolom Awal WAJIB
+            // terisi — kalau diisi 0, teknisi akan salah menghitung pemakaian.
+            //
+            // `customers.initial_meter_reading` hanya dipakai sebagai fallback
+            // terakhir: untuk data legacy nilainya 0 semua, dan 0 di sini
+            // berarti "belum pernah ada meter" — bukan "meter mulai dari 0".
+            //
+            // Perhatikan: pemilihan sumber memakai `?->` + null coalesce, BUKAN
+            // `??` pada nilai numeriknya. `0` itu angka meter yang sah (meter
+            // belum pernah dipakai), jadi harus menghormati 0 kalau ada — jangan
+            // melompat ke sumber berikutnya hanya karena nilainya nol.
+            $meterAwal = $bill?->meter_reading_start;
+
+            if ($meterAwal === null) {
+                $prevBill = $latestBillRows->get($customer->id);
+                $prevReading = $latestReadingRows->get($customer->id);
+
+                // Pilih sumber dengan periode paling baru. Kalau keduanya satu
+                // periode, tagihan menang (nilainya sudah final dan konsisten
+                // dengan tagihan yang dicetak).
+                $billPeriod = $prevBill
+                    ? ((int) $prevBill->billing_period_year * 100 + (int) $prevBill->billing_period_month)
+                    : null;
+                $readingPeriod = $prevReading
+                    ? ((int) $prevReading->reading_year * 100 + (int) $prevReading->reading_month)
+                    : null;
+
+                if ($billPeriod !== null && ($readingPeriod === null || $billPeriod >= $readingPeriod)) {
+                    $meterAwal = $prevBill->meter_reading_end;
+                } elseif ($readingPeriod !== null) {
+                    $meterAwal = $prevReading->meter_value;
+                } else {
+                    $meterAwal = $customer->initial_meter_reading;
+                }
+            }
+
             return [
                 'id' => $customer->id,
                 'customer_code' => $customer->customer_code,
@@ -361,7 +488,7 @@ class MonthlyBillController extends Controller
                 'dusun' => $customer->ticket?->village?->hamlet_name,
                 'desa' => $customer->ticket?->village?->village_name,
                 'package_name' => $customer->ticket?->package?->name,
-                'meter_awal' => $bill?->meter_reading_start ?? $customer->initial_meter_reading,
+                'meter_awal' => $meterAwal,
                 'meter_akhir' => $bill?->meter_reading_end ?? $reading?->meter_value,
                 'pemakaian' => $bill?->usage_m3,
                 'pemakaian_charge' => $bill?->usage_charge ?? 0,
@@ -378,6 +505,11 @@ class MonthlyBillController extends Controller
                 'is_paid' => $statusLabel === 'PAID',
                 'paid_amount' => $paidAmount,
                 'due_date' => $bill?->due_date,
+                // Periode tagihan ikut dikirim supaya frontend tidak
+                // perlu menebak dari filter halaman yang sedang aktif.
+                // Tanpa ini, edit dari tab lain bisa salah periode.
+                'billing_period_month' => $bill?->billing_period_month,
+                'billing_period_year' => $bill?->billing_period_year,
                 'reading_photo' => $reading?->photo_url ?: null,
                 'reading_recorded_at' => $reading?->recorded_at,
                 'technician_id' => $customer->ticket?->user_id,
@@ -578,11 +710,12 @@ class MonthlyBillController extends Controller
         // SEBELUM ambang generate tunggakan, sehingga tagihan ini pada saat
         // dibayar belum/seharusnya belum punya piutang.
         //
-        // Angka ini dibaca sebagai TANGGAL dalam bulan pemakaian tagihan.
-        // Frontend `BillingForm.vue` menghitung ulang rumus yang sama untuk
-        // pratinjau, jadi keduanya harus memakai angka yang sama -- kalau
-        // tidak, pratinjau dan hasil sebenarnya berbeda dan user melihat
-        // status advance yang salah.
+        // Ambangnya adalah TANGGAL JATUH TEMPO tagihan ini. Karena jatuh
+        // tempo dihitung di bulan tagihan (bulan pemakaian + 1), ambang ini
+        // ikut bergeser ke bulan tagihan. Frontend `BillingForm.vue`
+        // menghitung ulang rumus yang sama untuk pratinjau, jadi keduanya
+        // harus memakai angka yang sama -- kalau tidak, pratinjau dan hasil
+        // sebenarnya berbeda dan user melihat status advance yang salah.
         //
         // RUMUSNYA TIDAK BERUBAH dari pamsides-v2. Yang berubah hanya
         // sumber nilainya: `BillingTolerance` memperjelas bahwa satuan ini
@@ -598,11 +731,18 @@ class MonthlyBillController extends Controller
                 $dueRef = Carbon::parse($bill->due_date);
                 $thresholdYear = $dueRef->year;
                 $thresholdMonth = $dueRef->month;
+                // `due_date` sudah menunjuk ke bulan TAGIHAN, jadi jangan
+                // digeser satu bulan lagi di sini.
+                $thresholdDate = $dueRef->startOfDay();
+                $isAdvancePayment = $paidAtDate->lt($thresholdDate);
+            } else {
+                $thresholdDate = BillingDueDate::inBillingMonth(
+                    $thresholdYear,
+                    $thresholdMonth,
+                    $toleransiTgl
+                );
+                $isAdvancePayment = $paidAtDate->lt($thresholdDate);
             }
-            $daysInThresholdMonth = Carbon::create($thresholdYear, $thresholdMonth, 1)->daysInMonth;
-            $effectiveDay = min($toleransiTgl, $daysInThresholdMonth);
-            $thresholdDate = Carbon::create($thresholdYear, $thresholdMonth, $effectiveDay)->startOfDay();
-            $isAdvancePayment = $paidAtDate->lt($thresholdDate);
         }
 
         // Kombinasi yang TIDAK mungkin secara logika tapi tetap dijaga: tagihan

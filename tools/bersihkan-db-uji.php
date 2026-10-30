@@ -38,12 +38,31 @@ $semua = $st->fetchAll(PDO::FETCH_COLUMN);
  *                                       tanpa suffix (`_central`, `_piutang`,
  *                                       `_iso`, ...)
  *   - `astaloka_<prefix>_<uniqid>`    -> DB lokasi palsu milik test
+ *   - `<prefix>_<uniqid>_*`           -> DB lokasi palsu milik test yang
+ *                                       TIDAK memakai prefix `astaloka_`
+ *
+ * Prefix TANPA `astaloka_` itu penting, bukan tambahan opsional.
+ * Tiga test membuat database lokasi palsu tanpa awalan `astaloka_`:
+ *
+ *   - `CentralMenuAccessTest`  -> `str_replace('-','_',$prefix.'terpisah')`
+ *   - `ShortcutLoginTest`      -> `str_replace('-','_',$prefix.'terpisah')`
+ *   - `MigrateTenantsTest`     -> `$prefix.'_jalan'`, `$prefix.'_rusak'`, ...
+ *
+ * Pola yang HANYA bisa menerima `astaloka_<prefix>_` tidak akan pernah
+ * cocok dengan tiga nama itu -- jadi database yang paling sering tertinggal
+ * justru yang paling tidak pernah terhapus. Buktinya ada di server: test
+ * yang selesai tiba-tiba meninggalkan `migtest_6ae2fe24237dd__lancar`.
+ *
+ * Pola di bawah ditulis sebagai "prefix lalu underscore" TANPA mensyaratkan
+ * awalan `astaloka_`, jadi keenamnya ikut tertangkap -- dan tetap aman,
+ * karena prefix-nya (`provtest`, `migtest`, ...) tidak mungkin jadi awal
+ * nama database lokasi yang dipakai aplikasi.
  */
 $polaUji = [
     // Database uji resmi, termasuk varian suffixed-nya.
     '/^astaloka_testing(_[a-z0-9_]+)?$/',
-    // Database lokasi palsu yang dibuat test provisioning.
-    '/^astaloka_(provtest|statustest|hakakses|shortcut|migtest|domtest|brandtest|usatest|ringkasan|invlock|landingtest)_/',
+    // Database lokasi palsu milik test, dengan atau tanpa awalan `astaloka_`.
+    '/^(astaloka_)?(provtest|statustest|hakakses|shortcut|migtest|domtest|brandtest|usatest|ringkasan|invlock|landingtest)_/',
 ];
 
 /*
