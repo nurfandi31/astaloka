@@ -539,7 +539,11 @@ return [
             // di `tagihan.input` dan `transaksi.tagihan-bulanan`, dan
             // `CheckRole` menutupnya untuk teknisi -- jadi yang hilang
             // hanya hak akses jabatan, bukan keamanan.
-            'api' => ['monthly-bills*'],
+            //
+            // `whatsapp/*` : menyusun pesan WA dari template SOP. Prefix
+            // yang sama dipakai menu admin (`tagihan.daftar`), jadi keduanya
+            // harus menyebutnya.
+            'api' => ['monthly-bills*', 'whatsapp/*'],
             'roles' => ['teknisi'],
         ],
 
@@ -655,7 +659,13 @@ return [
             // sehingga halaman ini tidak ikut membuka endpoint TULIS
             // (`/monthly-bills/{id}/pay`, `/monthly-bills/generate`) yang
             // bukan miliknya.
-            'api' => ['bills', 'monthly-bills*'],
+            //
+            // `whatsapp/*` : menyusun pesan WA dari template SOP. Dipakai
+            // juga oleh menu teknisi (halaman "Daftar Tagihan" versi
+            // teknisi), jadi kedua pemilik harus menyebutnya -- kalau
+            // hanya menu ini, `whatsapp/*` ikut terblokir untuk teknisi
+            // dan pesan yang disusunnya tidak pernah sampai.
+            'api' => ['bills', 'monthly-bills*', 'whatsapp/*'],
             'roles' => ['admin'],
         ],
 

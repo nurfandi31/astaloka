@@ -551,6 +551,10 @@ class EnforceMenuAccessTest extends TestCase
                 'transaksi.tagihan-bulanan',
                 'arsip.tagihan',
             ],
+            'whatsapp/*' => [
+                'teknisi.daftar-tagihan',
+                'tagihan.daftar',
+            ],
             'piutang' => ['transaksi.tagihan-bulanan', 'arsip.piutang'],
             'bills' => ['tagihan.daftar', 'transaksi.tagihan-bulanan'],
         ];
@@ -669,6 +673,7 @@ class EnforceMenuAccessTest extends TestCase
             'monthly-bills*',
             'piutang',
             'bills',
+            'whatsapp/*',
         ] as $prefix) {
             $this->assertGreaterThan(
                 1,

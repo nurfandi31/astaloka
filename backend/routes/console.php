@@ -132,10 +132,47 @@ Schedule::command('migrasi:bersihkan')
  * Task Scheduler di mesin ini:
  *
  *     Nama  : ASTALOKA Scheduler
- *     Aksi  : C:\laragon\bin\php\php-8.4.19-nts-Win32-vs17-x64\php.exe
- *             "C:\laragon\www\astaloka\backend\artisan" schedule:run
+ *     Aksi  : C:\Windows\System32\wscript.exe
+ *             "C:\laragon\www\astaloka\tools\scheduler-run-hidden.vbs"
  *     Folder: C:\laragon\www\astaloka\backend
  *     Jadwal: setiap menit
+ *
+ * KENAPA LEWAT VBS, BUKAN LANGSUNG `php.exe`
+ * -------------------------------------------
+ *
+ * Task Scheduler yang menjalankan `php.exe` (aplikasi konsol) selalu membuka
+ * jendela konsol baru setiap kali task berjalan. Karena task-nya berjalan
+ * tiap menit, itu berarti satu jendela baru per menit -- dan karena Windows
+ * Terminal menjadi default terminal di Win11, jendela itu muncul sebagai TAB
+ * BARU di Windows Terminal, lalu hilang sendiri begitu prosesnya selesai.
+ *
+ * Gejalanya persis seperti pada bug report: terminal "misterius" membuka tab
+ * baru sendiri, beberapa saat kemudian tabnya hilang. Penyebabnya bukan
+ * aplikasi -- ini perilaku Task Scheduler plus `php.exe` yang butuh console.
+ *
+ * `scheduler-run-hidden.vbs` menjalankan perintah yang sama lewat
+ * `WScript.Shell.Run` dengan window style `0` (tersembunyi). Console-nya
+ * tetap ada -- jadi proses TURUNAN yang dibuat Symfony Process (yaitu
+ * `migrasi:bersihkan`) tetap bisa jalan -- tapi tidak pernah ditampilkan,
+ * jadi tidak ada tab yang muncul.
+ *
+ * `php-win.exe` TIDAK bisa dipakai sebagai gantinya: varian GUI itu tidak
+ * membuat console sama sekali, sehingga `proc_open()` di dalam PHP tidak
+ * punya console untuk diwariskan dan perintah turunan gagal.
+ *
+ * Detail teknis lain yang sudah diuji dan HARUS dijaga kalau skripnya
+ * diubah:
+ *
+ *   - `WScript.Shell.Run` membungkus command string dengan kutip sendiri.
+ *     Kutip manual kedua membuat `cmd.exe` memperlakukan operator redirect
+ *     `>` sebagai teks biasa -- perintahnya gagal diam-diam dengan exit
+ *     code 1. Karena itu redirect ditulis di file `.cmd` terpisah
+ *     (`scheduler-run-hidden.cmd`), tempat quoting ditangani cmd.exe.
+ *   - `FormatDateTime` dengan pola "nn" melempar "Type mismatch" di locale
+ *     mesin ini. Timestamp dibangun manual dari `Now`.
+ *   - File output per run (`scheduler-out-<random>.txt`), bukan langsung ke
+ *     file log: selama `cmd.exe` masih hidup, file yang di-`>>` terkunci,
+ *     dan skrip tidak bisa membacanya ("Permission denied").
  *
  * PENTING: jangan pakai task yang sama untuk dua aplikasi. ASTALOKA punya
  * task sendiri (`ASTALOKA Scheduler`) dan tidak boleh berbagi dengan
@@ -147,7 +184,10 @@ Schedule::command('migrasi:bersihkan')
  *
  *     schtasks /query /tn "ASTALOKA Scheduler"
  *     php artisan schedule:list
+ *     type backend\storage\logs\scheduler-status.txt
  *
  * Kalau `Last Result` bukan 0, task-nya gagal jalan -- dan generate piutang
- * tidak akan terjadi di tanggal yang seharusnya.
+ * tidak akan terjadi di tanggal yang seharusnya. Isi
+ * `backend/storage/logs/scheduler-run.log` hanya terisi kalau ada error;
+ * dalam kondisi normal file itu tetap kosong.
  */
