@@ -459,6 +459,34 @@ const router = createRouter({
           component: ArsipPiutangPage,
         },
         {
+          /*
+            Path LAMA, sebelum feature ini diubah namanya jadi "Piutang".
+            
+            Redirect, bukan halaman tersendiri -- supaya bookmark dan
+            tautan yang sudah tersebar (chat WhatsApp, bookmark browser,
+            shortcut lama) tidak mati mendadak. Tanpa baris ini, URL lama
+            jatuh ke catch-all `/:pathMatch(.*)*` dan user mendarat di
+            dashboard tanpa penjelasan -- gejalanya seperti "halaman
+            arsipnya hilang", padahal hanya pindah nama.
+            
+            Query DITERUSKAN, bukan dibuang: `?bulan=10&tahun=2026` adalah
+            bagian dari intentions user (lihat periode apa yang mau
+            dibuka). `redirect` dengan fungsi mengembalikan objek
+            `{ path, query }` -- kalau query-nya dibuang, redirect jadi
+            sia-sia karena filter periode yang justru dicari hilang.
+            
+            `hash` juga diteruskan, tapi memang tidak ada anchor di
+            halaman ini -- bentuk responsnya dijaga seragam supaya kalau
+            nanti ada anchor, tetap ikut terbawa.
+          */
+          path: 'arsip/tunggakan',
+          redirect: (to) => ({
+            path: '/app/arsip/piutang',
+            query: to.query,
+            hash: to.hash,
+          }),
+        },
+        {
           path: 'arsip/pemakaian',
           name: 'Arsip Pemakaian',
           component: ArsipPemakaian,
