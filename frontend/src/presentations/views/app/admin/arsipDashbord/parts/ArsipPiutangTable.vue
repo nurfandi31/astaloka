@@ -1,12 +1,12 @@
 <template>
   <!--
-    TABEL Arsip Tunggakan.
+    TABEL Arsip Piutang.
 
     Dipakai di DUA konteks, dan itu sebabnya komponen ini dipisah dari
     halaman:
 
       1. Popup dashboard (kotak "TUNGGAKAN" -> Lihat Detail).
-      2. Halaman mandiri /app/arsip/tunggakan.
+      2. Halaman mandiri /app/arsip/piutang.
 
     Yang membedakan keduanya hanya gaya, bukan datanya:
 
@@ -31,7 +31,7 @@
       @update:model-value="(v) => emit('update:searchQuery', v)"
       :data="itemsList"
       :columns="columns"
-      :title="popup ? 'Detail Arsip Tunggakan' : ''"
+      :title="popup ? 'Detail Arsip Piutang' : ''"
       searchPlaceholder="Cari nama atau nomor..."
       :current-page="currentPage"
       @update:current-page="(v) => emit('update:currentPage', v)"
@@ -43,7 +43,7 @@
       :no-card="true"
       server-side
       :loading="loading"
-      empty-title="Tidak Ada Tunggakan"
+      empty-title="Tidak Ada Piutang"
       empty-message="Tidak ada piutang pelanggan yang belum tertagih pada periode ini."
       empty-icon="file-invoice-dollar"
     >

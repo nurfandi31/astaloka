@@ -36,7 +36,7 @@ import DesaIndex from '@/presentations/views/app/admin/desa/DesaIndex.vue'
 import DesaCreate from '@/presentations/views/app/admin/desa/DesaCreate.vue'
 import DesaEdit from '@/presentations/views/app/admin/desa/DesaEdit.vue'
 import ArsipTagihan from '@/presentations/views/app/admin/arsipDashbord/ArsipTagihan.vue'
-import ArsipTunggakanPage from '@/presentations/views/app/admin/arsipDashbord/ArsipTunggakanPage.vue'
+import ArsipPiutangPage from '@/presentations/views/app/admin/arsipDashbord/ArsipPiutangPage.vue'
 import ArsipPemakaian from '@/presentations/views/app/admin/arsipDashbord/ArsipPemakaian.vue'
 import ArsipInstalasi from '@/presentations/views/app/admin/arsipDashbord/ArsipInstalasi.vue'
 import NotFoundView from '@/presentations/views/app/NotFoundView.vue'
@@ -446,17 +446,17 @@ const router = createRouter({
         },
         {
           /*
-            Halaman mandiri Arsip Tunggakan.
+            Halaman mandiri Arsip Piutang.
             
-            BUKAN `ArsipTunggakan.vue` (variante popup dashboard): yang itu
+            BUKAN `ArsipPiutangPopup.vue` (variante popup dashboard): yang itu
             dipakai dashboard lewat `openDetailModal('tunggakan')` dan tidak
             punya filter periode. Halaman ini punya filter bulan/tahun
             pencatatan piutang dan ringkasan, dan datanya diambil dari
-            `GET /tunggakan/arsip`.
+            `GET /piutang/arsip`.
           */
-          path: 'arsip/tunggakan',
-          name: 'Arsip Tunggakan',
-          component: ArsipTunggakanPage,
+          path: 'arsip/piutang',
+          name: 'Arsip Piutang',
+          component: ArsipPiutangPage,
         },
         {
           path: 'arsip/pemakaian',

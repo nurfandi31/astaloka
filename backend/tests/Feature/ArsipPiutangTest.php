@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Arsip Tunggakan: apa yang boleh masuk daftarnya, dan apa yang tidak.
+ * Arsip Piutang: apa yang boleh masuk daftarnya, dan apa yang tidak.
  *
  * Endpoint ini menentukan ANGKA PIUTANG yang dilihat admin -- jadi
  * definisi "piutang" yang dipakai di sini adalah hal yang paling
@@ -39,7 +39,7 @@ use Tests\TestCase;
  * Semua query lewat model Eloquent, jadi otomatis memakai koneksi tenant
  * yang sedang aktif (database LOKASI).
  */
-class ArsipTunggakanTest extends TestCase
+class ArsipPiutangTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -193,7 +193,7 @@ class ArsipTunggakanTest extends TestCase
     {
         Sanctum::actingAs($this->admin());
 
-        return $this->getJson('/api/tunggakan/arsip'.($query ? '?'.http_build_query($query) : ''));
+        return $this->getJson('/api/piutang/arsip'.($query ? '?'.http_build_query($query) : ''));
     }
 
     /**

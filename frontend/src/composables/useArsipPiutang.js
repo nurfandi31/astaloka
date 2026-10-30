@@ -1,8 +1,8 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import tunggakanService from '@/services/tunggakan.service'
+import piutangService from '@/services/piutang.service'
 
 /**
- * Data Arsip Tunggakan: piutang pelanggan yang belum tertagih.
+ * Data Arsip Piutang: piutang pelanggan yang belum tertagih.
  *
  * DIPISAH dari `usePopupData` karena arsip butuh tiga hal yang popup tidak
  * punya:
@@ -35,7 +35,7 @@ import tunggakanService from '@/services/tunggakan.service'
  * @param {import('vue').Ref<number|null>} [opts.bulan] Bulan awal yang difilter
  * @param {import('vue').Ref<number|null>} [opts.tahun] Tahun awal yang difilter
  */
-export function useArsipTunggakan({ bulan = null, tahun = null } = {}) {
+export function useArsipPiutang({ bulan = null, tahun = null } = {}) {
   const searchQuery = ref('')
   const currentPage = ref(1)
   const perPage = ref(10)
@@ -69,7 +69,7 @@ export function useArsipTunggakan({ bulan = null, tahun = null } = {}) {
       loading.value = true
       errorMessage.value = null
 
-      const response = await tunggakanService.getArsip({
+      const response = await piutangService.getArsip({
         page: currentPage.value,
         per_page: perPage.value,
         search: searchQuery.value || undefined,
@@ -94,7 +94,7 @@ export function useArsipTunggakan({ bulan = null, tahun = null } = {}) {
         itemsList.value = []
         serverTotal.value = 0
         totalPages.value = 1
-        errorMessage.value = response?.message || 'Gagal memuat data arsip tunggakan.'
+        errorMessage.value = response?.message || 'Gagal memuat data arsip piutang.'
       }
     } catch (err) {
       if (myId !== latestRequestId) return
@@ -103,7 +103,7 @@ export function useArsipTunggakan({ bulan = null, tahun = null } = {}) {
       serverTotal.value = 0
       totalPages.value = 1
       errorMessage.value =
-        err?.response?.data?.message || err?.message || 'Gagal memuat data arsip tunggakan.'
+        err?.response?.data?.message || err?.message || 'Gagal memuat data arsip piutang.'
     } finally {
       // Hanya request terbaru boleh menurunkan spinner.
       if (myId === latestRequestId) {

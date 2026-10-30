@@ -500,7 +500,7 @@ import dashboardService from '@/services/dashboard.service'
 
 import InstalasiDetail from './arsipDashbord/ArsipInstalasi.vue'
 import PemakaianDetail from './arsipDashbord/ArsipPemakaian.vue'
-import TunggakanDetail from './arsipDashbord/ArsipTunggakan.vue'
+import TunggakanDetail from './arsipDashbord/ArsipPiutangPopup.vue'
 import TagihanDetail from './arsipDashbord/ArsipTagihan.vue'
 
 const activeModal = ref(false)

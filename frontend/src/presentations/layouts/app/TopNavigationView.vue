@@ -163,18 +163,18 @@
               Profil
             </router-link>
             <!--
-              Arsip Tunggakan.
+              Arsip Piutang.
 
-              Satu-satunya jalan masuk ke halaman Arsip Tunggakan dari
+              Satu-satunya jalan masuk ke halaman Arsip Piutang dari
               navbar -- halaman itu `hidden` di katalog menu, jadi tidak
               pernah muncul di sidebar.
 
               Dua syarat, dan keduanya wajib:
                 - role admin: halamannya admin-only (lihat ROLE_GUARDS di
-                  router), dan `arsip.tunggakan` di katalog hanya boleh
+                  router), dan `arsip.piutang` di katalog hanya boleh
                   dimiliki role admin.
-                - jabatan punya menu `arsip.tunggakan`: kalau tidak, backend
-                  membalas 403 untuk `GET /tunggakan/arsip`, jadi menautkan
+                - jabatan punya menu `arsip.piutang`: kalau tidak, backend
+                  membalas 403 untuk `GET /piutang/arsip`, jadi menautkan
                   ke sana hanya menghasilkan halaman kosong.
 
               Periode default-nya bulan & tahun BERJALAN -- bukan periode
@@ -183,16 +183,16 @@
               yang dicari.
             -->
             <router-link
-              v-if="canOpenArsipTunggakan"
+              v-if="canOpenArsipPiutang"
               :to="{
-                path: '/app/arsip/tunggakan',
+                path: '/app/arsip/piutang',
                 query: { bulan: periodeSekarang.bulan, tahun: periodeSekarang.tahun },
               }"
               class="avatar-dropdown-item"
               @click="avatarDropdownOpen = false"
             >
               <font-awesome-icon icon="hourglass-half" class="mr-3" />
-              Arsip Tunggakan
+              Arsip Piutang
             </router-link>
             <BaseButton
               variant="ghost"
@@ -302,10 +302,10 @@ const menuAccessStore = useMenuAccessStore()
 const router = useRouter()
 
 /*
- * Periode default halaman Arsip Tunggakan: bulan & tahun BERJALAN.
+ * Periode default halaman Arsip Piutang: bulan & tahun BERJALAN.
  *
  * Yang dimaksud "bulan" di sini adalah bulan PENCATATAN piutang (tanggal
- * generate), bukan bulan periode tagihan -- lihat `ArsipTunggakanService`.
+ * generate), bukan bulan periode tagihan -- lihat `ArsipPiutangService`.
  *
  * Dipakai di tautan dropdown avatar supaya halaman langsung terbuka pada
  * periode yang paling mungkin dicari: piutang yang baru saja dibukukan.
@@ -320,15 +320,15 @@ const periodeSekarang = computed(() => {
 })
 
 /*
- * Boleh membuka Arsip Tunggakan?
+ * Boleh membuka Arsip Piutang?
  *
  * Dua syarat, keduanya wajib:
  *
  *  1. Role admin. Halamannya admin-only (ROLE_GUARDS di router), dan
- *     `arsip.tunggakan` di katalog hanya boleh dimiliki role admin.
+ *     `arsip.piutang` di katalog hanya boleh dimiliki role admin.
  *
- *  2. Jabatan punya menu `arsip.tunggakan`. Kalau tidak, backend membalas
- *     403 untuk `GET /tunggakan/arsip`, jadi tautan di sini hanya
+ *  2. Jabatan punya menu `arsip.piutang`. Kalau tidak, backend membalas
+ *     403 untuk `GET /piutang/arsip`, jadi tautan di sini hanya
  *     menghasilkan halaman kosong -- lebih baik tidak ditampilkan.
  *
  * `allowsKey()` bersifat fail-open: katalog yang belum sempat termuat
@@ -336,8 +336,8 @@ const periodeSekarang = computed(() => {
  * pesannya sendiri. Itu lebih baik daripada menyembunyikan entri untuk
  * orang yang sebenarnya berhak.
  */
-const canOpenArsipTunggakan = computed(
-  () => uiStore.userRole === 'admin' && menuAccessStore.allowsKey('arsip.tunggakan'),
+const canOpenArsipPiutang = computed(
+  () => uiStore.userRole === 'admin' && menuAccessStore.allowsKey('arsip.piutang'),
 )
 
 // Pencarian pelanggan bersumber dari data /installation-tickets yang hanya
