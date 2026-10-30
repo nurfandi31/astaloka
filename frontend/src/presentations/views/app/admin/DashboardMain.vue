@@ -471,12 +471,15 @@
             <div class="flex! items-center! gap-2!">
               <button
                 v-if="currentDetailType === 'tagihan'"
-                :disabled="tagihanSelection.length === 0"
+                :disabled="tagihanSelection.length === 0 || sendingIds.length > 0"
                 @click="handleSendMessage"
                 class="px-5! py-2! text-sm! font-semibold! text-white! bg-blue-600! hover:bg-blue-700! disabled:bg-slate-300! disabled:cursor-not-allowed! rounded-lg! flex! items-center! gap-2! transition-colors!"
               >
-                <font-awesome-icon icon="paper-plane" />
-                Kirim Pesan
+                <font-awesome-icon
+                  :icon="sendingIds.length > 0 ? 'spinner' : 'paper-plane'"
+                  :spin="sendingIds.length > 0"
+                />
+                {{ sendingIds.length > 0 ? 'Mengirim...' : 'Kirim Pesan WA' }}
               </button>
               <button
                 @click="closeDetailModal"
@@ -497,6 +500,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, provide } from 'vue'
 import statCard from '@/presentations/components/stat-card.vue'
 import ContentCard from '@/presentations/components/ui/ContentCard.vue'
 import dashboardService from '@/services/dashboard.service'
+import { useWhatsappTagihan } from '@/composables/useWhatsappTagihan.js'
 
 import InstalasiDetail from './arsipDashbord/ArsipInstalasi.vue'
 import PemakaianDetail from './arsipDashbord/ArsipPemakaian.vue'
@@ -506,6 +510,8 @@ import TagihanDetail from './arsipDashbord/ArsipTagihan.vue'
 const activeModal = ref(false)
 const currentDetailType = ref('')
 const tagihanSelection = ref([])
+
+const { sendBulk, sendingIds } = useWhatsappTagihan()
 
 const openDetailModal = (type) => {
   currentDetailType.value = type
@@ -549,8 +555,22 @@ onBeforeUnmount(() => {
   document.body.style.overflow = ''
 })
 
-const handleSendMessage = () => {
-  // ponytail: handler placeholder, wire ke WhatsApp/email gateway saat fitur siap
+/**
+ * Kirim pengingat WhatsApp untuk semua tagihan yang dicentang di popup.
+ *
+ * Popup ini memang jalur "kirim banyak sekaligus" -- admin mencentang
+ * beberapa baris, lalu semua pesan disusun sekaligus dan jendela
+ * WhatsApp-nya dibuka berurutan.
+ *
+ * Isi pesannya disusun backend dari template yang diset admin di
+ * SOP -> Whatsapp API, sama persis dengan yang dipakai halaman
+ * "Daftar Tagihan" (yang mengirim satu per satu).
+ */
+const handleSendMessage = async () => {
+  if (tagihanSelection.value.length === 0) return
+
+  const ids = tagihanSelection.value.map((row) => row.id).filter(Boolean)
+  await sendBulk(ids)
 }
 
 provide('tagihanSelection', tagihanSelection)

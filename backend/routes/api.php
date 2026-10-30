@@ -38,6 +38,7 @@ use App\Http\Controllers\TutupBukuController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VillageController;
 use App\Http\Controllers\WaterTariffBlockController;
+use App\Http\Controllers\WhatsappController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -259,6 +260,20 @@ Route::middleware(['auth:sanctum', 'role:admin,teknisi'])->group(function () {
     // Teknisi: lihat daftar pelanggan suspended + konfirmasi restore (setelah bayar oleh admin)
     Route::get('monthly-bills/suspended', [MonthlyBillController::class, 'suspended']);
     Route::post('customers/{id}/restore', [MonthlyBillController::class, 'restoreCustomer']);
+
+    /*
+     * Susun pesan WhatsApp dari template yang diset admin di SOP.
+     *
+     * Shared admin & teknisi, sama seperti `monthly-bills` di atas --
+     * teknisi juga memakai halaman "Daftar Tagihan" versi teknisi, dan
+     * Least-privilege sudah dijaga di controller (teknisi hanya boleh
+     * menyusun pesan untuk pelanggan yang ia tangani).
+     *
+     * Endpoint ini TIDAK mengirim pesan; dia hanya mengembalikan teks
+     * dan tautan `wa.me` yang pesannya sudah terisi.
+     */
+    Route::get('whatsapp/template', [WhatsappController::class, 'template']);
+    Route::post('whatsapp/messages', [WhatsappController::class, 'messages']);
 
     // Detail satu tagihan — shared admin & teknisi.
     //

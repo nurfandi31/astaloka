@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Console\Commands\MigrateCentral;
+use App\Console\Commands\ScheduleRunResilient;
 use App\Listeners\BridgeConsoleCommandEvents;
 use App\Listeners\GuardCentralDatabaseWrites;
 use App\Listeners\GuardDestructiveCommands;
@@ -17,6 +18,7 @@ use App\Observers\PaymentObserver;
 use App\Observers\TransactionObserver;
 use App\Services\TenantManager;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Application;
 use Illuminate\Console\Events\ArtisanStarting;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -67,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerCentralDatabaseWriteGuard();
         $this->registerProtectedDatabaseSqlGuard();
         $this->registerConsoleEventBridge();
+        $this->registerSchedulerCommandOverride();
         Relation::enforceMorphMap([
             'payment' => Payment::class,
             'monthly_bill' => MonthlyBill::class,
@@ -77,6 +80,53 @@ class AppServiceProvider extends ServiceProvider
 
         Transaction::observe(TransactionObserver::class);
         Payment::observe(PaymentObserver::class);
+    }
+
+    /**
+     * Ganti `schedule:run` bawaan dengan versi yang tidak crash saat
+     * database tidak terjangkau.
+     *
+     * Kenapa ini perlu
+     * ==============
+     *
+     * `schedule:run` dipanggil SETIAP MENIT oleh Task Scheduler. Sebelum
+     * menjalankan job apa pun, framework membaca cache (flag pause, flag
+     * interrupt, mutex `withoutOverlapping`). Cache aplikasi memakai store
+     * `database`, jadi:
+     *
+     *   - MySQL mati / belum selesai start -> query cache melempar
+     *     `SQLSTATE[HY000] [2002]`, `schedule:run` CRASH sebelum job dicek;
+     *   - job yang SEHARUSNYA jalan tidak jalan -- termasuk generate piutang
+     *     pada tanggalnya, yang gate-nya bersifat PERSIS, jadi satu malam
+     *     yang terlewat berarti bulan itu tidak pernah punya jurnal;
+     *   - satu baris ERROR ditulis ke log SETIAP MENIT, jadi log membanjir
+     *     dan error yang sesungguhnya jadi sulit ditemukan.
+     *
+     * Cache yang dipakai scheduler tidak WAJIB di database -- isinya cuma
+     * "apakah job ini sedang jalan". Karena itu `config('cache.schedule_store')`
+     * diset ke `file` (lihat `config/cache.php`), dan command ini memastikan
+     * command yang membacanya memakai store itu.
+     *
+     * Kenapa overriding, bukan mengubah `vendor/`
+     * ==========================================
+     *
+     * `composer install` menimpa file di `vendor/`, jadi perubahan di sana
+     * hilang tanpa jejak. Overriding lewat `Artisan::starting` membuat
+     * perbedaannya menetap di repo ini dan terlihat saat review kode.
+     *
+     * @see ScheduleRunResilient
+     */
+    private function registerSchedulerCommandOverride(): void
+    {
+        Event::listen(ArtisanStarting::class, function (ArtisanStarting $event): void {
+            $artisan = $event->artisan;
+
+            if (! $artisan instanceof Application) {
+                return;
+            }
+
+            $artisan->resolveCommands([ScheduleRunResilient::class]);
+        });
     }
 
     /**

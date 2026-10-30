@@ -8,7 +8,8 @@
         <p class="text-xs md:text-sm text-slate-500! leading-relaxed">
           Menampilkan seluruh tagihan pelanggan. Satu pelanggan dapat muncul di lebih dari satu
           baris bila memiliki banyak tagihan (mis. bulan ini &amp; bulan lalu). Anda dapat mencari
-          nama, ID, atau nomor invoice dan mengirim pengingat WhatsApp.
+          nama, ID, atau nomor invoice, lalu mengirim pengingat WhatsApp langsung per baris --
+          pesannya mengikuti template yang Anda set di SOP &rarr; Whatsapp API.
         </p>
       </div>
 
